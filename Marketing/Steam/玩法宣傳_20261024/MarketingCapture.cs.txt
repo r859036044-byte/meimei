@@ -1,0 +1,27 @@
+using Godot;
+using System;
+public partial class MarketingCapture : Node
+{
+ public override async void _Ready()
+ {
+  try {
+   var canvas=new Control();AddChild(canvas);canvas.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+   TextureRect Pic(string path,Vector2 pos,Vector2 size){var t=new TextureRect{Texture=GD.Load<Texture2D>(path),Position=pos,Size=size,ExpandMode=TextureRect.ExpandModeEnum.IgnoreSize,StretchMode=TextureRect.StretchModeEnum.KeepAspectCentered};canvas.AddChild(t);return t;}
+   Pic("res://Resources/Backgrounds/bg_LivingRoom.png",Vector2.Zero,new Vector2(1920,1080));
+   Pic("res://Resources/Character/Linai1.png",new Vector2(1010,-170),new Vector2(650,1337));
+   Pic("res://Resources/Character/laugh1.png",new Vector2(1010,-170),new Vector2(650,1337));
+   var box=new Panel{Position=new Vector2(70,820),Size=new Vector2(1780,225)};canvas.AddChild(box);
+   var label=new RichTextLabel{Position=new Vector2(45,42),Size=new Vector2(1670,150),Text="還不錯。比平常的好吃一點。"};label.AddThemeFontSizeOverride("normal_font_size",34);box.AddChild(label);
+   var reader=NovelReader.Install(this,box,label,null,()=>false,()=>true,()=>false,()=>{},()=>{});
+   reader.BeginLine("莉奈","早安。");reader.BeginLine("男主","早餐準備好了。");reader.BeginLine("莉奈","還不錯。比平常的好吃一點。");
+   var note=new Label{Text="閱讀介面展示",Position=new Vector2(70,35)};note.AddThemeFontSizeOverride("font_size",24);canvas.AddChild(note);
+   await ToSignal(GetTree().CreateTimer(0.7),SceneTreeTimer.SignalName.Timeout);
+   await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+   GetViewport().GetTexture().GetImage().SavePng("res://Marketing/Steam/玩法宣傳_20261024/閱讀介面展示.png");
+   reader.OpenHistory();await ToSignal(GetTree().CreateTimer(0.5),SceneTreeTimer.SignalName.Timeout);
+   await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+   GetViewport().GetTexture().GetImage().SavePng("res://Marketing/Steam/玩法宣傳_20261024/歷史介面展示.png");
+   GD.Print("MARKETING_CAPTURE_OK");GetTree().Quit();
+  }catch(Exception e){GD.PrintErr(e);GetTree().Quit(1);}
+ }
+}

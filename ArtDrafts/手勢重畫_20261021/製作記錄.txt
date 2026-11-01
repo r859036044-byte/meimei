@@ -1,0 +1,14 @@
+工具：內建 image_gen
+參考：使用者手勢照片與專案 Sprites/游標.png，無新增網站下載素材。原圖權利來源沿用既有專案記錄。
+覆蓋檔案：Resources/Sprites/捏臉手_右手.png、游標.png。僅素材替換，不變更互動邏輯。
+提示：
+[
+  [
+    "pinch",
+    "Create isolated anime game hand sprite. Reference 1 is POSE ONLY: copy photographed right hand viewpoint closely, thumb pad facing viewer on left, index curled down behind thumb so finger pads nearly touch at upper left, remaining three fingers folded into a compact fist, wrist entering from bottom right. This is an oblique side view, NOT previous open circular OK gesture or wide C claw. Reference 2 supplies DRAWING STYLE AND SKIN COLOR ONLY: simple slightly rough dark brown contour lines, light peach skin, flat pink-peach cel shadows, minimal detail. Five fingers total, compact natural knuckles, clean short nails. No face or person or background or props, just right hand and short wrist. True transparent PNG background, near-square canvas and small clear margin. Neutral gentle pinching gesture."
+  ],
+  [
+    "point",
+    "Redraw supplied pointing hand as a clean isolated anime game pointer sprite. Match original pose and silhouette very closely: right index extended diagonally upper left, other three fingers naturally curled, thumb bent left, back of hand visible, wrist bottom right. Fingertip must remain at x1.7%,y1.2% of square canvas to preserve cursor hotspot. Retain whole hand inside frame. Style simple hand-drawn dark brown outlines and light peach skin with restrained flat pink-peach cel shading, matching original game, no realistic texture, no glossy rendering. Improve shaky anatomy/edges and replace blurry wrist with cleanly drawn wrist ending. No accessories no objects no person no background. True transparency, square canvas."
+  ]
+]

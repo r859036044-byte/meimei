@@ -1,0 +1,50 @@
+按鈕設計與素材授權紀錄
+更新日期：2026-09-12
+
+本次實際使用：Godot StyleBoxFlat 程式繪製的奶白／粉色按鈕。
+未下載、未匯入、未購買以下外部素材。沒有新增外部圖片或字型。
+此記錄只涵蓋本次修改，不代表既有遊戲素材已完成授權審查。
+
+修改範圍：共用 UIStyle、主選單 Btn、序章確認按鈕、設定套用／退出／選擇箭頭。
+保留原始位置、大小、文字節點和點擊事件；未進行遊戲反覆測試。
+
+可商用素材候選（以下為作者頁面聲明摘要，價格以購買頁當下為準）：
+
+1. Kenney — UI Pack（免費）
+https://kenney.nl/assets/ui-pack
+https://kenney-assets.itch.io/ui-pack
+版權／授權：CC0 1.0 Universal；作者明確允許商業專案。
+用途建議：通用按鈕與控制元件，可自行調整白粉配色。
+狀態：未使用。
+
+2. Wenrexa — Assets UI Anime Novella Casual Interface（付費）
+https://wenrexa.itch.io/uianime
+頁面顯示：US$2.34 促銷價，原價 US$23.42。
+版權／授權：作者頁標示 CC0，並明確允許商業及免費專案。
+內容：淡粉風格、PNG 與 PSD，適合視覺小說。
+附帶字型需在取得包裹後另核對字型自己的授權，不在本次推薦使用範圍。
+狀態：未購買、未使用。
+
+3. Marta Vidal — Simple Pink UI Pack（付費）
+https://marta-vidal.itch.io/pinkuipack
+頁面顯示：US$2 起。
+版權／授權：允許個人與商業使用，無須署名；禁止轉售或重新散布素材檔。
+內容：PNG／SVG、柔和粉色按鈕與面板，頁面標示支援九宮格縮放。
+狀態：未購買、未使用。
+
+使用規則：往後若匯入外部素材，必須新增實際檔名、作者、來源網頁、授權聲明與修改內容，並保留下載包的授權文字。
+
+
+2026-09-12 可愛按鈕與小說閱讀控制更新
+本次新增外部素材：無。
+按鈕星星／愛心：程式文字裝飾，使用遊戲既有字型後備；無新增字型檔。
+白粉按鈕與對話紙張：Godot StyleBoxFlat 原生繪製。
+互動音效：CuteButtonMotion.cs 以正弦波、滑音、音量包絡合成 PCM。
+未取樣任何歌曲或音效素材，沒有外部音效網頁或第三方素材授權需要列入。
+合成音效跟隨 SettingsManager.SFXVolume 與 Master 匯流排音量。
+
+確認視窗更新：奶白圓角卡片與粉紅愛心由 Godot 原生繪製（HeartDecoration.cs），無新增外部素材。
+
+設定介面與立繪浮動更新：卡片、粉色滑桿與下拉選单均由 Godot 原生 UI 繪製；PortraitFloat.cs 為程式動畫，未新增外部素材。
+
+第三天時機挑戰、角色姓名牌及歷史分隔線：均以 Godot 原生 UI 與既有 HeartDecoration 繪製，未新增外部圖片、音效或字型素材。

@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://c7ewlq0hwpwq5"]
+
+[ext_resource type="Script" uid="uid://s2umd74n1xsw" path="res://Scripts/UI/MainMenuRuntime.cs" id="1_mainmenu"]
+
+[node name="MainMenu" type="Control" unique_id=500842426]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_mainmenu")
+ChoiceBtnSize = Vector2(650, 100)
+ChoiceBtnGap = 100.0
+ChoicePos = Vector2(0, 100)
+ChoiceFontSize = 35

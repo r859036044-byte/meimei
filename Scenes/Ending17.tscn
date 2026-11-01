@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://djobqyax6tif"]
+
+[ext_resource type="Script" path="res://Scripts/UI/Ending17Runtime.cs" id="1_e17x"]
+
+[node name="Ending17" type="Node"]
+script = ExtResource("1_e17x")

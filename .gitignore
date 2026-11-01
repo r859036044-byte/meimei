@@ -1,0 +1,27 @@
+# Godot 4 cache & imports
+.godot/
+.import/
+export_presets.cfg
+
+# Mono / C# .NET
+.mono/
+data_*/
+mono_crash.*.json
+[Bb]in/
+[Oo]bj/
+.vs/
+
+# Local backups & archives (GitHub 100MB file limit)
+BackupVersion/
+_backups/
+_backup*/
+Scripts/UI/_backup*/
+*.zip
+*.tar
+*.rar
+*.7z
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db

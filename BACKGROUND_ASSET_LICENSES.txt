@@ -1,0 +1,43 @@
+背景重製素材紀錄
+更新日期：2026-10-17
+
+本次沒有下載第三方素材。20 張原始背景來自使用者提供的專案 Resources/Backgrounds；原檔備份及逐張對照見同資料夾。
+使用者確認：原本右下角帶星星的背景由使用者使用 Gemini 生成。平台：https://gemini.google.com/ 。這是使用者陳述的來源，不代表所有既有圖片已完成授權審查。
+角色參考：使用者提供 codex-clipboard-24b1217a-cc29-4e5e-96ba-bce5a29e9531.png，並聲明為自己其他遊戲的角色。僅用於房間中小型娃娃的外觀。
+本次編修：OpenAI 內建 imagegen；提升線條清晰度、去除角落星星、三張場景統一筆觸、五張背景娃娃角色校正、三張房間衣櫃關門。
+服務條款查閱網址：https://openai.com/policies/terms-of-use/ 及 https://policies.google.com/terms 。本次未將這些服務條款當成第三方素材的 CC0 授權；商業使用仍受原始輸入權利與實際服務條款約束。
+檔名 from-PixAI-2027644428148152811.png 的來源未另獨立確認；未因重製而將它標記為已驗證商用授權。
+本次未引入需另外購買的外部圖像、字型或音效。
+生成工具與提示詞組、原檔至輸出檔對照：圖片對照與生成提示.json。
+
+2026-10-18 已套用20張 PNG背景。舊 JPG 保留，資源載入優先使用同名 PNG。trroom 預設與預載改為 bg_LinaiBed(night)。備份：C:/Users/User/Documents/Codex/2026-09-12/c-users-user-desktop-godot-meimei-3/outputs/背景清晰重製_20261017/實際套用前備份_1792261683636
+
+五張舊 JPG 及匯入設定已移出專案（備份保留），使用新版 PNG，避免編輯器誤選舊圖。
+
+2026-10-18 床鋪分層：由使用者提供既有夜晚床鋪圖以內建 imagegen 編修，未下載外部素材。新增 bg_LinaiBed_night_room.png（無床背景）及 bg_LinaiBed_night_bed.png（透明床鋪）。套用於 TrainingRoom，原合成背景保留供其他劇情使用。生成來源及備份：C:/Users/User/Documents/Codex/2026-09-12/c-users-user-desktop-godot-meimei-3/outputs/床鋪分層_20261018。
+
+2026-10-19 更新：使用內建 image_gen 編輯使用者提供圖像；未下載新增第三方素材。床頭板改為均勻淡紫夜色；沙發改為完整雙人座透明前景，搭配模糊白天房間背景。檔案：bg_LinaiBed_night_bed.png、bg_LivingRoomSofa_day_sofa.png、bg_LivingRoomSofa_day_room.png。原圖來源與權利沿用既有記錄。
+
+2026-10-19 沙發透視修正：內建 image_gen，以原近景圖局部編輯。指示：保留左側扶手及大靠背，移除右端扶手與楔形塊，第二靠背延伸出右畫框，只露部分座位，保持透明背景。使用者提供原圖，無新增外部下載素材。輸出 Resources/Backgrounds/bg_LivingRoomSofa_day_sofa.png。
+
+2026-10-19 套用修正：序章 prologue.json 的沙發鏡頭背景改為 bg_LivingRoomSofa_day_room；CG/linai sofa phone 1.png 換成新版透明近景沙發，與背景分層。無新增外部素材，沿用本專案既有生成圖及來源紀錄。
+
+2026-10-19：床頭板均色修訂與兩款獨立透明被子，使用內建 image_gen 根據使用者原床圖生成，無新增網站下載素材。檔案 bg_LinaiBed_night_bed.png / bg_LinaiBed_night_duvet_covered.png / bg_LinaiBed_night_duvet_kicked.png。被子僅新增素材，尚未指定遊戲切換時機。
+
+2026-10-19 床被更新：床恢復使用者指定原圖 exec-1c284e73-d9ae-484f-9237-dfcf4d8a57e3.png；被子 covered 由內建 image_gen 調色，提示：只改成原床低飽和藍紫夜色，保留透明畫布與褶皺。無新增外部下載素材。DuvetForeground 在角色上方、HUD 下方，DuvetState 支援蓋著／踢到左下／隱藏。
+
+2026-10-20：被子蓋著版本調為淺淡藍紫近白色；內建 image_gen 編輯使用者指定既有圖，無新增外部下載素材。保留透明圖層並替換 bg_LinaiBed_night_duvet_covered.png。
+
+2026-10-20 Steam 宣傳插圖草稿：使用專案 Linai1.png、laugh1.png、bg_LivingRoom.png 為參考，內建 image_gen 生成兩張全年齡畫面。未新增外站美術素材；來源與提示詳見 Marketing/Steam/全年齡草稿_20261020/製作與用途說明.txt。Steam 圖像規範參考 https://partner.steamgames.com/doc/store/assets/standard （僅規範，非素材來源）。
+
+2026-10-20 TitleName.png：內建 image_gen 依使用者原 LOGO 清理雜點與殘邊，保留原文字與配色；無新增第三方美術素材。原圖備份 Marketing/Steam/LOGO修整_20261020/TitleName_修改前.png。
+
+2026-10-21 捏臉手_右手.png：內建 image_gen 參考本專案 Sprites/右手.png 製作，保留膚色與粗描邊。無新增外站素材。提示與用途見 ArtDrafts/捏臉手_20261021/製作記錄.txt。
+
+2026-10-21 手勢重畫：內建 image_gen，使用者照片作手勢參考、既有游標.png 作畫風參考。覆蓋 Sprites/捏臉手_右手.png 與游標.png，原圖備份及提示見 ArtDrafts/手勢重畫_20261021。無新增外站素材。
+
+2026-10-21 手勢去白邊：內建 image_gen 清理現有游標.png、捏臉手_右手.png 的手腕白色殘邊與孤立碎點，無新增外站素材。備份與提示：ArtDrafts/手勢去白邊_20261021。
+
+2026-10-24 全年齡宣傳圖及8款可編輯模板：使用專案既有角色、表情、客廳、LOGO及真實閱讀元件展示畫面。白粉裝飾底圖和兩張合成宣傳圖使用內建image_gen生成，未新增外部網站素材。完整提示詞及素材來源紀錄位於桌面「莉奈_全年齡宣傳模板_20261024」。
+
+2026-10-25 宣傳模板客廳版：使用專案既有客廳、角色、LOGO及介面展示，未新增外部網站素材。製作八款可編輯模板，素材權利沿用既有紀錄。輸出桌面：莉奈_全年齡宣傳模板_20261025_客廳版。

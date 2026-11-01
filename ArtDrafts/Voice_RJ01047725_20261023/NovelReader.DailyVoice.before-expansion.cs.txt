@@ -1,0 +1,40 @@
+using Godot;
+using System.Collections.Generic;
+
+public partial class NovelReader
+{
+    // Exact, reviewed everyday lines only. Never infer clips from keywords.
+    static readonly Dictionary<string, string> DailyVoiceLines = new()
+    {
+        ["早安。"] = "116",
+        ["早安呀，哥哥~❤"] = "116",
+        ["好~謝謝爸爸~。"] = "104",
+        ["是嗎。哥哥辛苦了，晚安。"] = "114",
+        ["早安。我喝杯牛奶就出門了。"] = "116",
+        ["早安。因為今天要值日，所以想早點出門。"] = "116"
+    };
+    AudioStreamPlayer _dailyVoice;
+    void StopDailyVoice() { _dailyVoice?.Stop(); }
+    void PlayDailyVoice(string speaker, string text)
+    {
+        StopDailyVoice();
+        if (IsFast || speaker != "莉奈" || text == null || !DailyVoiceLines.TryGetValue(text, out var clip)) return;
+        var stream = GD.Load<AudioStream>("res://Resources/Audio/Voice/RJ01047725/" + clip + ".wav");
+        if (stream == null) return;
+        if (_dailyVoice == null)
+        {
+            _dailyVoice = new AudioStreamPlayer { Name = "DailyDialogueVoice", MaxPolyphony = 1 };
+            AddChild(_dailyVoice);
+        }
+        _dailyVoice.VolumeLinear = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        _dailyVoice.Stream = stream;
+        _dailyVoice.Play();
+    }
+    void UpdateDailyVoice()
+    {
+        if (_dailyVoice == null) return;
+        if (IsFast || !IsInstanceValid(_box) || !_box.IsVisibleInTree()) { StopDailyVoice(); return; }
+        _dailyVoice.VolumeLinear = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        _dailyVoice.StreamPaused = Paused;
+    }
+}

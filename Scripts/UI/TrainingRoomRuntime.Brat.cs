@@ -1,0 +1,258 @@
+using Godot;
+using System.Collections.Generic;
+
+/// <summary>
+/// 雌小鬼互動小遊戲（全年齡版）：莉奈會不定時說話，玩家用「捏臉」回應。
+///  • 說雌小鬼的話 → 玩家捏她：雌小鬼值下降（捏得越用力/越久降越多），她會扭臉；不理她：雌小鬼值上升。
+///  • 說正常的話 → 玩家捏她：心情下降（雌小鬼值也小降一點）；不捏：心情小升。
+///  • 心情 ≤ 0 → 隔天結局「莉奈搬走」（BratEnd = 1）；雌小鬼值 ≥ 100 → 隔天結局「莉奈讓男主當奴隸」（BratEnd = 2）。
+///  • R18 版（插入時）：她說雌小鬼話時，氣泡下面會出現選項「教訓她」「不理她」。
+///      教訓＝雞雞快速頂到底，她求饒、雌小鬼值大降，但心情也扣，扣多少看她舒不舒服（濕度＋穴高潮值）。
+///      不理＝雌小鬼值上升。也可以摸頭安撫或捏臉安全過關；做的時候摸頭也會慢慢回心情。
+///  • 數值存在 PlayerDataManager 的對話變數（Brat／Mood／BratEnd），會跟著存檔。
+/// 所有數值與台詞都在 Inspector「雌小鬼互動」群組（台詞目前是占位字，請自行改）。
+/// Godot 搜尋關鍵字：BratEnabled／BratOnPinchRelease／PendingBratEnding
+/// </summary>
+public partial class TrainingRoomRuntime
+{
+    [ExportGroup("雌小鬼互動")]
+    [Export] public bool BratEnabled = true;
+    [Export(PropertyHint.Range, "0,100,1")] public float BratInitial = 30f;           // 第一次進來的雌小鬼值
+    public float BratValue = 30f;                                                      // 目前雌小鬼值（0~100）
+    [Export] public Vector2 BratLineInterval = new Vector2(9f, 15f);                   // 隔多久說一句（秒，隨機）
+    [Export] public float BratWindowSec = 5f;                                          // 說完話後多久內捏才算回應
+    [Export(PropertyHint.Range, "0,1,0.01")] public float BratChanceBase = 0.3f;       // 雌小鬼值 0 時說雌小鬼話的機率
+    [Export(PropertyHint.Range, "0,1,0.01")] public float BratChanceAt100 = 0.8f;      // 雌小鬼值 100 時說雌小鬼話的機率
+    [Export] public float BratPinchDown = 14f;          // 雌小鬼話 + 捏：雌小鬼值下降（× 捏的幅度 0~1）
+    [Export] public float BratIgnoredUp = 6f;           // 雌小鬼話沒人理：雌小鬼值上升
+    [Export] public float NormalPinchMoodDown = 12f;    // 正常話 + 捏：心情下降（× (0.4 + 0.6×幅度)）
+    [Export] public float NormalPinchBratDown = 4f;     // 正常話 + 捏：雌小鬼值下降（× 幅度）
+    [Export] public float NormalIgnoredMoodUp = 3f;     // 正常話沒被捏：心情上升
+    [Export] public float LessonBratDown = 35f;          // R18「教訓」：雌小鬼值下降
+    [Export] public float LessonMoodBase = 18f;          // R18「教訓」：心情扣的基準（舒服度高會少扣：× (1.6 − 1.2×舒服度)）
+    [Export] public float LessonDuration = 2.5f;         // 「教訓」快速頂到底持續秒數
+    [Export] public float HeadSootheNeedSec = 1.2f;      // 雌小鬼話期間摸頭多久算安撫成功
+    [Export] public float HeadSootheBratDown = 5f;       // 安撫成功：雌小鬼值下降
+    [Export] public float HeadSootheMoodUp = 4f;         // 安撫成功：心情上升
+    [Export] public float HeadSootheMoodPerSec = 1.5f;   // R18 做的時候摸頭：每秒心情上升
+    [Export] public float BratTwistImpulse = 130f;       // 扭臉：被捏放手時臉往反方向甩的力道
+    [Export] public string[] BratBegLines = { "對、對不起～！", "我錯了啦～！", "慢、慢一點…求你了…！" };   // 被教訓時求饒（占位）
+    [Export] public string[] BratSootheLines = { "……嗯。", "哼…這次就放過你。", "…呼。" };                       // 被摸頭安撫（占位）
+    [Export] public string[] BratLines =
+        { "哼～弱雞～", "這種程度也敢叫我做事？", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～" };            // 雌小鬼的話（占位）
+    [Export] public string[] BratNormalLines =
+        { "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？" };                                // 正常的話（占位）
+    [Export] public string[] BratPinchReplyLines = { "痛痛痛～！", "嗚…", "放手啦～！" };                     // 被捏時的反應（占位）
+    [Export] public string[] BratPinchNormalReplyLines = { "…你幹嘛？", "好痛…", "……" };                    // 正常話被捏時的反應（占位）
+
+    const string BratVarBrat = "Brat", BratVarMood = "Mood", BratVarEnd = "BratEnd", BratVarInit = "BratInit";
+
+    bool  _bratLoaded;
+    float _bratTimer = -1f, _bratWindow;
+    int   _bratLineType;                 // 0 沒有、1 雌小鬼話、2 正常話
+    float _lessonT, _headSootheT;
+    Label _bratLabel; ProgressBar _bratBar;
+    HBoxContainer _bratChoices;
+
+    // ── 外部可呼叫：隔天要不要觸發結局（0 沒有、1 搬走、2 奴隸）──
+    public static int PendingBratEnding() => PlayerDataManager.Instance?.GetDialogueVar(BratVarEnd) ?? 0;
+
+    static void BratSetVar(string name, int v)
+    {
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null) return;
+        pdm.AddDialogueVar(name, v - pdm.GetDialogueVar(name));
+    }
+
+    void BratLoad()
+    {
+        _bratLoaded = true;
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null) { BratValue = BratInitial; return; }
+        if (pdm.GetDialogueVar(BratVarInit) == 0)
+        {
+            BratSetVar(BratVarInit, 1);
+            BratSetVar(BratVarBrat, Mathf.RoundToInt(BratInitial));
+            BratSetVar(BratVarMood, Mathf.RoundToInt(Mood));
+        }
+        BratValue = pdm.GetDialogueVar(BratVarBrat);
+        Mood = pdm.GetDialogueVar(BratVarMood);
+    }
+
+    void BratSave()
+    {
+        BratValue = Mathf.Clamp(BratValue, 0f, 100f);
+        Mood = Mathf.Clamp(Mood, 0f, 100f);
+        BratSetVar(BratVarBrat, Mathf.RoundToInt(BratValue));
+        BratSetVar(BratVarMood, Mathf.RoundToInt(Mood));
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null || pdm.GetDialogueVar(BratVarEnd) != 0) return;
+        if (Mood <= 0f)           { BratSetVar(BratVarEnd, 1); GD.Print("[Brat] 心情歸 0 → 隔天結局：莉奈搬走"); }
+        else if (BratValue >= 100f) { BratSetVar(BratVarEnd, 2); GD.Print("[Brat] 雌小鬼值 100 → 隔天結局：莉奈讓男主當奴隸"); }
+    }
+
+    void BratSay(string[] lines)
+    {
+        if (lines == null || lines.Length == 0) return;
+        string t = Pick(lines);
+        if (!string.IsNullOrEmpty(t)) ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, t, false);
+    }
+
+    bool BratR18 => PlayerDataManager.Instance?.R18ContentEnabled == true;
+    bool BratInserted => _jijiPhase == 3 && _jijiStage >= 1;
+
+    /// <summary>每幀（Pinch.cs 的 PinchProcess 開頭呼叫）。</summary>
+    void BratProcess(float dt)
+    {
+        if (_bratBar != null) { _bratBar.Value = BratValue; if (_bratLabel != null) _bratLabel.Text = $"{Mathf.RoundToInt(BratValue)}"; }
+        if (!BratEnabled) { BratHideChoices(); return; }
+        if (!_bratLoaded) BratLoad();
+        bool r18 = BratR18;
+
+        // R18 做的時候摸頭：慢慢回心情
+        if (r18 && BratInserted && _reactFlags.head) { Mood += HeadSootheMoodPerSec * dt; if (Mood > 100f) Mood = 100f; _bratDirty = true; }
+        if (_bratDirty && _bratLineType == 0) { _bratDirty = false; BratSave(); }
+
+        // 「教訓」：雞雞快速頂到底
+        if (_lessonT > 0f)
+        {
+            _lessonT -= dt;
+            if (BratInserted) { _s2Paused = false; _s2SpeedLv = S2SpeedLvMax; }
+            if (_lessonT <= 0f) _s2SpeedLv = Mathf.Min(_s2SpeedLv, S2SpeedLvMax * 0.5f);
+        }
+
+        // 不定時說話
+        if (_bratLineType == 0)
+        {
+            BratHideChoices();
+            if (_bratTimer < 0f) _bratTimer = (float)GD.RandRange(BratLineInterval.X, BratLineInterval.Y);
+            _bratTimer -= dt;
+            if (_bratTimer <= 0f && _lessonT <= 0f)
+            {
+                float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
+                _bratLineType = GD.Randf() < p ? 1 : 2;
+                BratSay(_bratLineType == 1 ? BratLines : BratNormalLines);
+                _bratWindow = BratWindowSec; _headSootheT = 0f;
+                if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
+                _bratTimer = -1f;
+                if (_bratLineType == 1 && r18 && BratInserted) BratShowChoices();
+            }
+        }
+        else
+        {
+            _bratWindow -= dt;
+            // 摸頭安撫（只有雌小鬼話才算「過關」）
+            if (_reactFlags.head) _headSootheT += dt; else _headSootheT = Mathf.Max(0f, _headSootheT - dt);
+            if (_bratLineType == 1 && _headSootheT >= HeadSootheNeedSec)
+            {
+                BratValue -= HeadSootheBratDown; Mood += HeadSootheMoodUp;
+                BratSay(BratSootheLines); BratResolve();
+            }
+            else if (_bratWindow <= 0f)
+            {   // 沒人理她
+                if (_bratLineType == 1) BratValue += BratIgnoredUp;
+                else { Mood += NormalIgnoredMoodUp; BratValue -= 1f; }
+                BratResolve();
+            }
+            else BratLayoutChoices();
+        }
+    }
+
+    bool _bratDirty;
+
+    void BratResolve()
+    {
+        _bratLineType = 0; _bratWindow = 0f; _bratTimer = -1f; _headSootheT = 0f;
+        BratHideChoices();
+        BratSave();
+    }
+
+    // ── R18 選項（氣泡下面）──
+    void BratShowChoices()
+    {
+        if (_bubbleGirl == null || !IsInstanceValid(_bubbleGirl)) return;
+        var parent = _bubbleGirl.GetParent();
+        if (parent == null) return;
+        if (_bratChoices == null || !IsInstanceValid(_bratChoices))
+        {
+            _bratChoices = new HBoxContainer { Name = "BratChoices", MouseFilter = Control.MouseFilterEnum.Ignore };
+            _bratChoices.AddThemeConstantOverride("separation", 8);
+            _bratChoices.AddChild(BratMakeBtn("教訓她", BratChooseLesson));
+            _bratChoices.AddChild(BratMakeBtn("不理她", BratChooseIgnore));
+            parent.AddChild(_bratChoices);
+        }
+        _bratChoices.Visible = true;
+        BratLayoutChoices();
+    }
+
+    static Button BratMakeBtn(string text, System.Action onPress)
+    {
+        var b = new Button { Text = text, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(84f, 30f) };
+        var sb = new StyleBoxFlat { BgColor = new Color(1f, 0.97f, 0.99f, 0.92f), BorderColor = new Color(0.82f, 0.38f, 0.58f) };
+        sb.SetBorderWidthAll(2); sb.SetCornerRadiusAll(12);
+        var sbH = (StyleBoxFlat)sb.Duplicate(); sbH.BgColor = new Color(1f, 0.85f, 0.92f, 0.96f);
+        b.AddThemeStyleboxOverride("normal", sb); b.AddThemeStyleboxOverride("hover", sbH); b.AddThemeStyleboxOverride("pressed", sbH);
+        b.AddThemeColorOverride("font_color", new Color(0.22f, 0.10f, 0.18f));
+        b.AddThemeColorOverride("font_hover_color", new Color(0.22f, 0.10f, 0.18f));
+        b.Pressed += onPress;
+        return b;
+    }
+
+    void BratLayoutChoices()
+    {
+        if (_bratChoices == null || !IsInstanceValid(_bratChoices) || !_bratChoices.Visible) return;
+        if (_bubbleGirl == null || !IsInstanceValid(_bubbleGirl)) { _bratChoices.Visible = false; return; }
+        _bratChoices.Position = _bubbleGirl.Position + new Vector2(0f, _bubbleGirl.Size.Y + 30f);
+        _bratChoices.ZIndex = 50;
+    }
+
+    void BratHideChoices()
+    {
+        if (_bratChoices != null && IsInstanceValid(_bratChoices)) _bratChoices.Visible = false;
+    }
+
+    void BratChooseLesson()
+    {
+        if (_bratLineType != 1) return;
+        float comfort = Mathf.Clamp((Wetness / 100f) * 0.5f + (ClimaxLevel / 100f) * 0.5f, 0f, 1f);
+        float moodLoss = Mathf.Max(5f, LessonMoodBase * (1.6f - 1.2f * comfort));
+        BratValue -= LessonBratDown;
+        Mood -= moodLoss;
+        _lessonT = LessonDuration;
+        BratSay(BratBegLines);
+        GD.Print($"[Brat] 教訓：舒服度 {comfort:F2} → 心情 -{moodLoss:F1}、雌小鬼值 -{LessonBratDown:F0}");
+        BratResolve();
+    }
+
+    void BratChooseIgnore()
+    {
+        if (_bratLineType != 1) return;
+        BratValue += BratIgnoredUp;
+        BratResolve();
+    }
+
+    /// <summary>捏臉放手時由 Pinch.cs 呼叫。strength：這次捏的幅度 0~1。</summary>
+    void BratOnPinchRelease(float strength)
+    {
+        if (!BratEnabled || strength < 0.05f) return;
+        strength = Mathf.Clamp(strength, 0f, 1f);
+        // 扭臉：往捏的反方向轉開
+        _pinchActive = true; _pinchVel += new Vector2(-_pinchSide * BratTwistImpulse * strength, 0f);
+        if (_bratLineType == 1)
+        {
+            BratValue -= BratPinchDown * strength;
+            BratSay(BratPinchReplyLines);
+        }
+        else if (_bratLineType == 2)
+        {
+            Mood -= NormalPinchMoodDown * (0.4f + 0.6f * strength);
+            BratValue -= NormalPinchBratDown * strength;
+            BratSay(BratPinchNormalReplyLines);
+        }
+        else
+        {
+            Mood -= 1.5f * strength;   // 沒在說話時被亂捏：心情小降
+        }
+        BratResolve();
+    }
+}

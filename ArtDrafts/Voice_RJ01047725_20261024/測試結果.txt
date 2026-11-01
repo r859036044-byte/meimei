@@ -1,0 +1,4 @@
+主選單實際BeginReadingLine入口：PROLOGUE_VOICE_OK 121.wav volume=0.27
+NEXT_LINE_STOP_OK
+FAST_SKIP_OK
+測試使用headless，未驗證實體喇叭輸出。

@@ -1,0 +1,56 @@
+using Godot;
+using System.Collections.Generic;
+
+public partial class NovelReader
+{
+    // Exact, reviewed everyday lines only. Never infer clips from keywords.
+    static readonly Dictionary<string, string> DailyVoiceLines = new()
+    {
+        ["誒誒誒！這不是那個需要排隊預約才能搶到的限量草莓千層嗎！"] = "106",
+        ["哇！謝謝哥哥❤！一直都想吃"] = "104",
+        ["喔？這不是超難買的那家嗎？哼，雜魚哥哥今天倒是挺上道的嘛，竟然懂得討好我了。"] = "94",
+        ["……知道了啦。看在蛋糕的份上，我會……考慮看看的。"] = "122",
+        ["不用你說我也會去睡……吶，看在蛋糕的份上……晚安，雜魚哥哥。"] = "114",
+        ["我卻一直說你噁心什麼的……總之，稍微跟你說聲對不起啦。"] = "102",
+        ["還湊合。不過反正也就這種水準了。"] = "79",
+        ["哈？草莓千層？你以為用一塊破蛋糕就能討好我嗎？雜魚哥哥的腦迴路還真是可悲。。"] = "120",
+        ["這種破爛公寓真的能住人喔？"] = "120",
+        ["哈？你是老年癡呆喔？"] = "121",
+        ["喔，你說那個喔？那是最近一直纏著我的追求者啊。"] = "120",
+        ["我的父母不就是你的父母嗎？笨～蛋雜魚哥哥。"] = "109",
+        ["吵死了，雜魚哥哥閉嘴啦。要不是看在爸爸的面子上，誰想來這種貧民窟啊。"] = "79",
+        ["喂，還愣在那裡幹嘛？是不會幫忙拿行李喔？身為男人這是你應該做的吧。快點搬啊，雜魚哥哥。"] = "79",
+        ["哈？和你有什麼關係？你是哪來的居委會大媽嗎？"] = "121",
+        ["早安。"] = "116",
+        ["早安呀，哥哥~❤"] = "116",
+        ["好~謝謝爸爸~。"] = "104",
+        ["是嗎。哥哥辛苦了，晚安。"] = "114",
+        ["早安。我喝杯牛奶就出門了。"] = "116",
+        ["早安。因為今天要值日，所以想早點出門。"] = "116"
+    };
+    AudioStreamPlayer _dailyVoice;
+    void StopDailyVoice() { _dailyVoice?.Stop(); }
+    void PlayDailyVoice(string speaker, string text)
+    {
+        StopDailyVoice();
+        if (IsFast || speaker != "莉奈" || text == null || !DailyVoiceLines.TryGetValue(text, out var clip)) return;
+        var stream = GD.Load<AudioStream>("res://Resources/Audio/Voice/RJ01047725/" + clip + ".wav");
+        if (stream == null) return;
+        if (_dailyVoice == null)
+        {
+            _dailyVoice = new AudioStreamPlayer { Name = "DailyDialogueVoice", MaxPolyphony = 1 };
+            AddChild(_dailyVoice);
+        }
+        _dailyVoice.VolumeLinear = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        _dailyVoice.StreamPaused = false;
+        _dailyVoice.Stream = stream;
+        _dailyVoice.Play();
+    }
+    void UpdateDailyVoice()
+    {
+        if (_dailyVoice == null) return;
+        if (IsFast || !IsInstanceValid(_box) || !_box.IsVisibleInTree()) { StopDailyVoice(); return; }
+        _dailyVoice.VolumeLinear = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        _dailyVoice.StreamPaused = Paused;
+    }
+}

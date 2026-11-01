@@ -1,0 +1,30 @@
+using Godot;
+using System;
+using System.Reflection;
+public partial class DailyVoiceSmoke : Node
+{
+ public override async void _Ready()
+ {
+  try {
+   var menu=GD.Load<PackedScene>("res://Scenes/MainMenu.tscn").Instantiate(); AddChild(menu);
+   await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+   var flags=BindingFlags.NonPublic|BindingFlags.Instance;
+   object Field(string n)=>menu.GetType().GetField(n,flags).GetValue(menu);
+   ((Control)Field("_dialoguePanel")).Show();
+   menu.GetType().GetMethod("SetDialogueUIVisible",flags).Invoke(menu,new object[]{true});
+   ((Label)Field("_speakerText")).Text="莉奈";
+   menu.GetType().GetMethod("BeginReadingLine",flags).Invoke(menu,new object[]{"哈？你是老年癡呆喔？"});
+   await ToSignal(GetTree().CreateTimer(0.15),SceneTreeTimer.SignalName.Timeout);
+   var reader=(NovelReader)Field("_reader");
+   var player=reader.GetNodeOrNull<AudioStreamPlayer>("DailyDialogueVoice");
+   if(player==null||!player.Playing||player.StreamPaused)throw new Exception("Prologue voice not playing");
+   GD.Print("PROLOGUE_VOICE_OK stream=",player.Stream.ResourcePath," volume=",player.VolumeLinear," position=",player.GetPlaybackPosition());
+   reader.BeginLine("男主","測試換句");
+   if(player.Playing)throw new Exception("Voice did not stop");
+   GD.Print("NEXT_LINE_STOP_OK");
+   reader.ToggleFast();reader.BeginLine("莉奈","哈？你是老年癡呆喔？");
+   if(player.Playing)throw new Exception("Fast voice played");
+   GD.Print("FAST_SKIP_OK");GetTree().Quit();
+  }catch(Exception e){GD.PrintErr(e);GetTree().Quit(1);}
+ }
+}

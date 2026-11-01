@@ -1,0 +1,45 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="莉奈 meimei"
+run/main_scene="res://Scenes/MainMenu.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+CuteUIEffects="*res://Scripts/UI/CuteUIEffects.cs"
+SettingsManager="res://Scripts/Systems/SettingsManager.cs"
+GameFlowManager="res://Scripts/Systems/GameFlowManager.cs"
+PlayerDataManager="res://Scripts/Systems/PlayerDataManager.cs"
+DaySystem="res://Scripts/Systems/DaySystem.cs"
+GalleryDataManager="res://Scripts/Systems/GalleryDataManager.cs"
+DevModeManager="res://Scripts/Systems/DevModeManager.cs"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="meimei"
+
+[input]
+
+ui_accept={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}

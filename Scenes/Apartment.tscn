@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://drlkck585jqy3"]
+
+[ext_resource type="Script" path="res://Scripts/UI/ApartmentRuntime.cs" id="1_apartment1"]
+
+[node name="Apartment" type="Node"]
+script = ExtResource("1_apartment1")

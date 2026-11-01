@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://drptoltgq5vyw"]
+
+[ext_resource type="Script" path="res://Scripts/UI/BathroomRuntime.cs" id="1_bathroom1"]
+
+[node name="Bathroom" type="Node"]
+script = ExtResource("1_bathroom1")

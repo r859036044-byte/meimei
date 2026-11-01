@@ -1,0 +1,31 @@
+BGM 素材來源與授權紀錄
+更新日期：2026-10-18
+作者／著作權人：甘茶（Amacha）
+網站：甘茶の音楽工房 https://amachamusic.chagasi.com/
+授權頁：https://amachamusic.chagasi.com/terms.html
+
+已核對官方規約：允許免費商用及非商用遊戲背景配樂，亦允許年齡限制作品。著作權仍屬甘茶，不可冒稱作曲者、單獨銷售／二次散布音樂或註冊 Content ID；不可將含曲目的作品登記至 JASRAC 等著作權管理團體。允許剪輯及格式轉換；署名非強制，本專案仍保留署名。不可熱連結播放，檔案已下載至專案使用。
+
+ゆるやかな朝焼け
+來源頁：https://amachamusic.chagasi.com/music_yuruyakanaasayake.html
+下載：https://amachamusic.chagasi.com/mp3/yuruyakanaasayake.mp3
+使用檔案：Resources/Audio/bgm/amacha_yuruyakanaasayake.mp3
+處理：原始 MP3，未剪輯；遊戲內設為循環，音量基準為35%。
+
+カスミソウ
+來源頁：https://amachamusic.chagasi.com/music_kasumisou.html
+下載：https://amachamusic.chagasi.com/mp3/kasumisou.mp3
+使用檔案：Resources/Audio/bgm/amacha_kasumisou.mp3
+處理：原始 MP3，未剪輯；遊戲內設為循環，音量基準為35%。
+
+静止した宇宙
+來源頁：https://amachamusic.chagasi.com/music_seishishitauchu.html
+下載：https://amachamusic.chagasi.com/mp3/seishishitauchu.mp3
+使用檔案：Resources/Audio/bgm/amacha_seishishitauchu.mp3
+處理：原始 MP3，未剪輯；遊戲內設為循環，音量基準為35%。
+
+配樂對應：
+Apartment、LivingRoom：ゆるやかな朝焼け
+Bathroom、一般結局及圖鑑回放：カスミソウ
+Bedroom、TrainingRoom、檔名含 bad 的結局：静止した宇宙
+主選單／序章原有曲目保留；劇情指定 BGM 或 stop 仍優先控制同一播放器。新配樂跟隨音樂音量及總音量。

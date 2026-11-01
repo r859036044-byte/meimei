@@ -1,0 +1,1346 @@
+using Godot;
+
+/// <summary>
+/// TrainingRoomRuntime — 衣服貼身變形。
+/// 衣服（睡衣）要像真的貼在身上：
+///   1. 跟身體一樣的整體縮放（呼吸脹縮）。
+///   2. 套用跟「身體」同一組 shader 參數（M 腿上提漸層、拖膝蓋時的下緣拉伸），每幀從身體的材質複製。
+///   3. 胸部區塊：胸1／胸2 相對身體的位移與縮放（呼吸、吸氣上提、摸胸動畫），衣服對應區域用 shader 取樣位移跟著動，
+///      區域邊緣用平滑衰減，所以只有胸口那一塊會變形。
+/// 所有參數是 Export，Play 模式下可即時調。
+/// </summary>
+public partial class TrainingRoomRuntime
+{
+    [ExportGroup("衣服微小透明")]
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float ClothHemFadeAmt = 0.12f;     // 衣服最底下透明多少（0.12＝透出底下 12%）
+    [Export(PropertyHint.Range, "0.005,0.2,0.005")] public float ClothHemFadeV = 0.03f;  // 下擺往上漸變的高度（V；0.03＝約 96px）
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float ClothChestFadeAmt = 0.10f;   // 胸口中心透明多少（範圍用胸口變形區的大小，往外自然淡掉）
+    [ExportGroup("")]
+    [Export(PropertyHint.Range, "0,2,0.05")] public float ClothChestFollow  = 0.5f;   // 衣服胸口區塊跟著胸部動的比例（0＝不跟，1＝完全貼著）：1 → 0.5，變形減半
+    [Export] public float ClothChestRadiusX = 260f;   // 胸口變形區橢圓半寬（畫布 px）
+    [Export] public float ClothChestRadiusY = 230f;   // 胸口變形區橢圓半高（畫布 px）
+    [Export(PropertyHint.Range, "0,0.95,0.05")] public float ClothChestInner = 0.35f; // 區域內側這個比例以內完全跟隨，往外平滑衰減到 0
+
+    // ── 衣擺（衣服尾端）：呼吸吸氣時左右往外擴張，越靠下擺擴得越多 ──
+    [Export] public float ClothHemBreathAmount = 0.03f;   // 吸氣時下擺最大擴張量（0.03＝約 3%）
+    [Export] public float ClothHemStartV       = 0.40f;   // 衣擺擴張開始的位置（貼圖 V：0＝畫布頂、1＝底）
+    [Export] public float ClothHemEndV         = 0.5275f; // 衣擺最下緣（衣服圖內容底部 y=1688/3200）
+    [Export] public float ClothHemCenterU      = 0.488f;  // 衣擺中心線（衣服內容 644..1308 的中點）
+    [Export] public float ClothHemBTouchGain   = 0f;      // 摸 B 時小穴變形量帶給衣擺的左右擴張比例（0＝不跟；使用者要求摸 B 時衣服最底不要再疊加左右位移）
+    // ── 內褲：摸 B 時跟小穴一樣「中間往左右撐開」──
+    [Export] public float ClothPantyHalfWidthU = 0.07f;  // 內褲中心撐開區半寬（貼圖 U；小穴是 0.105，內褲比小穴寬）
+    [Export(PropertyHint.Range, "0.01,0.3,0.005")] public float ClothPantyHalfHeightV = 0.035f;   // 內褲變形範圍的上下半高（V；越小越只在 B 附近）
+    [Export(PropertyHint.Range, "0,0.1,0.001")] public float ClothPantyShiftK = 0.03f;   // 內褲被撐時往下位移的量
+    [Export(PropertyHint.Range, "0,1,0.01")] public float ClothPantyTwistK = 0.25f;   // 內褲被撐時的歪斜（旋轉感）   // M 腿還沒開、點 B 時，內褲上半部的變形比例（1＝不減弱，0＝上半部完全不變形）
+    [Export] public float ClothPantyStretchGain = 1f;     // 內褲撐開量 ＝ 小穴撐開量 × 這個值
+
+    // ── 衣擺上拉：抓衣服最下緣往上拉（只有被抓的那一點上移，左右順勢往那一點傾斜），下緣會有點捲起來。
+    //    不是 Q 彈：用指數趨近、沒有過衝；放手只回復 ClothHemRecover，其餘維持。 ──
+    [Export] public float ClothHemPullMax     = 0.1554f;  // 最多往上拉多少（貼圖 V）＝影響範圍的 97%
+    [Export] public float ClothHemPullBandV   = 0.1671f;   // 衣擺上拉影響最下面 41%（衣服高約 0.4075）；範圍內是壓縮捲起，最多壓到剩 15%   // 往上受影響的範圍（V），越往上影響越小
+    [Export] public float ClothHemPullWidthU  = 0.20f;   // 左右影響寬度（U，高斯半寬）
+    [Export] public float ClothHemLean        = 0f;      // （已停用）左右不縮小
+    [Export] public float ClothHemInward      = 0.7f;    // 往上拉後下擺向內收的程度（0＝不收；越大越尖）
+    [Export] public float ClothHemRollV       = 0.014f;  // 捲邊厚度（V）
+    [Export] public float ClothHemRollStrength = 1f;     // 捲邊明暗強度（0＝不捲）
+    [Export] public float ClothHemGrabBandV   = 0.07f;  // 衣擺下緣往上多少範圍內可以抓（V）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float ClothHemRecover = 0f; // 放手回復的比例
+    [Export] public float ClothHemFollow      = 12f;     // 跟隨滑鼠的速度（越大越快；指數趨近，不會彈）
+
+    // ── 衣服上半（最上面 40%）：不受衣擺上拉影響；左上／右上兩個角可以各自拖曳（旋轉＋拉伸，也可以往下拉），放手維持 ──
+    [Export] public float ClothTopV          = 0.12f;   // 衣服內容頂端（貼圖 V）
+    [Export] public float ClothLeftU         = 0.322f;  // 衣服內容左緣（U）
+    [Export] public float ClothRightU        = 0.654f;  // 衣服內容右緣（U）
+    [Export] public float ClothTopFrac       = 0.36f;    // 上半區佔衣服高度比例
+    [Export] public float ClothTopGrabRadius = 170f;    // （已停用）
+    // 上半部新規則：最上面一小段（旋轉段）不拉伸、只旋轉——左半逆時針、右半順時針（兩邊往下垂）；
+    // 影響段（旋轉段下面一段）跟著漸弱變形；兩邊都轉到解鎖角度以上，才能在旋轉段~36% 之間往下拉（壓縮）。不能往上拉。
+    [Export] public float ClothTopRotFrac       = 0.10f;  // 旋轉段佔衣服高度比例（從衣服頂端算）
+    [Export] public float ClothTopInflFrac      = 0.15f;  // 旋轉段下面受影響變形的範圍比例
+    [Export] public float ClothYellowShiftPx    = 2f;     // 黃線位置微調（正=向下；0＝原位置）
+    [Export] public bool  ClothBodyRotate       = false;  // 衣服本體上緣是否跟著旋轉（預設關：旋轉的是左右肩帶）
+    [Export] public float ClothOrangeRoundU     = 0.06f;  // 橘線中間的圓弧半徑（U；0＝尖角，越大越圓）
+    [Export] public float ClothOrangeShiftPx    = 6f;    // 橘線位置微調（正=向下、負=向上；單位畫布像素）
+    // 套用微調後的實際比例（shader、變形、點擊判定全部共用，三者位置一致）
+    // 位移單位 = 畫面上看到的像素（依衣服實際縮放換算成畫布像素）
+    [Export] public float ClothOrangeTiltDeg    = 30f;    // 橘線傾斜角度：左半逆時針、右半順時針（兩邊往下垂成 ∧ 形）；0＝水平直線
+    float ClothOrangeK => Mathf.Tan(Mathf.DegToRad(ClothOrangeTiltDeg)) * 2000f / 3200f;   // U 轉 V 的斜率（畫布 2000×3200）
+    [Export] public float ClothTopXComp         = 0.5f;   // 旋轉時橫向跑位的補償比例（0＝不補償，1＝完全抵銷橫向位移）；左右兩邊都生效
+    float ClothOrangeHalfW => Mathf.Max(0.01f, (ClothRightU - ClothLeftU) * 0.5f);
+    float _clothPxScale = 1f;
+    float ClothRotFracEff  => ClothTopRotFrac + (ClothYellowShiftPx + StrapLineFollowPx()) * _clothPxScale / 3200f / Mathf.Max(0.001f, ClothHemEndV - ClothTopV);
+    // 橘線不能高過黃線（影響段長度不能變負，否則漸變會算反、衣服被壓扁），最少保留 0.01 比例
+    float ClothInflFracEff => Mathf.Max(0.01f, ClothTopInflFrac + (ClothOrangeShiftPx - ClothYellowShiftPx) * _clothPxScale / 3200f / Mathf.Max(0.001f, ClothHemEndV - ClothTopV));
+    [Export] public float ClothTopRotMax        = 90f;    // 最大旋轉角度（度）
+    [Export] public float ClothTopStretchUnlockDeg = 90f; // 兩邊肩帶都拉到這個角度以上（90＝拉到底）才能往下拉
+    [Export] public float ClothTopStretchMaxFrac = 0.35f; // 往下拉最多壓縮上半區（頂端~36%）的比例（原 0.93 會把衣服頂端一路拉到嘴巴）
+    [Export] public bool  ClothShowGuides       = false;   // 臨時：在衣服上畫分界切線（白＝頂端、黃＝旋轉段下緣10%、橘＝影響段下緣、綠＝36%、青＝下擺範圍上緣、洋紅＝旋轉中心線）
+
+    // 肩帶（剛體：先平移、再繞自己最底端旋轉）整套邏輯在 TrainingRoomRuntime.Strap.cs
+    static readonly string[] ClothPartLayers = { "衣服/左帶", "衣服/右帶" };   // 衣服拆出來的兩條帶子：共用本體的材質與縮放
+    ShaderMaterial _clothMat, _pantyMat;
+    [Export] public float ClothTopGrabExtraFrac = 0.35f;   // 肩帶到底後，衣服上半部可以抓來往下拉的範圍再往下多多少（佔衣服高度比例）
+    float[] _rotA = new float[2], _rotT = new float[2], _stA = new float[2], _stT = new float[2];   // 上半部：旋轉角（度，左/右）與下拉量（V，左/右）
+    float[] _midRotS = new float[2], _midStS = new float[2];
+    float _topStartA, _topStartVal, _topStartLY;
+    float ClothTopCx => (ClothLeftU + ClothRightU) * 0.5f;
+    float _midStartY, _midHemS0, _midHemS1; bool _midDrag;
+    int _topDrag;
+    bool ClothDragActive => _topDrag != 0 || _hemDrag || _midDrag || _pantyDrag || _pantyBedDrag;   // 正在拖衣服：綠點 hover 游標不要換
+    float[] _hemPullA = new float[2], _hemTargetA = new float[2], _hemPullXA = { 0.40f, 0.58f };
+    float _hemStartLocalY, _hemStartTarget; int _hemSlot;
+    bool _hemDrag;
+
+    const string ClothShaderCode = @"
+shader_type canvas_item;
+uniform sampler2D leg_tex : filter_linear;   // M 腿（腿／腳／足）離屏渲染：衣服在最上面時被 M 腿裁切
+uniform vec2 lg_x = vec2(1.0, 0.0);
+uniform vec2 lg_y = vec2(0.0, 1.0);
+uniform vec2 lg_o = vec2(0.0);
+uniform vec2 cl_size = vec2(2000.0, 3200.0);
+uniform float lg_on = 0.0;
+uniform float expand_amount = 0.0;
+uniform float center_u = 0.5225;
+uniform float taper_start_v = 0.3716;
+uniform float taper_end_v = 0.5472;
+uniform float base_ratio = 0.0;
+uniform float lift_top_v = 0.0;
+uniform float lift_bottom_v = 0.0;
+uniform float lift_neck_v = 0.12;
+uniform float lift_navel_v = 0.36;
+uniform float lift_bottom_end_v = 0.55;
+uniform float stretch_s = 1.0;     // 全年齡下擺拉長：開始的位置（V）
+uniform float stretch_ext = 0.0;   // 全年齡下擺拉長：往下多拉的量（V）
+uniform float ta_hem = 0.0;      // 下擺微小透明：最底下的透明度（0~1）
+uniform float ta_hem_h = 0.03;   // 下擺微小透明：往上漸變的高度（V）
+uniform vec2 ta_pc = vec2(0.5, 0.5);   // 內褲中心（UV）
+uniform vec2 bump_c1 = vec2(-10.0);   // 肚子的凸起：中心（UV）
+uniform vec2 bump_r1 = vec2(0.05);    // 凸起範圍半徑（UV）
+uniform float bump_k1 = 0.0;          // 凸起強度 0~1
+uniform vec2 bump_c2 = vec2(-10.0);   // 插入的凸起
+uniform vec2 bump_r2 = vec2(0.05);
+uniform float bump_k2 = 0.0;
+uniform vec2 mv_c = vec2(-10.0);   // 抽插時衣服跟著上下動：中心（UV）／範圍／位移（UV.y）
+uniform vec2 mv_r = vec2(0.05);
+uniform float mv_dy = 0.0;
+uniform float bump_see = 0.0;         // 凸起位置衣服多透出多少（0.12＝衣服剩 88% 不透明，跟內褲位置一樣）
+uniform vec2 ta_pr = vec2(300.0, 300.0); // 內褲位置的透明範圍半徑（px）
+uniform float ta_pa = 0.0;       // 內褲位置的衣服透明度（0.12＝88% 不透明）
+uniform float ta_chest = 0.0;    // 胸口微小透明：中心的透明度（0~1）
+uniform float hem_amount = 0.0;
+uniform float hem_start_v = 0.40;
+uniform float hem_end_v = 0.5275;
+uniform float hem_center_u = 0.488;
+uniform vec2 rot_ang = vec2(0.0);
+uniform vec2 st_amt = vec2(0.0);
+uniform float line3_v = -1.0;   // 第三條標註線（橘線下面 StrapNoShrinkBelowPx）：這條以下不再內縮
+uniform float crease_s = 0.0045;   // 每多拉這麼多（V）就多出一條折疊褶皺
+uniform vec2 over_amt = vec2(0.0);   // 拉到上限後繼續拉的量（V，左/右）：中間折疊褶皺往下移、上緣繼續剛體位移
+uniform vec2 top_ext = vec2(0.40, 0.57);   // 衣服上緣左右兩端（U）：折線的位置依這個算，不是整件衣服的最寬處
+uniform float shrink_v = -1.0;      // 橘線位置（V）：以下的衣服開始往中間靠
+uniform float shrink_k = 0.1;       // 橘線以下往中間靠的幅度（每往下拉 1px，往中間 k px）
+uniform float top_spread_k = 0.5;   // 往下拉時左右外擴：每往下 1px，左半往左／右半往右 k px
+uniform vec4 corner_t = vec4(0.0);   // 左/右肩帶底部的位移（UV）：xy＝左、zw＝右
+uniform vec4 corner_p = vec4(0.0);   // 衣服左上角／右上角（綁在肩帶底部往上 1.5px）的原位（UV）
+uniform float corner_r = 240.0;      // 角落綁定：完全跟著肩帶走的範圍之外，逐漸衰減到 0 的外半徑（畫布 px）
+uniform vec4 bow_c = vec4(-10.0);    // 蝴蝶結（左/右上角）目前位置（UV）
+uniform vec4 bow_d = vec4(0.0);      // 蝴蝶結中心的位移（UV）：範圍內整塊剛體平移，不變形
+uniform vec2 bow_h = vec2(100.0, 60.0);   // 蝴蝶結不變形的半徑／往外漸變的寬度（畫布 px）
+uniform float corner_h = 100.0;      // 角落綁定：完全跟著肩帶走（剛體）的半徑（畫布 px）
+uniform float mark2_v = -1.0;       // 第二條標註線（橘色）：青線再往下一點，內縮開始的位置
+uniform float mark_v = -1.0;        // 標註線 V（肩帶向下 StrapDownPx 的位置）；<0 不畫
+uniform float top_cx = 0.488;
+uniform float rot_frac = 0.10;
+uniform float infl_frac = 0.15;
+uniform float x_comp = 0.0;
+uniform float orange_w = 0.0;   // 衣服半寬（U）：橘線在衣服左右邊緣與原高度相同，中間往上凸
+uniform float orange_r = 0.06;  // 橘線中間圓弧半徑（U）：越大中間越圓、越平滑
+uniform float orange_k = 0.0;   // 橘線斜率（UV：離中心每 1 單位 U，往下掉幾單位 V）
+uniform float show_guides = 0.0;
+uniform vec4 fan_a = vec4(0.0);      // 肩帶錨點目前位置（UV）：xy＝左、zw＝右
+uniform vec2 fan_t = vec2(0.0);      // 左/右肩帶褶皺強度 0~1
+uniform vec4 fan_p = vec4(18.0, 46.0, 70.0, 2.2);
+uniform float fan_b = 8.0;           // 褶皺影響範圍：離衣服上緣往下幾 px（畫布）   // 兩條線的角度（度，離垂直向下）、長度(px)、線寬(px)
+uniform float top_v = 0.12;
+uniform float top_h = 0.163;
+uniform float left_u = 0.322;
+uniform float right_u = 0.654;
+uniform vec2 pull_amt2 = vec2(0.0);
+uniform vec2 pull_xs = vec2(0.40, 0.58);
+uniform float pull_w = 0.16;
+uniform float pull_band = 0.12;
+uniform float inward = 0.5;
+uniform float zoom_k = 1.0;   // 鏡頭縮放：線寬（螢幕像素）跟著縮放，拉遠不會糊成一坨
+uniform float pull_lean = 0.6;
+uniform float roll_v = 0.014;
+uniform float roll_str = 1.0;
+uniform vec2 chest1_c = vec2(0.4885, 0.3119);
+uniform vec2 chest1_off = vec2(0.0);
+uniform float chest1_s = 1.0;
+uniform vec2 chest2_c = vec2(0.4365, 0.3088);
+uniform vec2 chest2_off = vec2(0.0);
+uniform float chest2_s = 1.0;
+uniform vec2 chest_r = vec2(260.0, 230.0);
+uniform float chest_inner = 0.35;
+varying vec4 vc;
+void vertex() { vc = COLOR; }
+void chest(inout vec2 uv, vec2 c, vec2 off, float s) {
+    vec2 px = vec2(2000.0, 3200.0);
+    vec2 d = (uv - c) * px / chest_r;
+    float w = 1.0 - smoothstep(chest_inner, 1.0, length(d));
+    uv -= w * off;
+    uv = c + (uv - c) / (1.0 + w * (s - 1.0));
+}
+void fragment() {
+    float gxa = (UV.x - pull_xs.x) / max(0.001, pull_w);
+    float gxb = (UV.x - pull_xs.y) / max(0.001, pull_w);
+    vec2 pxs = pull_xs; vec2 am = pull_amt2;
+    if (pxs.x > pxs.y) { pxs = pxs.yx; am = am.yx; }
+    float tmid = smoothstep(pxs.x, pxs.y + 0.0001, UV.x);
+    float dxo = max(max(pxs.x - UV.x, UV.x - pxs.y), 0.0);
+    // 兩個拉點之間用平滑內插補滿（不會在中間出現夾角），兩個拉點之外才往外衰減
+    float wsum = mix(am.x, am.y, tmid) * exp(-pow(dxo / max(0.001, pull_w), 4.0));
+    float pull_amt = wsum;
+    float wy = smoothstep(hem_end_v - pull_band, hem_end_v, UV.y);
+    wy *= step(top_v + top_h, UV.y);   // 最上面 40% 完全不受上拉影響
+    float pw = wy;
+    vec2 P = UV;
+    if (stretch_ext > 0.0 && UV.y > stretch_s) {   // 全年齡：衣服最底下一段往下拉長
+        float sh_ = hem_end_v - stretch_s;
+        P.y = stretch_s + (UV.y - stretch_s) * sh_ / (sh_ + stretch_ext);
+    }
+    float frp = clamp(wsum / max(0.001, pull_band), 0.0, 1.0);
+    float sx_ = UV.x * (12.0 + 28.0 * frp);   // 拉越高，鋸齒越多
+    float sc_ = floor(sx_);
+    float sh0 = fract(sin(sc_ * 12.9898) * 43758.5453);
+    float sh1 = fract(sin((sc_ + 1.0) * 12.9898) * 43758.5453);
+    float sf_ = fract(sx_); sf_ = sf_ * sf_ * (3.0 - 2.0 * sf_);
+    float stairH = mix(sh0, sh1, sf_);   // 圓滑的起伏（不是硬階梯）
+    float stair = (stairH - 0.5) * (0.008 + 0.022 * frp) * clamp(wsum / 0.03, 0.0, 1.0) * smoothstep(0.0, 0.3, wsum / max(0.001, pull_band) * 3.0);
+    float bt = hem_end_v - pull_band;
+    float comp = pull_band / max(0.001, pull_band - min(wsum, pull_band * 0.93));
+    if (UV.y > bt) P.y = bt + (UV.y - bt) * comp;   // 下緣往上壓縮捲起（不是整片平移）
+    P.y += stair * wy * comp;   // 乘上壓縮倍率：螢幕上看到的起伏大小不會因為壓縮而縮小
+    // 左右邊緣也帶不規則的階梯：被折的區段每隔一小段橫向錯位一點
+    float sideH = fract(sin(floor(UV.y * 60.0) * 78.233) * 43758.5453);
+    float sideAmt = clamp(wsum / 0.03, 0.0, 1.0) * step(bt, UV.y);
+    P.x += (sideH - 0.5) * 0.014 * sideAmt;
+    // 下擺是金字塔形（底部寬）：往上拉後越靠近邊緣越往內收，避免拉起來的底部變得比上面還寬
+    float uR = clamp((UV.y - bt) / max(0.001, hem_end_v - wsum - bt), 0.0, 1.0);
+    float uIn = pow(uR, 0.5) * step(bt, UV.y);   // 開根號：上面也會收，不只靠近邊緣
+    float pf = clamp(wsum / max(0.001, pull_band), 0.0, 1.0);
+    // 離底部 10%~30% 那一段（剛被拉伸的地方）往外擴一點點
+    float bump = smoothstep(0.62, 0.72, uR) * (1.0 - smoothstep(0.88, 0.94, uR));
+    float sq = 1.0 + inward * pf * uIn - 0.12 * pf * bump;
+    P.x = hem_center_u + (P.x - hem_center_u) * sq;   // 邊緣被折時帶不規則的階梯狀
+    // ───── 上半部：往下拉＝壓縮（跟下擺同一套）；旋轉段只旋轉（左逆時針／右順時針）─────
+    float hh_ = hem_end_v - top_v;
+    float y10_ = top_v + hh_ * rot_frac;
+    float y25_ = y10_ + hh_ * infl_frac;
+    float tb_ = top_v + top_h;
+    float zone_ = max(0.001, tb_ - top_v);
+    float sdp = mix(st_amt.x, st_amt.y, smoothstep(top_cx - 0.06, top_cx + 0.06, UV.x));
+    float ovr = mix(over_amt.x, over_amt.y, smoothstep(top_cx - 0.06, top_cx + 0.06, UV.x));
+    float dEff_ = min(sdp, zone_ * 0.93);
+    float compT = zone_ / max(0.001, zone_ - dEff_);
+    float frt = clamp(sdp / zone_, 0.0, 1.0);
+    float tsx = UV.x * (10.0 + 20.0 * frt);
+    float tsc = floor(tsx);
+    float th0 = fract(sin(tsc * 15.731) * 43758.5453);
+    float th1 = fract(sin((tsc + 1.0) * 15.731) * 43758.5453);
+    float tsf = fract(tsx); tsf = tsf * tsf * (3.0 - 2.0 * tsf);
+    float tstair = (mix(th0, th1, tsf) - 0.5) * (0.006 + 0.016 * frt) * clamp(sdp / 0.02, 0.0, 1.0);
+    if (UV.y < tb_) {
+        // 黃線以上：只整段平移、不縮放（大小不變）；黃線~綠線之間才壓縮
+        float py10_ = tb_ - (tb_ - y10_) * compT;
+        P.y = (UV.y < y10_) ? UV.y + (py10_ - y10_) : tb_ - (tb_ - UV.y) * compT;
+        P.y += tstair * compT * (1.0 - smoothstep(0.0, 0.4, (UV.y - top_v - dEff_) / zone_)) * smoothstep(3.0 / 3200.0, 10.0 / 3200.0, UV.y - top_v - dEff_);   // 上緣不規則的起伏
+    }
+    {   // 往下拉超過肩帶向下的距離後，上半部左右外擴（左半往左、右半往右）
+        float sdirT_ = 2.0 * (1.0 - smoothstep(top_cx - 0.06, top_cx + 0.06, UV.x)) - 1.0;
+        float spwT_ = 1.0 - smoothstep(y10_, tb_, UV.y);
+        float belowO_ = shrink_v >= 0.0 ? smoothstep(shrink_v, shrink_v + 0.012, UV.y) : 0.0;   // 橘線以下
+        spwT_ *= 1.0 - belowO_;   // 橘線以下不再外擴
+        if (line3_v >= 0.0) belowO_ *= 1.0 - smoothstep(line3_v - 0.003, line3_v + 0.003, UV.y);   // 第三條線以下完全不內縮
+        P.x += sdirT_ * (sdp + ovr) * 3200.0 * top_spread_k / 2000.0 * spwT_;
+        float topKeep_ = mix(0.25, 1.0, smoothstep(3.0 / 3200.0, 15.0 / 3200.0, UV.y - top_v - dEff_ - ovr));   // 衣服最上面 3px 附近：超過橘線時內縮減弱
+        P.x -= sdirT_ * (sdp + ovr) * 3200.0 * shrink_k / 2000.0 * belowO_ * topKeep_;   // 橘線以下：左半往右、右半往左（往中間靠）
+        P.y -= ovr * spwT_;   // 過拉：上緣（沒被壓縮的部分）繼續剛體往下，不變形
+    }
+    {   // 衣服最左上角／最右上角綁在肩帶底部：跟著肩帶位移，周圍平滑帶動
+        vec2 PXc = vec2(2000.0, 3200.0);
+        float wcl = 1.0 - smoothstep(corner_h, corner_r, length((UV - (corner_p.xy + corner_t.xy)) * PXc));
+        float wcr = 1.0 - smoothstep(corner_h, corner_r, length((UV - (corner_p.zw + corner_t.zw)) * PXc));
+        P -= wcl * corner_t.xy + wcr * corner_t.zw;
+    }
+    {   // 蝴蝶結範圍：不變形，只整塊跟著中心位移（等於把範圍內的變形全部反補償掉）
+        vec2 PXb = vec2(2000.0, 3200.0);
+        float wbl = 1.0 - smoothstep(bow_h.x, bow_h.x + bow_h.y, length((UV - bow_c.xy) * PXb));
+        float wbr = 1.0 - smoothstep(bow_h.x, bow_h.x + bow_h.y, length((UV - bow_c.zw) * PXb));
+        P = mix(P, UV + bow_d.xy, wbl);
+        P = mix(P, UV + bow_d.zw, wbr);
+    }
+    {
+        vec2 PXs = vec2(2000.0, 3200.0);
+        float fyr = 1.0 - smoothstep(y10_, max(y10_ + 0.004, y25_ + (sqrt((P.x - top_cx) * (P.x - top_cx) + orange_r * orange_r) - orange_r) * orange_k), P.y);
+        float wl_ = 1.0 - smoothstep(top_cx - 0.01, top_cx + 0.01, P.x);
+        float ang_ = (rot_ang.y * (1.0 - wl_) - rot_ang.x * wl_) * fyr;
+        vec2 d_ = (P - vec2(top_cx, y10_)) * PXs;
+        float cs_ = cos(ang_), sn_ = sin(ang_);
+        vec2 d2_ = vec2(d_.x * cs_ + d_.y * sn_, -d_.x * sn_ + d_.y * cs_);
+        vec2 P0_ = P;
+        P = vec2(top_cx, y10_) + d2_ / PXs;
+        P.x = P0_.x + (P.x - P0_.x) * (1.0 - x_comp * fyr);   // 左右水平位移補償：旋轉造成的橫向跑位按比例抵銷
+    }
+    float raw = clamp((P.y - taper_start_v) / max(0.001, taper_end_v - taper_start_v), 0.0, 1.0);
+    float t = mix(base_ratio, 1.0, raw);
+    float shrink = 1.0 - t * expand_amount;
+    vec2 uv = vec2(center_u + (P.x - center_u) * shrink, P.y);
+    uv.y += lift_top_v * smoothstep(lift_neck_v, lift_navel_v, P.y) + lift_bottom_v * smoothstep(lift_navel_v, lift_bottom_end_v, P.y);
+    float hem = smoothstep(hem_start_v, hem_end_v, P.y) * hem_amount;
+    uv.x = hem_center_u + (uv.x - hem_center_u) * (1.0 - hem);
+    chest(uv, chest1_c, chest1_off, chest1_s);
+    chest(uv, chest2_c, chest2_off, chest2_s);
+    float see_ = 0.0;   // 肚子／插入位置衣服的透明度（衣服蓋在它們上面，但保留一點透出）
+    {   // 肚子／插入頂出來的凸起：以中心往外放大（透鏡）
+        vec2 bd1_ = (uv - bump_c1) / bump_r1; float bl1_ = dot(bd1_, bd1_);
+        if (bump_k1 > 0.0005) see_ = max(see_, bump_see * (1.0 - smoothstep(0.3, 1.0, sqrt(bl1_))));
+        if (bump_k1 > 0.0005 && bl1_ < 1.0) uv = bump_c1 + (uv - bump_c1) * (1.0 - bump_k1 * (1.0 - bl1_));
+        vec2 bd2_ = (uv - bump_c2) / bump_r2; float bl2_ = dot(bd2_, bd2_);
+        if (bump_k2 > 0.0005 && bl2_ < 1.0) uv = bump_c2 + (uv - bump_c2) * (1.0 - bump_k2 * (1.0 - bl2_));
+    }
+    {   // 抽插時衣服跟著插入上下動（位移集中在插入位置，往外高斯衰減）
+        vec2 md_ = (uv - mv_c) / mv_r;
+        uv.y -= mv_dy * exp(-dot(md_, md_));
+    }
+    vec4 c = texture(TEXTURE, uv);
+    if (c.a > 0.01 && pull_amt > 0.0005 && roll_str > 0.0) {
+        float dist = roll_v;
+        for (int i = 6; i >= 1; i--) {
+            float st = roll_v * float(i) / 6.0;
+            if (texture(TEXTURE, vec2(uv.x, uv.y + st)).a < 0.1) dist = st;
+        }
+        float bt = 1.0 - dist / roll_v;
+        float rs = clamp(pull_amt / 0.02, 0.0, 1.0) * roll_str;
+        float hl = 0.16 * sin(bt * 3.14159) * rs;
+        float dk = 0.30 * smoothstep(0.7, 1.0, bt) * rs;
+        c.rgb = c.rgb * (1.0 - dk) + vec3(hl);
+    }
+    if (c.a > 0.01) {
+        float cr = 0.0;
+        for (int sl = 0; sl < 2; sl++) {
+            float amt = sl == 0 ? pull_amt2.x : pull_amt2.y;
+            float gg = sl == 0 ? gxa : gxb;
+            float gw = exp(-pow(gg, 4.0));
+            if (amt < 0.003 || gw < 0.25) continue;   // 左右各自的折線，不連在一起
+            float px = sl == 0 ? pull_xs.x : pull_xs.y;
+            float edgeY = hem_end_v - wsum;
+            float span = edgeY - bt;   // 折線只分布在「中間不變的 15%」下緣到衣服下緣之間
+            for (int i = 1; i <= 2; i++) {
+                float fr2 = clamp(amt / max(0.001, pull_band), 0.0, 1.0);
+                float dd = i == 1 ? (0.012 + 0.035 * fr2) : (0.04 + 0.10 * fr2);   // 越上面、拉越高，離底部越遠
+                float f = 1.0 - min(dd, span * 0.92) / max(0.001, span);
+                float jit = fract(sin(float(i) * 91.7 + float(sl) * 13.1) * 43758.5453) - 0.5;
+                // 假弧形：兩條直線在被拉的那一點相交成一個角（頂點朝上）
+                float ly = bt + span * f + jit * 0.004 + abs(UV.x - px) * 0.16;
+                float dl = abs(UV.y - ly);
+                float w = fwidth(UV.y) * zoom_k;
+                float seg = 1.0 - smoothstep(0.3, 0.55, abs(UV.x - px) / max(0.001, pull_w * (1.0 - 0.45 * f) * (1.0 - 0.3 * clamp(amt / pull_band, 0.0, 1.0))));   // 折線只在被拉的那一點附近，越靠下緣、拉越高就越短（跟著金字塔變窄）
+                cr = max(cr, (1.0 - smoothstep(w * 0.15, w * 0.7, dl)) * seg * clamp(amt / 0.03, 0.0, 1.0));
+            }
+        }
+        {   // 快拉到底時，中間多一條 V 形折痕（夾角約 150°，頂點朝下）
+            float nf = smoothstep(0.55, 0.8, frp);
+            float vcx = (pull_xs.x + pull_xs.y) * 0.5;
+            float vEdge = hem_end_v - wsum;
+            float vApex = bt + (vEdge - bt) * 0.4;
+            float vly = vApex - abs(UV.x - vcx) * 0.1675;   // tan(15°) × (2000/3200)
+            float vw = fwidth(UV.y) * zoom_k;
+            float vm = 1.0 - smoothstep(0.08, 0.14, abs(UV.x - vcx));
+            cr = max(cr, (1.0 - smoothstep(vw * 0.15, vw * 0.7, abs(UV.y - vly))) * vm * nf);
+        }
+        cr *= step(0.1, texture(TEXTURE, vec2(uv.x, uv.y + max(fwidth(uv.y), 1e-6) * 3.0 * zoom_k)).a);   // 不碰到衣服最下面 3px（螢幕像素）
+        // 底部補一條邊線：折起來之後看不到原本的下緣線條
+        float ew = max(fwidth(uv.y), 1e-6) * (1.0 + 1.5 * frp) * zoom_k;   // 螢幕像素寬度，壓縮很大時也看得到；越高越粗
+        float eg = (1.0 - step(0.1, texture(TEXTURE, vec2(uv.x, uv.y + ew)).a)) * clamp(wsum / 0.01, 0.0, 1.0);
+        cr = max(cr, eg);
+        c.rgb = mix(c.rgb, mix(c.rgb * vec3(0.5, 0.1, 0.1), vec3(0.32, 0.02, 0.04), 0.7), clamp(cr, 0.0, 1.0) * (0.95 + 0.0));
+    }
+    if (c.a > 0.01 && sdp > 0.003) {
+        float cr2 = 0.0;
+        float fwT = max(fwidth(uv.y), 1e-6);
+        for (int sl2 = 0; sl2 < 2; sl2++) {
+            float amtT = sl2 == 0 ? st_amt.x : st_amt.y;
+            if (amtT < 0.003) continue;
+            float scx = sl2 == 0 ? mix(top_ext.x, top_cx, 0.5) : mix(top_cx, top_ext.y, 0.5);
+            float sideM = sl2 == 0 ? 1.0 - smoothstep(top_cx - 0.02, top_cx + 0.02, UV.x) : smoothstep(top_cx - 0.02, top_cx + 0.02, UV.x);
+            float edgeT = top_v + amtT;
+            float spanT = tb_ - edgeT;
+            float fr3 = clamp(amtT / zone_, 0.0, 1.0);
+            for (int j = 1; j <= 2; j++) {
+                float asy_ = sl2 == 0 ? 1.0 : 1.3;   // 右邊鏡射但不對稱：離上緣更遠一點、斜度與長度不同
+                float dd2 = (j == 1 ? (0.003 + 0.010 * fr3) : (0.008 + 0.028 * fr3)) * asy_;   // 褶皺貼近上緣（不要跑到衣服很下面）
+                float jt = fract(sin(float(j) * 57.3 + float(sl2) * 9.7) * 43758.5453) - 0.5;
+                float ly2 = edgeT + min(dd2, spanT * 0.92) + jt * 0.004 - abs(UV.x - scx) * (sl2 == 0 ? 0.1675 : 0.125);   // 兩條直線相交成一個角（頂點朝下）
+                float w2 = fwidth(UV.y) * zoom_k;
+                float seg2 = 1.0 - smoothstep(0.3, 0.55, abs(UV.x - scx) / max(0.001, (top_ext.y - top_ext.x) * 0.35));
+                cr2 = max(cr2, (1.0 - smoothstep(w2 * 0.15, w2 * 0.7, abs(UV.y - ly2))) * seg2 * sideM * clamp(amtT / 0.03, 0.0, 1.0));
+            }
+        }
+        {   // 往下拉越多，中間多一條 V 形折痕（跟下擺同一套，頂點朝下）
+            float nfT = smoothstep(0.3, 0.6, frt);
+            float vApexT = top_v + dEff_ + (tb_ - top_v - dEff_) * 0.4;
+            float vlyT = vApexT - abs(UV.x - top_cx) * 0.1675;
+            float vwT = fwidth(UV.y) * zoom_k;
+            float vmT = 1.0 - smoothstep(0.08, 0.14, abs(UV.x - top_cx));
+            cr2 = max(cr2, (1.0 - smoothstep(vwT * 0.15, vwT * 0.7, abs(UV.y - vlyT))) * vmT * nfT);
+        }
+        cr2 *= step(0.1, texture(TEXTURE, vec2(uv.x, uv.y - fwT * 3.0 * zoom_k)).a);
+        {   // 上緣被拉下來時，邊緣也有捲起的明暗（跟下擺同一套）
+            float distT = roll_v;
+            for (int ri = 6; ri >= 1; ri--) {
+                float stT_ = roll_v * float(ri) / 6.0;
+                if (texture(TEXTURE, vec2(uv.x, uv.y - stT_)).a < 0.1) distT = stT_;
+            }
+            float btT = 1.0 - distT / roll_v;
+            float rsT = clamp(sdp / 0.02, 0.0, 1.0) * roll_str;
+            c.rgb = c.rgb * (1.0 - 0.30 * smoothstep(0.7, 1.0, btT) * rsT) + vec3(0.16 * sin(btT * 3.14159) * rsT);
+        }
+        float ewT = fwT * (1.0 + 1.5 * frt) * zoom_k;
+        float egT = (1.0 - step(0.1, texture(TEXTURE, vec2(uv.x, uv.y - ewT)).a)) * clamp(sdp / 0.01, 0.0, 1.0);
+        cr2 = max(cr2, egT);
+        c.rgb = mix(c.rgb, mix(c.rgb * vec3(0.5, 0.1, 0.1), vec3(0.32, 0.02, 0.04), 0.7), clamp(cr2, 0.0, 1.0) * 0.95);
+    }
+    float pullOwn_ = sdp + ovr;
+    float pullOth_ = mix(st_amt.y + over_amt.y, st_amt.x + over_amt.x, smoothstep(top_cx - 0.06, top_cx + 0.06, UV.x));
+    float pullAll_ = max(pullOwn_, 0.7 * pullOth_);   // 只拉一邊時另一半也會跟著出現褶皺
+    if (c.a > 0.01 && pullAll_ > 0.0008) {   // 往下拉（青線以下）就逐條出現；不用等到拉到底。過拉：衣服原本沒動的中間部分出現折疊褶皺，隨過拉往下移動
+        float fm2 = 0.0;
+        float fw3 = fwidth(UV.y) * zoom_k;
+        for (int fk = 0; fk < 3; fk++) {
+            // 一小段一小段（不連成一條）：每格隨機決定有沒有，高度也各自錯開；整體限制在衣服上半部
+            float cx_ = (UV.x - top_cx) * 26.0 + float(fk) * 3.7;   // 以衣服中心為準切格（左右對稱分布，不再全擠在左邊）
+            float cellN = floor(cx_);
+            float cellF = fract(cx_);
+            float cellOn = step(0.3, fract(sin(cellN * 91.7 + float(fk) * 17.3) * 43758.5453));   // 每條分成幾大段，有些段沒有，不會一條貫穿
+            float cellJ = (sin(cx_ * 0.9 + float(fk) * 2.1) * 0.6 + sin(cx_ * 2.3 + float(fk) * 4.0) * 0.4) * 0.5;   // 連續的高低起伏（不整齊但不斷）
+            float fb = top_v + dEff_ + zone_ * (0.2 + 0.25 * float(fk)) + ovr * (0.25 + 0.1 * float(fk)) + cellJ * 0.004;   // 從衣服上緣算起，集中在上半部
+            fb = min(fb, top_v + hh_ * 0.32);
+            float fly = fb - abs(UV.x - top_cx) * 0.08;
+            float segM = smoothstep(0.0, 0.3, cellF) * (1.0 - smoothstep(0.7, 1.0, cellF)) * cellOn;   // 每段兩端漸淡收尾（不像裁切線）
+            fm2 = max(fm2, (1.0 - smoothstep(fw3 * 0.2, fw3 * 0.9, abs(UV.y - fly))) * clamp((pullAll_ - float(fk) * crease_s) / 0.0025, 0.0, 1.0) * segM);
+        }
+        c.rgb = mix(c.rgb, mix(c.rgb * vec3(0.5, 0.1, 0.1), vec3(0.32, 0.02, 0.04), 0.7), clamp(fm2, 0.0, 1.0) * 0.9);
+    }
+    if (c.a > 0.01 && (fan_t.x > 0.01 || fan_t.y > 0.01)) {
+        // 肩帶錨點的「花灑」褶皺：從錨點往下向中間散開，每條肩帶 2 條線
+        vec2 PXf = vec2(2000.0, 3200.0);
+        float pxw = fwidth(UV.y) * 3200.0 * zoom_k;
+        float fm = 0.0;
+        for (int fs = 0; fs < 2; fs++) {
+            float ft = fs == 0 ? fan_t.x : fan_t.y;
+            if (ft < 0.01) continue;
+            vec2 a0 = fs == 0 ? fan_a.xy : fan_a.zw;
+            float fan_in = fs == 0 ? 1.0 : -1.0;
+            vec2 pp = (UV - a0) * PXf;
+            for (int fj = 0; fj < 2; fj++) {
+                float an = radians(fj == 0 ? fan_p.x : fan_p.y);
+                vec2 dr = vec2(sin(an) * fan_in, cos(an));
+                float al = dot(pp, dr);
+                float pe = abs(pp.x * dr.y - pp.y * dr.x);
+                float lenf = fan_p.z * (fj == 0 ? 1.0 : 0.8) * ft;
+                float bandV = a0.y + fan_b / 3200.0;
+                float bm = 1.0 - smoothstep(a0.y + fan_b * 0.6 / 3200.0, bandV, UV.y);   // 只影響衣服上緣往下 fan_b px
+                float lm = smoothstep(0.0, 8.0, al) * (1.0 - smoothstep(lenf * 0.55, lenf, al)) * bm;
+                float wl = max(fan_p.w, pxw);
+                fm = max(fm, (1.0 - smoothstep(wl * 0.3, wl, pe)) * lm * ft);
+            }
+        }
+        c.rgb = mix(c.rgb, mix(c.rgb * vec3(0.5, 0.1, 0.1), vec3(0.32, 0.02, 0.04), 0.7), clamp(fm, 0.0, 1.0) * 0.9);
+    }
+    if (mark_v >= 0.0 && c.a > 0.01) {   // 標註線：肩帶向下走完（StrapDownPx）的位置
+        float mw_ = fwidth(UV.y) * 1.2;
+        float mm_ = 1.0 - smoothstep(mw_ * 0.4, mw_ * 1.0, abs(UV.y - mark_v));
+        c.rgb = mix(c.rgb, vec3(0.0, 1.0, 1.0), mm_);
+    }
+    if (mark2_v >= 0.0 && c.a > 0.01) {
+        float m2w_ = fwidth(UV.y) * 1.2;
+        float m2_ = 1.0 - smoothstep(m2w_ * 0.4, m2w_ * 1.0, abs(UV.y - mark2_v));
+        c.rgb = mix(c.rgb, vec3(1.0, 0.6, 0.0), m2_);
+    }
+    if (line3_v >= 0.0 && mark2_v >= 0.0 && c.a > 0.01) {   // 第三條標註線（洋紅）
+        float m3w_ = fwidth(UV.y) * 1.2;
+        c.rgb = mix(c.rgb, vec3(1.0, 0.0, 1.0), 1.0 - smoothstep(m3w_ * 0.4, m3w_ * 1.0, abs(UV.y - line3_v)));
+    }
+    if (show_guides > 0.5 && texture(TEXTURE, UV).a > 0.01) {
+        float gw_ = fwidth(UV.y) * 1.5;
+        vec3 gc = vec3(0.0); float gm = 0.0;
+        float lv[6] = float[6](top_v, y10_, y25_ + (sqrt((UV.x - top_cx) * (UV.x - top_cx) + orange_r * orange_r) - orange_r) * orange_k, tb_, hem_end_v - pull_band, hem_end_v);
+        vec3 lc[6] = vec3[6](vec3(1.0), vec3(1.0, 0.95, 0.0), vec3(1.0, 0.55, 0.0), vec3(0.1, 1.0, 0.2), vec3(0.0, 0.9, 1.0), vec3(1.0));
+        for (int g = 0; g < 6; g++) {
+            float m = 1.0 - smoothstep(gw_ * 0.4, gw_ * 1.0, abs(UV.y - lv[g]));
+            if (m > gm) { gm = m; gc = lc[g]; }
+        }
+        float mv = (1.0 - smoothstep(fwidth(UV.x) * 0.4, fwidth(UV.x) * 1.0, abs(UV.x - top_cx))) * step(UV.y, tb_);
+        if (mv > gm) { gm = mv; gc = vec3(1.0, 0.0, 1.0); }
+        c.rgb = mix(c.rgb, gc, gm);
+        c.a = max(c.a, gm);
+    }
+    {   // 微小的透明：衣服下擺和胸口一點點透出底下
+        float hemT_ = smoothstep(hem_end_v - ta_hem_h, hem_end_v, UV.y);
+        vec2 pr_ = TEXTURE_PIXEL_SIZE;
+        float ch1_ = 1.0 - smoothstep(0.35, 1.0, length((UV - chest1_c - chest1_off) / pr_ / chest_r));
+        float ch2_ = 1.0 - smoothstep(0.35, 1.0, length((UV - chest2_c - chest2_off) / pr_ / chest_r));
+        float pf_ = 1.0 - smoothstep(0.3, 1.0, length((UV - ta_pc) / pr_ / max(ta_pr, vec2(1.0))));   // 內褲所在的位置：衣服大概 88% 不透明，往外擴開自然淡掉
+        c.a *= 1.0 - clamp(hemT_ * ta_hem + max(ch1_, ch2_) * ta_chest + pf_ * ta_pa + see_, 0.0, 0.9);
+    }
+    if (lg_on > 0.5) {
+        vec2 pj_ = UV * cl_size;
+        vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
+        if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) c.a *= 1.0 - texture(leg_tex, lq_).a;
+    }
+    COLOR = c * vc;
+}
+";
+
+    static readonly string[] _clothCopyParams =
+    {
+        "expand_amount", "lift_top_v", "lift_bottom_v", "lift_neck_v", "lift_navel_v",
+    };
+
+    void SetupClothShader()
+    {
+        if (!Layers.TryGetValue("衣服", out var cloth) || cloth == null) return;
+        _clothMat = new ShaderMaterial { Shader = new Shader { Code = ClothShaderCode } };
+        // 胸部中心用胸1／胸2 的軸心（BreastPivotOverrides，畫布 px → UV）
+        if (BreastPivotOverrides.TryGetValue("胸1", out var p1)) _clothMat.SetShaderParameter("chest1_c", new Vector2(p1.X / 2000f, p1.Y / 3200f));
+        if (BreastPivotOverrides.TryGetValue("胸2", out var p2)) _clothMat.SetShaderParameter("chest2_c", new Vector2(p2.X / 2000f, p2.Y / 3200f));
+        cloth.Material = _clothMat;
+        ClothAutoBounds_();
+
+        // 內褲：自己的 shader——只在 B（小穴）附近變形，有往下位移＋一點歪斜（旋轉感），不只是左右放大縮小
+        if (Layers.TryGetValue("內褲", out var panty) && panty != null)
+        {
+            _pantyMat = new ShaderMaterial { Shader = new Shader { Code = PantyShaderCode } };
+            _pantyMat.SetShaderParameter("center_u", 0.4865f);
+            _pantyMat.SetShaderParameter("center_v", 1497f / 3200f);
+            _pantyMat.SetShaderParameter("expand_amount", 0f);
+            panty.Material = _pantyMat;
+        }
+    }
+
+    const string PantyShaderCode = @"
+shader_type canvas_item;
+uniform float expand_amount = 0.0;
+uniform float center_u = 0.4865;
+uniform float center_v = 0.468;
+uniform float half_width_u = 0.07;
+uniform float half_height_v = 0.035;
+uniform float shift_k = 0.03;
+uniform float twist_k = 0.25;
+uniform float top_v = 0.0;      // 內褲內容上緣（V）
+uniform float mid_v = 0.5;      // 內褲內容中線（V）
+uniform float bot_v = 1.0;      // 內褲內容下緣（V）
+uniform float widen = 0.0;      // 左右變寬量
+uniform float wob = 0.0;        // 輪廓不規則量
+uniform float cx_u = 0.4865;    // 內褲中心（U）
+uniform float pull_s = 0.0;     // 上半部被往下拉的量（V）
+uniform float down_y = 0.0;     // 整件往下移的量（V）
+uniform float wet_core = 0.5;    // 濕痕中心保持滿強度的範圍（越大越集中、邊緣越硬）
+uniform float wet_k = 0.0;       // 濕痕強度 0~1
+uniform vec2 wet_c = vec2(0.5, 0.5);   // 濕痕中心（內褲貼圖 UV）
+uniform vec2 wet_r = vec2(0.08, 0.06); // 濕痕半徑（UV）
+uniform vec3 wet_col = vec3(0.7, 0.74, 0.88);   // 色彩增值的顏色
+uniform float aside_x = 0.0;     // 拉開：下緣被往右拉的量（U）
+uniform float aside_s = 0.5;     // 拉開：往左退的範圍從這裡開始（U；內褲靠右的那一部分）
+uniform float aside_b = 0.5;     // 拉開：B 的位置（U）
+uniform float aside_bw = 0.02;   // 最底下這一小條的高度（V）
+uniform float aside_pb = 1.0;    // 按在 50% 左右拉時，最底下向左補償的加重倍率
+uniform float aside_cr = 900.0;  // 右下角褶皺最遠長多遠（內褲圖 px）
+uniform vec2 aside_ao = vec2(0.25, 0.25);   // 月牙形外圓中心（相對 B 位置；單位＝內褲高度；x 往右、y 往上）
+uniform vec2 aside_bo = vec2(-0.35, 0.0);    // 內圓中心相對外圓中心的位移（單位＝內褲高度）
+uniform float aside_ra = 0.8;                // 外圓半徑（單位＝內褲高度）
+uniform float aside_rb = 0.7;                // 內圓半徑（單位＝內褲高度）
+uniform float pa_k = 1.0;        // 內褲底部相對上面的不透明度倍率（0.88/0.98）
+uniform float aside_oth = 55.0;              // 花灑出發點在內圓邊上的角度（度；0＝正右、90＝正下）
+uniform float aside_axd = 160.0;             // 花灑噴出去的方向（度；0＝正右、90＝正上、180＝正左）
+uniform float aside_hw = 40.0;               // 花灑扇形的半角（度）
+uniform float aside_cstep = 0.12;            // 相鄰兩條線的夾角（弧度）
+uniform float aside_pa = 0.0;                // 目前往右拉開的量（U）
+uniform float aside_tb = 1.5;                // 最底下那一條額外多移多少倍
+uniform float aside_ta = 0.0;                // 月牙形整塊向左平移的量（U）
+uniform float aside_dbg = 0.0;               // 1＝畫出輔助線
+uniform float aside_fz = 1.0;     // 拉開：這條線（U）右邊完全不動
+uniform float aside_tc = 0.45;    // 拉開：高過這個位置（離內褲下緣的比例）就完全不受拉開影響
+uniform float aside_fr = 1.0;     // 往左退跟著「離按下位置越遠越弱」的比例（跟往右拉一致，才不會互相抵不掉）
+uniform float aside_pu = 0.5;     // 拉開：按下的位置（U）
+uniform float aside_nu = 0.1;     // 拉開：按下位置右邊這段（U）內全力跟著動
+uniform float aside_fw = 0.5;     // 拉開：之後逐漸減弱的寬度（U）
+uniform float aside_fk = 0.15;    // 拉開：很遠的地方保留的比例
+uniform float aside_cv = 0.35;   // 褶皺弧度（越大越彎）
+uniform float aside_body = 0.6;  // 非最底下的位置往左退的力道倍率
+uniform float aside_ca = 0.14;   // 褶皺：相鄰兩條線的夾角（弧度）
+uniform float aside_ck = 0.7;    // 右上褶皺：濃度
+uniform float aside_mk = 0.5;    // 20~40% 位置補的力（相對往左退的力道）
+uniform float aside_rp = 2.0;    // 往左退的「越下面越強」曲線指數
+uniform float aside_bk = 3.0;    // 最底下這一小條往左退的倍率
+uniform float aside_revb = 0.0;  // 最底下那一條用的往左退量（上限比較寬）
+uniform float aside_rev = 0.0;   // 拉開：拉過 B 之後，B 右邊往左退的量（U）
+uniform float aside_r = 1.0;     // 拉開：內褲右邊緣（U）
+uniform float aside_rf = 0.12;   // 拉開：右邊緣往內多寬的範圍逐漸不動（U）
+uniform float aside_h = 0.1;     // 拉開：受影響的高度（V）
+uniform float fix_w = 1.0;      // 下面那一截跟著動的比例（0＝不動，1＝全動）
+uniform float fix_cut = -1.0;   // >=0：這條線（V）以下的內褲不動
+uniform float alpha_k = 1.0;    // 淡出
+varying vec4 vc;
+void vertex() { vc = COLOR; }
+void fragment() {
+    float down_y_ = down_y, pull_s_ = pull_s;
+    if (fix_cut >= 0.0) { float fm_ = smoothstep(fix_cut - 0.012, fix_cut + 0.012, UV.y); float kk_ = mix(1.0, fix_w, fm_); down_y_ *= kk_; pull_s_ *= kk_; }   // 不是從 B 拉：下面一截一開始幾乎不動（fix_w 小），開始縮時才跟上
+    float py_ = UV.y - down_y_;                 // 整件往下移
+    float nz_ = fract(sin(floor(UV.x * 90.0) * 12.9898) * 43758.5453) - 0.5;
+    float nz2_ = fract(sin(floor(UV.y * 140.0) * 78.233) * 43758.5453) - 0.5;
+    float vis_ = 1.0, qy_ = py_;
+    if (pull_s_ > 0.0) {                         // 整件內褲被往下拉：上緣往下、整體被壓縮（到下緣不動），上緣有不規則起伏
+        float H_ = max(0.0001, bot_v - top_v);
+        vis_ = smoothstep(top_v + pull_s_ + nz_ * wob * 2.0 - 0.0006, top_v + pull_s_ + nz_ * wob * 2.0 + 0.0006, py_);
+        if (py_ < bot_v) qy_ = top_v + (py_ - top_v - pull_s_) * H_ / max(0.0001, H_ - pull_s_);
+        qy_ += nz_ * wob * 0.5;
+    }
+    float dx = UV.x - center_u;
+    float dy = qy_ - center_v;
+    float xs_ = 1.0 + widen;
+    float hx_ = (UV.x - cx_u) / xs_ + cx_u - UV.x + nz2_ * wob * 1.5;   // 左右先拉寬（除以放大倍率取樣）＋邊緣不規則
+    float w = (1.0 - smoothstep(0.0, half_width_u, abs(dx))) * (1.0 - smoothstep(0.0, half_height_v, abs(dy)));
+    float e = expand_amount * w;
+    vec2 p = UV;
+    p.x = center_u + dx * (1.0 - e) + dy * twist_k * e * 0.5 + hx_;   // 左右撐開＋一點歪斜＋被拉時的變寬／不規則
+    float hz_ = clamp((bot_v - py_) / max(0.0001, bot_v - top_v), 0.0, 1.0);   // 離內褲下緣的距離（0＝最下面，1＝最上面）
+    float aw_ = (1.0 - smoothstep(aside_tc, aside_tc + 0.17, hz_)) * pow(smoothstep(bot_v - aside_h, bot_v, py_), 1.6) * (1.0 - smoothstep(aside_r - aside_rf, aside_r, UV.x));   // 只有下面那一截（越上面越小），右邊邊不跟著大幅變形
+    float wx_ = mix(aside_fk, 1.0, 1.0 - smoothstep(aside_pu + aside_nu, aside_pu + aside_nu + max(aside_fw, 0.02), UV.x));   // 離按下的位置超過一段距離，影響逐漸變小（不要整條內褲一起被拉走）
+    vec2 tpx_ = 1.0 / TEXTURE_PIXEL_SIZE;
+    vec2 up_ = UV * tpx_;
+    float Hpx_ = max((bot_v - top_v) * tpx_.y, 1.0);
+    vec2 cA_ = vec2(aside_fz * tpx_.x + aside_ao.x * Hpx_, bot_v * tpx_.y - aside_ao.y * Hpx_);   // 外圓中心
+    vec2 cB_ = cA_ + aside_bo * Hpx_;                                                                  // 內圓中心（往左挖掉）
+    float sf_ = max(0.015 * Hpx_, 1.0);
+    float inA_ = 1.0 - smoothstep(aside_ra * Hpx_ - sf_, aside_ra * Hpx_, length(up_ - cA_));
+    float inB_ = 1.0 - smoothstep(aside_rb * Hpx_ - sf_, aside_rb * Hpx_, length(up_ - cB_));
+    float mask_ = inA_ * (1.0 - inB_);                    // 月牙形：外圓扣掉內圓。這一塊不變形、只平移
+    float fz_ = 1.0 - mask_;
+    p.x -= aside_x * aw_ * wx_ * fz_;
+    float rb_ = smoothstep(aside_s, aside_s + 0.08, UV.x) * (1.0 - smoothstep(aside_r - aside_rf, aside_r, UV.x));
+    float bw_ = pow(smoothstep(bot_v - aside_bw * 1.6, bot_v, py_), 1.5);   // 最底下那一小條
+    float cm_ = pow(1.0 - smoothstep(0.0, 0.6, hz_), aside_rp);   // 底 20% 和 20~60% 合成同一條平滑曲線：最下面最大，往上漸漸變小，到 60% 沒有
+    p.x -= mask_ * aside_ta * (pow(1.0 - hz_, 2.0) + aside_tb * bw_);   // 月牙形裡面：不變形，只有微量往右平移（越下面越多，最底下再加強）
+    p.x += rb_ * fz_ * mix(1.0, wx_, aside_fr) * (aside_rev * aside_body * (cm_ + aside_mk * cm_) + aside_revb * aside_bk * aside_pb * bw_);   // 最底下那一小條再額外加強
+    p.y = qy_ - shift_k * e;                                    // 往下位移
+    COLOR = texture(TEXTURE, p) * vc;
+    if (aside_pa > 0.0005 && COLOR.a > 0.01) {   // 褶皺：花灑（蓮蓬頭）——從月牙和內褲交界的一個點，往內褲裡面呈扇形噴開，細線，不碰到內褲上面
+        float rbH_ = aside_rb * Hpx_;
+        float th_ = radians(aside_oth);
+        vec2 org_ = cB_ + rbH_ * vec2(cos(th_), sin(th_));                 // 出發點：內圓邊上的一點（oth＝角度，0＝正右，90＝正下）
+        vec2 vv_ = up_ - org_;
+        float rr_ = length(vv_);
+        float ang_ = atan(-vv_.y, vv_.x);                                   // 數學角度（y 往上）
+        float rel_ = mod(ang_ - radians(aside_axd) + 3.14159265, 6.2831853) - 3.14159265;
+        float hw_ = radians(aside_hw);
+        float cone_ = 1.0 - smoothstep(hw_ * 0.7, hw_, abs(rel_));          // 扇形範圍
+        float aq_ = rel_ / max(aside_cstep, 0.03);
+        float id_ = floor(aq_), fr_ = fract(aq_);
+        float jt_ = fract(sin(id_ * 12.9898) * 43758.5453);
+        float wpx_ = 0.8 + 0.9 * fract(jt_ * 7.3);                          // 線寬（px，很細）
+        float ln_ = (1.0 - smoothstep(wpx_ * 0.3, wpx_, abs(fr_ - 0.5) * aside_cstep * max(rr_, 1.0))) * step(0.3, jt_) * cone_;
+        float amt_ = clamp(aside_pa / 0.03, 0.0, 1.0);
+        float Lm_ = min(aside_cr * amt_ * (0.45 + 0.55 * fract(jt_ * 3.7)), 0.45 * Hpx_);   // 每條長度不同，最多 45% 內褲高度
+        float rg_ = smoothstep(3.0, 28.0, rr_) * (1.0 - smoothstep(0.35 * Lm_, max(Lm_, 1.0), rr_)) * (1.0 - smoothstep(0.30, 0.46, hz_));   // 內褲上面（超過 46% 高度）完全不會有
+        vec3 cc_ = COLOR.rgb * vec3(0.62, 0.38, 0.44);   // 比之前深一點的暗紅
+        COLOR.rgb = mix(COLOR.rgb, cc_, clamp(ln_ * rg_ * aside_ck, 0.0, 1.0));
+    }
+    if (wet_k > 0.001 && COLOR.a > 0.01) {   // 濕度：B 附近的內褲被「色彩增值」蓋上一塊濕痕（跟著布料一起變形）
+        vec2 wd_ = (p - wet_c) / max(wet_r, vec2(0.001));
+        float wn_ = fract(sin(dot(floor(p * 70.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        float wm_ = 1.0 - smoothstep(wet_core, 1.0, length(wd_) + wn_ * 0.18);
+        COLOR.rgb = mix(COLOR.rgb, COLOR.rgb * wet_col, clamp(wet_k * wm_, 0.0, 1.0));
+    }
+    if (pull_s_ > 0.0 && COLOR.a > 0.01) {   // 往下拉時的褶皺（照衣服上半部的折疊褶皺：一段一段、顏色一樣、集中在上半部）
+        float Hc_ = max(0.0001, bot_v - top_v);
+        float fwc_ = fwidth(UV.y);
+        float crk_ = 0.0;
+        for (int fk = 0; fk < 3; fk++) {
+            float cxc_ = (UV.x - cx_u) * 38.0 + float(fk) * 3.7;
+            float cN_ = floor(cxc_);
+            float cF_ = fract(cxc_);
+            float cOn_ = step(0.3, fract(sin(cN_ * 91.7 + float(fk) * 17.3) * 43758.5453));
+            float cJ_ = fract(sin(cN_ * 37.1 + float(fk) * 5.9) * 43758.5453) - 0.5;
+            float fb_ = top_v + pull_s_ + Hc_ * (0.14 + 0.16 * float(fk)) + cJ_ * 0.003;
+            float fly_ = fb_ - abs(UV.x - cx_u) * 0.06;
+            float sg_ = smoothstep(0.0, 0.25, cF_) * (1.0 - smoothstep(0.65, 0.9, cF_)) * cOn_;
+            crk_ = max(crk_, (1.0 - smoothstep(fwc_ * 0.2, fwc_ * 0.9, abs(py_ - fly_))) * sg_ * clamp((pull_s_ - float(fk) * 0.004) / 0.0025, 0.0, 1.0));
+        }
+        COLOR.rgb = mix(COLOR.rgb, mix(COLOR.rgb * vec3(0.5, 0.1, 0.1), vec3(0.32, 0.02, 0.04), 0.7), clamp(crk_, 0.0, 1.0) * 0.9);
+    }
+    {   // 內褲底部（B 到會被拖動的那一段）比上面更透明一點：往下漸層
+        float ph_ = max(0.15 * (bot_v - top_v), 0.001);
+        float wb_ = smoothstep(wet_c.y - ph_, wet_c.y + ph_ * 0.3, UV.y);
+        COLOR.a *= mix(1.0, pa_k, wb_);
+    }
+    COLOR.a *= vis_ * alpha_k;
+    if (aside_dbg > 0.5) {   // 輔助線：紅＝月牙形（不變形區）、藍＝外圓、綠＝內圓、黃點＝外圓中心、白線＝B 的位置、紫線＝最底下加強那條的上緣
+        float oa_ = mask_ * 0.38;
+        vec3 oc_ = vec3(1.0, 0.15, 0.15);
+        float lA2_ = 1.0 - smoothstep(0.0, 2.5, abs(length(up_ - cA_) - aside_ra * Hpx_));
+        float lB2_ = 1.0 - smoothstep(0.0, 2.5, abs(length(up_ - cB_) - aside_rb * Hpx_));
+        float dC_ = 1.0 - smoothstep(5.0, 8.0, length(up_ - cA_));
+        float lBp_ = 1.0 - smoothstep(0.0, 2.0, abs(UV.x - aside_fz) * tpx_.x);
+        float lBt_ = 1.0 - smoothstep(0.0, 2.0, abs(UV.y - (bot_v - aside_bw * 1.6)) * tpx_.y);
+        oc_ = mix(oc_, vec3(0.2, 0.5, 1.0), lA2_); oa_ = max(oa_, lA2_);
+        oc_ = mix(oc_, vec3(0.2, 1.0, 0.3), lB2_); oa_ = max(oa_, lB2_);
+        oc_ = mix(oc_, vec3(1.0, 0.95, 0.2), dC_); oa_ = max(oa_, dC_);
+        oc_ = mix(oc_, vec3(1.0, 1.0, 1.0), lBp_); oa_ = max(oa_, lBp_);
+        oc_ = mix(oc_, vec3(0.9, 0.2, 0.9), lBt_); oa_ = max(oa_, lBt_);
+        float dO_ = 1.0 - smoothstep(4.0, 7.0, length(up_ - (cB_ + aside_rb * Hpx_ * vec2(cos(radians(aside_oth)), sin(radians(aside_oth))))));   // 橘點＝花灑出發點
+        oc_ = mix(oc_, vec3(1.0, 0.55, 0.1), dO_); oa_ = max(oa_, dO_);
+        COLOR.rgb = mix(COLOR.rgb, oc_, oa_);
+        COLOR.a = max(COLOR.a, oa_);
+    }
+}
+";
+
+    float CurrentPussyExpand()
+    {
+        string on = _mLegOpen ? "m腿/小穴" : "腿/小穴";
+        if (_mLegDragStretchMaterials.TryGetValue(on, out var m) && m != null)
+        {
+            var v = m.GetShaderParameter("expand_amount");
+            if (v.VariantType == Variant.Type.Float) return (float)v;
+        }
+        return 0f;
+    }
+
+    /// <summary>每幀（在 UpdateBreathing 之後）把身體／胸部這一幀的形變同步給衣服。</summary>
+    bool _clothLinePrinted;
+    void UpdateClothFollow()
+    {
+        if (_clothMat == null) return;
+        if (!Layers.TryGetValue("衣服", out var cloth) || cloth == null) return;
+        if (!Layers.TryGetValue("身體", out var body) || body == null) return;
+
+        // 0. 每個畫面像素 = 幾個畫布像素（讓位移以畫面像素計）
+        {
+            float wps = (ScreenToWorld(new Vector2(0f, 1f)) - ScreenToWorld(Vector2.Zero)).Length();
+            float gs = Mathf.Abs(cloth.GetGlobalTransform().Scale.Y);
+            _clothPxScale = 1f;   // 不再做畫面像素換算（之前換算不準）；位移單位＝畫布像素
+        }
+
+        // 1. 整體縮放跟身體一致（呼吸脹縮）
+        cloth.PivotOffset = body.PivotOffset;
+        cloth.Scale = body.Scale;
+        foreach (var pn in ClothPartLayers)
+            if (Layers.TryGetValue(pn, out var part) && part != null) { part.PivotOffset = body.PivotOffset; part.Scale = body.Scale; }
+
+        // 2. 複製身體 shader 的上提／拉伸參數
+        if (_mLegDragStretchMaterials.TryGetValue("身體", out var bodyMat) && bodyMat != null)
+        {
+            foreach (var n in _clothCopyParams)
+            {
+                var v = bodyMat.GetShaderParameter(n);
+                if (v.VariantType != Variant.Type.Nil) _clothMat.SetShaderParameter(n, v);
+            }
+        }
+
+        // 衣擺：吸氣時往外擴（跟頭髮尾端同一種「只吸氣才動」），摸 B 時再跟著小穴變形量多擴一點
+        float pussyExp = CurrentPussyExpand();
+        float inhale = Mathf.Max(0f, Mathf.Sin(_breathTime * Mathf.Pi * 2f));
+        _clothMat.SetShaderParameter("hem_amount", inhale * ClothHemBreathAmount + pussyExp * ClothHemBTouchGain);
+        {   // 全年齡：衣服最底下 AllAgesHemStretchFrac 往下拉長 AllAgesHemStretchPx
+            bool aa_ = AllAgesLocked;
+            _clothMat.SetShaderParameter("stretch_s", ClothHemEndV - Mathf.Clamp(AllAgesHemStretchFrac, 0.01f, 1f) * (ClothHemEndV - ClothTopV));
+            _clothMat.SetShaderParameter("stretch_ext", aa_ ? AllAgesHemStretchPx / 3200f : 0f);
+        }
+        UpdateClothBump();
+        _clothMat.SetShaderParameter("ta_hem", AllAgesLocked ? 0f : ClothHemFadeAmt);
+        _clothMat.SetShaderParameter("ta_hem_h", ClothHemFadeV);
+        _clothMat.SetShaderParameter("ta_chest", AllAgesLocked ? 0f : ClothChestFadeAmt);
+        _clothMat.SetShaderParameter("hem_start_v", ClothHemStartV);
+        _clothMat.SetShaderParameter("hem_end_v", ClothHemEndV);
+        _clothMat.SetShaderParameter("hem_center_u", ClothHemCenterU);
+
+        // 衣擺上拉（指數趨近，不過衝）
+        float dtc = (float)GetProcessDeltaTime();
+        for (int hi = 0; hi < 2; hi++) _hemPullA[hi] += (_hemTargetA[hi] - _hemPullA[hi]) * (1f - Mathf.Exp(-ClothHemFollow * dtc));
+        float fk = 1f - Mathf.Exp(-ClothHemFollow * dtc);
+        for (int ti = 0; ti < 2; ti++)
+        {
+            _rotA[ti] += (_rotT[ti] - _rotA[ti]) * fk;
+            _stA[ti]  += (_stT[ti]  - _stA[ti])  * fk;
+        }
+        _clothMat.SetShaderParameter("rot_ang", ClothBodyRotate ? new Vector2(Mathf.DegToRad(_rotA[0]), Mathf.DegToRad(_rotA[1])) : Vector2.Zero);   // 衣服本體不再旋轉（旋轉的是肩帶），避免本體上緣轉出一個大「肩帶」
+        _clothMat.SetShaderParameter("st_amt", new Vector2(_stA[0], _stA[1]));
+        _clothMat.SetShaderParameter("top_spread_k", StrapTopSpreadK);
+        _clothMat.SetShaderParameter("shrink_k", StrapBelowShrinkK);
+        if (_topExtU.X > 0f) _clothMat.SetShaderParameter("top_ext", _topExtU);
+        for (int oi = 0; oi < 2; oi++) { _overA[oi] += (_overT[oi] - _overA[oi]) * fk; _extraA[oi] += (_extraT[oi] - _extraA[oi]) * fk; }
+        _clothMat.SetShaderParameter("over_amt", new Vector2(_overA[0], _overA[1]));
+        _clothMat.SetShaderParameter("top_cx", ClothTopCx);
+        if (!_clothLinePrinted)
+        {
+            _clothLinePrinted = true;
+            float hhp = ClothHemEndV - ClothTopV, y10p = ClothTopV + hhp * ClothRotFracEff, y25p = y10p + hhp * ClothInflFracEff;
+            GD.Print($"[ClothLines] 黃Y={y10p * 3200f:F1}px(原{(ClothTopV + hhp * ClothTopRotFrac) * 3200f:F1}) 橘Y={y25p * 3200f:F1}px(原{(ClothTopV + hhp * (ClothTopRotFrac + ClothTopInflFrac)) * 3200f:F1}) shift=({ClothYellowShiftPx},{ClothOrangeShiftPx}) 每畫面px={_clothPxScale:F2}畫布px");
+        }
+        _clothMat.SetShaderParameter("orange_k", ClothOrangeK);
+        _clothMat.SetShaderParameter("orange_r", ClothOrangeRoundU);
+        _clothMat.SetShaderParameter("orange_w", ClothOrangeHalfW);
+        _clothMat.SetShaderParameter("x_comp", ClothTopXComp);
+        _clothMat.SetShaderParameter("rot_frac", ClothRotFracEff);
+        _clothMat.SetShaderParameter("infl_frac", ClothInflFracEff);
+        _clothMat.SetShaderParameter("show_guides", ClothShowGuides ? 1f : 0f);
+        _clothMat.SetShaderParameter("top_v", ClothTopV);
+        _clothMat.SetShaderParameter("top_h", Mathf.Max(0.01f, (ClothHemEndV - ClothTopV) * ClothTopFrac));
+        _clothMat.SetShaderParameter("left_u", ClothLeftU);
+        _clothMat.SetShaderParameter("right_u", ClothRightU);
+        _clothMat.SetShaderParameter("pull_amt2", new Vector2(_hemPullA[0], _hemPullA[1]));
+        _clothMat.SetShaderParameter("pull_xs", new Vector2(_hemPullXA[0], _hemPullXA[1]));
+        _clothMat.SetShaderParameter("pull_w", ClothHemPullWidthU);
+        _clothMat.SetShaderParameter("pull_band", ClothHemPullBandV);
+        _clothMat.SetShaderParameter("inward", ClothHemInward);
+        _clothMat.SetShaderParameter("zoom_k", _canvas != null ? Mathf.Clamp(_canvas.Transform.X.Length(), 0.05f, 4f) : 1f);
+        _clothMat.SetShaderParameter("pull_lean", ClothHemLean);
+        _clothMat.SetShaderParameter("roll_v", Mathf.Max(0.002f, ClothHemRollV));
+        _clothMat.SetShaderParameter("roll_str", ClothHemRollStrength);
+
+        // 內褲：中心撐開量跟小穴同步
+        if (_pantyMat != null)
+        {
+            _pantyMat.SetShaderParameter("expand_amount", pussyExp * ClothPantyStretchGain);
+            _pantyMat.SetShaderParameter("half_width_u", ClothPantyHalfWidthU);
+            _pantyMat.SetShaderParameter("half_height_v", ClothPantyHalfHeightV);
+            _pantyMat.SetShaderParameter("shift_k", ClothPantyShiftK);
+            _pantyMat.SetShaderParameter("twist_k", ClothPantyTwistK);
+            PantyPullApply();
+        }
+
+        // 3. 胸部區塊：胸相對身體的位移（畫布 px → UV）與縮放
+        Vector2 bodyDelta = Vector2.Zero;
+        if (_layerBasePos.TryGetValue("身體", out var bodyBase)) bodyDelta = body.Position - bodyBase;
+        ClothApplyChest("胸1", "chest1", bodyDelta);
+        ClothApplyChest("胸2", "chest2", bodyDelta);
+        _clothMat.SetShaderParameter("chest_r", new Vector2(Mathf.Max(1f, ClothChestRadiusX), Mathf.Max(1f, ClothChestRadiusY)));
+        _clothMat.SetShaderParameter("chest_inner", Mathf.Clamp(ClothChestInner, 0f, 0.95f));
+    }
+
+    void ClothApplyChest(string layer, string prefix, Vector2 bodyDelta)
+    {
+        Vector2 off = Vector2.Zero; float s = 1f;
+        if (Layers.TryGetValue(layer, out var c) && c != null && _layerBasePos.TryGetValue(layer, out var bp))
+        {
+            Vector2 rel = (c.Position - bp) - bodyDelta;
+            // 胸圖層的 Scale 是以 body 為基準的額外縮放；整體身體縮放已由 cloth.Scale 處理
+            off = rel / new Vector2(2000f, 3200f) * ClothChestFollow;
+            s = 1f + (c.Scale.X - 1f) * ClothChestFollow;
+        }
+        _clothMat.SetShaderParameter(prefix + "_off", off);
+        _clothMat.SetShaderParameter(prefix + "_s", s);
+    }
+
+    /// <summary>跟 shader 一致：x 位置（U）的衣擺上拉量。兩個拉點之間平滑內插，之外往外衰減。</summary>
+    float HemProfile(float ux)
+    {
+        float x0 = _hemPullXA[0], x1 = _hemPullXA[1], a0 = _hemPullA[0], a1 = _hemPullA[1];
+        if (x0 > x1) { (x0, x1) = (x1, x0); (a0, a1) = (a1, a0); }
+        float t = Mathf.Clamp((ux - x0) / Mathf.Max(0.0001f, x1 - x0 + 0.0001f), 0f, 1f); t = t * t * (3f - 2f * t);
+        float dxo = Mathf.Max(Mathf.Max(x0 - ux, ux - x1), 0f);
+        return Mathf.Lerp(a0, a1, t) * Mathf.Exp(-Mathf.Pow(dxo / Mathf.Max(0.001f, ClothHemPullWidthU), 4f));
+    }
+
+    static float SStep(float a, float b, float x) { float t = Mathf.Clamp((x - a) / Mathf.Max(1e-5f, b - a), 0f, 1f); return t * t * (3f - 2f * t); }
+
+    /// <summary>跟 shader 一致：把畫面上的點（UV）反推回「衣服原圖」上的位置（先反推下拉壓縮、再反推旋轉），用來判斷抓到哪一段。</summary>
+    Vector2 ClothTopInv(Vector2 uv)
+    {
+        float hh = ClothHemEndV - ClothTopV;
+        float y10 = ClothTopV + hh * ClothRotFracEff, y25 = y10 + hh * ClothInflFracEff, tb = ClothTopV + hh * ClothTopFrac;
+        float zone = Mathf.Max(0.001f, tb - ClothTopV), cx = ClothTopCx;
+        float sdp = Mathf.Lerp(_stA[0], _stA[1], SStep(cx - 0.06f, cx + 0.06f, uv.X));
+        float dEff = Mathf.Min(sdp, zone * 0.93f);
+        Vector2 P = uv;
+        if (uv.Y < tb)
+        {   // 與 shader 一致：黃線以上只平移不縮放，黃線~綠線之間才壓縮
+            float cT = zone / Mathf.Max(0.001f, zone - dEff);
+            float p10 = tb - (tb - y10) * cT;
+            P.Y = (uv.Y < y10) ? uv.Y + (p10 - y10) : tb - (tb - uv.Y) * cT;
+        }
+        {   // 與 shader 一致：往下拉時上半部左右外擴
+            float sdirT = 2f * (1f - SStep(cx - 0.06f, cx + 0.06f, uv.X)) - 1f;
+            float spwT = 1f - SStep(y10, tb, uv.Y);
+            P.X += sdirT * sdp * 3200f * StrapTopSpreadK / 2000f * spwT;
+        }
+        float fy = 1f - SStep(y10, Mathf.Max(y10 + 0.004f, y25 + (Mathf.Sqrt((P.X - cx) * (P.X - cx) + ClothOrangeRoundU * ClothOrangeRoundU) - ClothOrangeRoundU) * ClothOrangeK), P.Y);
+        float wl = 1f - SStep(cx - 0.01f, cx + 0.01f, P.X);
+        float ang = ClothBodyRotate ? Mathf.DegToRad(_rotA[1] * (1f - wl) - _rotA[0] * wl) * fy : 0f;
+        Vector2 px = new Vector2(2000f, 3200f);
+        Vector2 d = (P - new Vector2(cx, y10)) * px;
+        float cs = Mathf.Cos(ang), sn = Mathf.Sin(ang);
+        Vector2 d2 = new Vector2(d.X * cs + d.Y * sn, -d.X * sn + d.Y * cs);
+        Vector2 outP = new Vector2(cx, y10) + d2 / px;
+        outP.X = P.X + (outP.X - P.X) * (1f - ClothTopXComp * fy);   // 與 shader 一致的橫向補償
+        return outP;
+    }
+
+    /// <summary>上半部「往下拉」可抓範圍往下多出來的量：只有真的被拉下去了才會變大（沒拉時只留一小段），避免搶走下面的操作。</summary>
+    [Export] public bool ClothDebugLog = true;   // 按下衣服時在 Output 印出被哪一區接手（[ClothDbg]）
+
+    float TopExtraV(float hh)
+    {
+        float zone = hh * ClothTopFrac;
+        float st = Mathf.Max(_stA[0], _stA[1]);
+        float k = Mathf.Clamp(st / Mathf.Max(0.001f, zone * 0.3f), 0f, 1f);
+        return hh * (0.03f + (ClothTopGrabExtraFrac - 0.03f) * k);
+    }
+
+    static Vector2 lpt_(Vector2 lp, float sx, float sy) => lp / new Vector2(sx, sy);
+
+    bool ClothHemInput(InputEvent e)
+    {
+        if (!Layers.TryGetValue("衣服", out var cloth) || cloth == null || !cloth.IsVisibleInTree()) { _hemDrag = false; return false; }
+        float sx = Mathf.Max(cloth.Size.X, 1f), sy = Mathf.Max(cloth.Size.Y, 1f);
+        // M 腿打開、按在肛門上：衣服的判定不起作用（讓給肛門的突破流程）
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } ap_ && _mLegOpen && !_hemDrag && _topDrag == 0 && IsMouseOverMLegAnus(ap_.Position))
+            return false;
+        // 按在臉上：肩帶／衣服的判定不起作用（臉是給捏臉／摸頭用的）
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } fp_ && !_hemDrag && _topDrag == 0 && PinchOnLayer("臉", fp_.Position))
+            return false;
+        // 按在「內褲上、而且這裡的衣服已經被拉開」：衣服讓路給內褲（衣服的判定是用原圖，會把已經拉開的地方也算進去）
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mp && !IsPointerOverUi() && PantyWantsPress(ScreenToWorld(mp.Position)))
+        { if (ClothDebugLog) GD.Print("[ClothDbg] 這個點交給內褲（衣服已拉開）"); return false; }
+        // 被子還蓋著（沒踢開）時，衣服不能拉
+        if (DuvetState != 1) { _hemDrag = false; _topDrag = 0; _midDrag = false; return false; }
+        // 中間區（上面可拉的區域與下面可折的區域之間）：往下拖＝把下面放回去，往上拖＝把上面放回去（復位用）
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mm0)
+        {
+            if (mm0.Pressed)
+            {
+                if (!IsPointerOverUi() && !_tongueTool && _handMode == HandMode.None)
+                {
+                    Vector2 wm = ScreenToWorld(mm0.Position);
+                    Vector2 lm = cloth.GetGlobalTransform().AffineInverse() * wm;
+                    float vm = lm.Y / sy;
+                    float topEnd = ClothTopV + (ClothHemEndV - ClothTopV) * ClothTopFrac;
+                    {   // 下擺已經被拉起來：抓在被拉起的下擺邊緣～原下緣之間，一律優先當成下擺（拉到最上面也拉得下來，不會被上半部搶走）
+                        float uxh = lm.X / sx, liftH = HemProfile(uxh);
+                        if (liftH > 0.01f)
+                        {
+                            float edgeH = ClothHemEndV - liftH;
+                            if (vm >= edgeH - ClothHemGrabBandV && vm <= edgeH + ClothHemGrabBandV * 0.5f && IsPointOnLayer("衣服", wm)
+                                && !IsPointOnLayer("m腿/腿1", wm) && !IsPointOnLayer("m腿/腿2", wm) && !IsPointOnLayer("m腿/小穴", wm) && !IsPointOnLayer("m腿/肛門", wm))
+                            {
+                                int slotH = Mathf.Abs(uxh - _hemPullXA[0]) <= Mathf.Abs(uxh - _hemPullXA[1]) ? 0 : 1;
+                                if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→已拉起的下擺（優先） v={vm:F3} 邊緣={edgeH:F3}");
+                                _hemDrag = true; _hemStartLocalY = lm.Y; _hemSlot = slotH; _hemStartTarget = _hemTargetA[slotH];
+                                return true;
+                            }
+                        }
+                    }
+                    float srcY_ = ClothTopInv(lpt_(lm, sx, sy)).Y;   // 用「沒被拉動前」的位置判斷，才不會跟上半部（肩帶／下拉）搶
+                    float midTop_ = topEnd + TopExtraV(ClothHemEndV - ClothTopV);
+                    float midBot_ = ClothHemEndV - Mathf.Max(ClothHemPullBandV, ClothHemGrabBandV);   // 跟下擺抓取區不重疊
+                    if (srcY_ > midTop_ && vm < midBot_ && StrapHitSide(lm) < 0 && IsPointOnLayer("衣服", wm))
+                    {
+                        if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→中間區（往下=放回下面，往上=放回上面） v={vm:F3} 上半結束={topEnd:F3} 下擺抓取起點={midBot_:F3} 下擺終點={ClothHemEndV:F3}");
+                        _midDrag = true; _midStartY = lm.Y; _midRotS[0] = _rotT[0]; _midRotS[1] = _rotT[1]; _midStS[0] = _stT[0]; _midStS[1] = _stT[1]; _midHemS0 = _hemTargetA[0]; _midHemS1 = _hemTargetA[1];
+                        return true;
+                    }
+                }
+            }
+            else if (_midDrag) { _midDrag = false; return true; }
+        }
+        else if (e is InputEventMouseMotion mm1 && _midDrag)
+        {
+            float dy = (cloth.GetGlobalTransform().AffineInverse() * ScreenToWorld(mm1.Position)).Y - _midStartY;
+            if (dy >= 0f)
+            {
+                _hemTargetA[0] = Mathf.Max(0f, _midHemS0 - dy / sy); _hemTargetA[1] = Mathf.Max(0f, _midHemS1 - dy / sy);
+                for (int q = 0; q < 2; q++) { _rotT[q] = _midRotS[q]; _stT[q] = _midStS[q]; }
+            }
+            else
+            {
+                float k = 1f - Mathf.Clamp(-dy / sy / 0.15f, 0f, 1f);
+                for (int q = 0; q < 2; q++) { _rotT[q] = _midRotS[q] * k; _stT[q] = _midStS[q] * k; }
+                _hemTargetA[0] = _midHemS0; _hemTargetA[1] = _midHemS1;
+            }
+            return true;
+        }
+        if (_midDrag) return true;
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mbt)
+        {
+            if (mbt.Pressed)
+            {
+                if (IsPointerOverUi() || _tongueTool || _handMode != HandMode.None) return false;
+                Vector2 wt = ScreenToWorld(mbt.Position);
+                Vector2 lpt = cloth.GetGlobalTransform().AffineInverse() * wt;
+                Vector2 uv = lpt / new Vector2(sx, sy);
+                int hs = StrapHitSide(lpt);
+                if (hs >= 0)
+                {   // 抓住已經被拉開的肩帶：可以往回拉（往內拖）
+                    if (ClothDebugLog) GD.Print("[ClothDbg] 按下→肩帶（回拉）");
+                    _topDrag = 1 + hs; _topStartVal = _rotT[hs];
+                    _rotTriggered = true; _rotTrigX = lpt.X; _topStartA = 0f; _strapY0 = lpt.Y; _strapSt0 = _stT[hs] + _overT[hs] + _extraT[hs];
+                    return true;
+                }
+                Vector2 src = ClothTopInv(uv);
+                float hh = ClothHemEndV - ClothTopV;
+                float y10 = ClothTopV + hh * ClothRotFracEff, tb = ClothTopV + hh * ClothTopFrac;
+                float y10Hit = y10;
+                bool inX = src.X > ClothLeftU - 0.04f && src.X < ClothRightU + 0.04f;
+                int side = src.X < ClothTopCx ? 0 : 1;
+                if (inX && src.Y > ClothTopV - 0.03f && src.Y < y10Hit)
+                {   // 旋轉段：左半逆時針、右半順時針（兩邊往下垂）
+                    if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→上半部旋轉段 src.Y={src.Y:F3} 結束={y10Hit:F3}");
+                    _topDrag = 1 + side; _topStartVal = _rotT[side];
+                    _topStartA = Mathf.Atan2(lpt.Y - y10 * sy, Mathf.Abs(lpt.X - ClothTopCx * sx));
+                    _rotTriggered = false; _rotTrigX = lpt.X;   // 左右移動超過 StrapRotTriggerPx 才開始旋轉
+                    _strapY0 = lpt.Y; _strapSt0 = _stT[side] + _overT[side] + _extraT[side];
+                    return true;
+                }
+                if (inX && src.Y >= y10Hit && src.Y < tb + TopExtraV(hh) && IsPointOnLayer("衣服", wt))
+                {   // 往下拉（壓縮）：兩邊都轉到解鎖角度以上才可以
+                    if (_rotT[side] < StrapUnlockDeg) return false;   // 這一邊的肩帶拉過解鎖角度，這一邊就能往下拉（左右各自）
+                    if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→上半部下拉段 src.Y={src.Y:F3} 範圍={y10Hit:F3}~{tb + TopExtraV(hh):F3}");
+                    _topDrag = 3 + side; _topStartVal = _stT[side]; _topStartLY = lpt.Y;
+                    return true;
+                }
+            }
+            else if (_topDrag != 0) { _topDrag = 0; return true; }
+        }
+        else if (e is InputEventMouseMotion mt && _topDrag != 0)
+        {
+            Vector2 lpt = cloth.GetGlobalTransform().AffineInverse() * ScreenToWorld(mt.Position);
+            float hh = ClothHemEndV - ClothTopV;
+            if (_topDrag <= 2)
+            {
+                int sd = _topDrag - 1;
+                float y10 = ClothTopV + hh * ClothRotFracEff;
+                float a = Mathf.Atan2(lpt.Y - y10 * sy, Mathf.Abs(lpt.X - ClothTopCx * sx));
+                if (!_rotTriggered && _rotT[sd] >= StrapUnlockDeg)
+                { _rotTriggered = true; _rotTrigX = lpt.X; _strapY0 = lpt.Y; _strapSt0 = _stT[sd] + _overT[sd] + _extraT[sd]; }   // 肩帶已拉到底：不用先左右動，直接往下拖就能拉衣服
+                if (!_rotTriggered)
+                {
+                    if (Mathf.Abs(lpt.X - _rotTrigX) < StrapRotTriggerPx) return true;   // 還沒左右移動夠遠：不旋轉
+                    _rotTriggered = true; _topStartA = a; _rotTrigX = lpt.X;   // 從觸發當下開始算，不會跳一下
+                }
+                // 已經在拉衣服（這一邊往下拉了）時，肩帶角度鎖住，只看上下；否則左右拖＝旋轉
+                bool stretching = _rotT[sd] >= StrapUnlockDeg && _stT[sd] > 0.0005f;
+                if (!stretching)
+                {   // 滑鼠往外（左帶往左、右帶往右）拖 StrapDragPx＝轉滿；肩帶位置跟著滑鼠走
+                    float outDx = (sd == 0 ? -1f : 1f) * (lpt.X - _rotTrigX);
+                    _rotT[sd] = Mathf.Clamp(_topStartVal + outDx / Mathf.Max(1f, StrapDragPx) * ClothTopRotMax, 0f, ClothTopRotMax);
+                }
+                // 兩邊肩帶都拉到底之後，繼續往下拖：衣服上半部跟著往下（往回拖到 0 就停；沒拉到底時衣服回原位）
+                if (_rotT[sd] >= StrapUnlockDeg)
+                {
+                    float zoneS = (ClothHemEndV - ClothTopV) * ClothTopFrac;
+                    float capS = zoneS * ClothTopStretchMaxFrac + StrapExtraDownPx / 3200f;
+                    float rawS = Mathf.Min(Mathf.Max(0f, _strapSt0 + (lpt.Y - _strapY0) / sy), StrapDressMaxV(sd));   // 肩帶到底了，衣服就不再往下
+                    _stT[sd] = Mathf.Min(rawS, capS);
+                    _overT[sd] = Mathf.Clamp(rawS - capS, 0f, StrapOverMaxPx / 3200f);
+                    _extraT[sd] = Mathf.Max(0f, rawS - capS - StrapOverMaxPx / 3200f);   // 衣服已經停了，肩帶還能繼續往下的量   // 拉到上限後繼續拉：中間出現往下移動的折疊褶皺
+                }
+                else { _strapY0 = lpt.Y; _strapSt0 = _stT[sd] + _overT[sd] + _extraT[sd]; }
+            }
+            else
+            {
+                int sd = _topDrag - 3;
+                float zone = hh * ClothTopFrac;
+                float capB = zone * ClothTopStretchMaxFrac + StrapExtraDownPx / 3200f;
+                float rawB = Mathf.Min(Mathf.Max(0f, _topStartVal + _overT[sd] + _extraT[sd] + (lpt.Y - _topStartLY) / sy), StrapDressMaxV(sd));   // 只能往下；肩帶到底了，衣服就不再往下
+                _stT[sd] = Mathf.Min(rawB, capB);
+                _overT[sd] = Mathf.Clamp(rawB - capB, 0f, StrapOverMaxPx / 3200f);
+                _extraT[sd] = Mathf.Max(0f, rawB - capB - StrapOverMaxPx / 3200f);
+            }
+            return true;
+        }
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
+        {
+            if (mb.Pressed)
+            {
+                if (IsPointerOverUi() || _tongueTool || _handMode != HandMode.None) return false;
+                Vector2 w = ScreenToWorld(mb.Position);
+                if (!IsPointOnLayer("衣服", w)) return false;
+                // M 腿現在畫在衣服上面：點到腿就不當成抓衣擺
+                if (IsPointOnLayer("m腿/腿1", w) || IsPointOnLayer("m腿/腿2", w) || IsPointOnLayer("m腿/小穴", w) || IsPointOnLayer("m腿/肛門", w)) return false;
+                Vector2 lp = cloth.GetGlobalTransform().AffineInverse() * w;
+                float v = lp.Y / sy;
+                float ux = lp.X / sx;
+                float gw = Mathf.Max(0.001f, ClothHemPullWidthU);
+                int slot = ux < ClothHemCenterU ? 0 : 1;
+                {   // 已經拉起來時，選對這個位置影響最大的那一邊（才拉得回去）
+                    if (HemProfile(ux) > 0.01f) slot = Mathf.Abs(ux - _hemPullXA[0]) <= Mathf.Abs(ux - _hemPullXA[1]) ? 0 : 1;
+                }
+                float lifted = HemProfile(ux);
+                float edge = ClothHemEndV - lifted;
+                float bandTop = lifted > 0.01f ? Mathf.Min(ClothHemEndV - ClothHemPullBandV, edge - ClothHemGrabBandV) : (edge - ClothHemGrabBandV);   // 已經拉起來時，整段被壓縮的範圍都能抓，方便拉回去
+                if (v < bandTop || v > edge + 0.01f) return false;
+                if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→下擺拉起 v={v:F3} 抓取起點={bandTop:F3} 邊緣={edge:F3}");
+                _hemDrag = true; _hemStartLocalY = lp.Y; _hemSlot = slot; _hemStartTarget = _hemTargetA[slot];
+                if (_hemPullA[slot] < 0.01f) _hemPullXA[slot] = ux;
+                return true;
+            }
+            if (_hemDrag)
+            {
+                _hemDrag = false;
+                _hemTargetA[_hemSlot] *= (1f - ClothHemRecover);
+                return true;
+            }
+        }
+        else if (e is InputEventMouseMotion mm && _hemDrag)
+        {
+            Vector2 lp = cloth.GetGlobalTransform().AffineInverse() * ScreenToWorld(mm.Position);
+            _hemTargetA[_hemSlot] = Mathf.Clamp(_hemStartTarget + (_hemStartLocalY - lp.Y) / sy, 0f, ClothHemPullMax);
+            return true;
+        }
+        return false;
+    }
+
+    [Export] public bool ClothAutoBounds = true;   // 開機時從衣服貼圖的不透明範圍自動算上緣／左右緣
+
+    void ClothAutoBounds_()
+    {
+        if (!ClothAutoBounds || !Layers.TryGetValue("衣服", out var cl) || cl is not TextureRect tr || tr.Texture == null) return;
+        var img = tr.Texture.GetImage();
+        if (img == null) return;
+        if (img.IsCompressed()) img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+        int w = img.GetWidth(), h = img.GetHeight();
+        var d = img.GetData();
+        int minX = w, maxX = -1, minY = h;
+        for (int y = 0; y < h; y++)
+        {
+            int row = y * w * 4;
+            for (int x = 0; x < w; x++)
+            {
+                if (d[row + x * 4 + 3] > 25)
+                {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                }
+            }
+        }
+        if (maxX < 0) return;
+        ClothTopV = (float)minY / h; ClothLeftU = (float)minX / w; ClothRightU = (maxX + 1f) / w;
+        GD.Print($"[Cloth] 自動範圍 top={ClothTopV:F3} left={ClothLeftU:F3} right={ClothRightU:F3}");
+    }
+
+    // ── 肚子／插入出現時，衣服在那個位置跟著凸起、隨它移動 ──
+    [Export(PropertyHint.Range, "0,0.8,0.01")] public float ClothBumpBelly  = 0.30f;   // 肚子的凸起強度（0＝不凸）
+    [Export(PropertyHint.Range, "0,0.8,0.01")] public float ClothBumpInsert = 0.20f;   // 插入的凸起強度
+    [Export(PropertyHint.Range, "0,0.5,0.01")] public float ClothBumpSeeThrough = 0.12f;   // 肚子／插入位置的衣服多透出幾成（0.12＝保留 88% 不透明）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float ClothBumpFollow = 0.3f;   // 凸起跟著肚子／插入抽插移動的比例（越小衣服動得越不明顯）
+    [Export(PropertyHint.Range, "0.2,1.5,0.05")] public float ClothBumpRadius = 0.6f;   // 凸起範圍＝圖層內容半寬高 × 這個比例
+
+    // ── 插入：向右擴張（舊的「用衣服裁切插入／雞雞／血」已移除，改成衣服直接畫在最上面）──
+    [Export(PropertyHint.Range, "0,5,0.05")] public float ClothBumpSpeedGain = 1.5f;   // 抽插速度最大時，衣服凸起／晃動額外放大倍數
+    [Export] public bool PlayTimeLimitOn = true;         // 遊玩時間限制
+    [Export(PropertyHint.Range, "10,3600,1")] public float PlayTimeLimitSec = 300f;   // 5 分鐘
+    float _playTime; bool _playTimeUp;
+    [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 3f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
+    void UpdateInsertMask()
+    {
+        if (_insertEdgeMat == null) return;
+        _insertEdgeMat.SetShaderParameter("wid_s", InsertWidenRightPx / 239f);
+    }
+
+    [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
+    bool _clothTopApplied; bool _clothTopInit;
+    static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
+    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服" };
+    static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
+    [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
+    SubViewport _legMaskVP; Node2D _legMaskRoot;
+    readonly System.Collections.Generic.Dictionary<string, TextureRect> _legDup = new();
+
+    void MoveBefore(Control node, Control anchor)
+    {
+        int ai = anchor.GetIndex(), li = node.GetIndex();
+        _charRoot.MoveChild(node, li < ai ? ai - 1 : ai);
+    }
+
+    void ApplyClothOnTop()
+    {
+        if (_charRoot == null) return;
+        if (_clothTopInit && _clothTopApplied == ClothOnTop) return;
+        if (!Layers.TryGetValue("前髮", out var hair) || hair == null || hair.GetParent() != _charRoot) return;
+        if (_duvet != null && IsInstanceValid(_duvet) && _duvet.GetParent() == _charRoot) hair = _duvet;   // 被子在衣服上面：排在被子前面
+        if (ClothOnTop)
+        {   // 順序：…→ M 腿 → 肛門 → 洞／雞雞／精液／開／插入 → 衣服帶／衣服（最上）→ 前髮；衣服再用 M 腿遮罩裁掉
+            foreach (var n in ClothTopGroup)
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) MoveBefore(l, hair);
+            foreach (var n in ClothTopParts)
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) MoveBefore(l, hair);
+        }
+        else
+        {
+            if (Layers.TryGetValue("m腿/腿1", out var leg1) && leg1 != null && leg1.GetParent() == _charRoot)
+                foreach (var n in ClothTopParts)
+                    if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) MoveBefore(l, leg1);
+            foreach (var n in ClothTopGroup)
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) _charRoot.MoveChild(l, -1);
+        }
+        _clothTopInit = true; _clothTopApplied = ClothOnTop;
+        GD.Print($"[ClothTop] 衣服在最上面={ClothOnTop}");
+    }
+
+    /// <summary>把 M 腿各層離屏渲染到 _legMaskVP（charRoot 座標，縮 0.5），給衣服 shader 當遮罩。</summary>
+    void UpdateClothLegMask()
+    {
+        if (_clothMat == null || _charRoot == null) return;
+        bool on = ClothOnTop && ClothLegClip && Layers.TryGetValue("衣服", out var cl) && cl is TextureRect;
+        _clothMat.SetShaderParameter("lg_on", on ? 1f : 0f);
+        if (!on) { if (_legMaskVP != null) _legMaskVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; return; }
+        var cr = (TextureRect)Layers["衣服"];
+        if (_legMaskVP == null)
+        {
+            _legMaskVP = new SubViewport { TransparentBg = true, Size = new Vector2I(1000, 1600), RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+            AddChild(_legMaskVP);
+            _legMaskRoot = new Node2D { Scale = new Vector2(0.5f, 0.5f) };
+            _legMaskVP.AddChild(_legMaskRoot);
+        }
+        _legMaskVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+        foreach (var n in LegMaskLayers)
+        {
+            if (!Layers.TryGetValue(n, out var src) || src is not TextureRect st) continue;
+            if (!_legDup.TryGetValue(n, out var d) || !IsInstanceValid(d))
+            {
+                d = new TextureRect { MouseFilter = Control.MouseFilterEnum.Ignore };
+                _legMaskRoot.AddChild(d); _legDup[n] = d;
+            }
+            d.ExpandMode = st.ExpandMode; d.StretchMode = st.StretchMode;
+            d.Texture = st.Texture; d.Size = st.Size; d.Position = st.Position;
+            d.PivotOffset = st.PivotOffset; d.Scale = st.Scale; d.Rotation = st.Rotation;
+            d.Material = st.Material; d.Modulate = st.Modulate; d.SelfModulate = st.SelfModulate;
+            d.Visible = st.Visible && st.Texture != null;
+        }
+        Transform2D T = cr.GetTransform();
+        _clothMat.SetShaderParameter("leg_tex", (Texture2D)_legMaskVP.GetTexture());
+        _clothMat.SetShaderParameter("lg_x", T.X);
+        _clothMat.SetShaderParameter("lg_y", T.Y);
+        _clothMat.SetShaderParameter("lg_o", T.Origin);
+        _clothMat.SetShaderParameter("cl_size", cr.Size);
+    }
+    // ── 抽插時衣服跟著上下動 ──
+    [Export(PropertyHint.Range, "0,3,0.05")] public float ClothThrustMoveGain = 0.6f;     // 衣服跟插入上下移動的比例（0＝不動）
+    [Export(PropertyHint.Range, "0.2,4,0.05")] public float ClothThrustRadius = 1.2f;    // 影響範圍（插入內容大小的倍數）
+    void UpdateClothThrust()
+    {
+        float dy = 0f; Vector2 c = new Vector2(-10f, -10f), r = new Vector2(0.05f, 0.05f);
+        if (ClothThrustMoveGain > 0f && Layers.TryGetValue("插入", out var l) && l != null && l.IsVisibleInTree() && l.Modulate.A > 0.02f
+            && _layerBasePos.TryGetValue("插入", out var bp) && LayerContentRect("插入") is Rect2 cr && l.Size.X > 0f && l.Size.Y > 0f)
+        {
+            Vector2 off = l.Position - bp;
+            dy = off.Y / 3200f * ClothThrustMoveGain * l.Modulate.A;
+            c = cr.GetCenter() / l.Size;
+            r = new Vector2(Mathf.Max(0.005f, cr.Size.X * 0.5f * ClothThrustRadius / l.Size.X), Mathf.Max(0.005f, cr.Size.Y * 0.5f * ClothThrustRadius / l.Size.Y));
+        }
+        _clothMat.SetShaderParameter("mv_c", c);
+        _clothMat.SetShaderParameter("mv_r", r);
+        _clothMat.SetShaderParameter("mv_dy", dy);
+    }
+
+    // ── 肚子的線條也套在衣服上同個位置（衣服範圍內才顯示）──
+    [Export] public bool BellyLineOnCloth = true;
+    [Export(PropertyHint.Range, "0,1,0.01")] public float BellyLineOnClothAlpha = 1f;
+    TextureRect _bellyOnCloth; ShaderMaterial _bellyOnClothMat;
+    const string BellyOnClothCode = @"shader_type canvas_item;
+uniform sampler2D cloth_tex : filter_linear;
+uniform vec2 bx = vec2(1.0, 0.0);
+uniform vec2 by = vec2(0.0, 1.0);
+uniform vec2 bo = vec2(0.0);
+uniform vec2 csize = vec2(2000.0, 3200.0);
+uniform vec2 bsize = vec2(2000.0, 3200.0);
+varying vec4 vcol;
+void vertex() { vcol = COLOR; }
+void fragment() {
+    vec4 c = texture(TEXTURE, UV) * vcol;
+    vec2 pj_ = UV * bsize;
+    vec2 q = (bx * pj_.x + by * pj_.y + bo) / csize;
+    float a = (q.x < 0.0 || q.x > 1.0 || q.y < 0.0 || q.y > 1.0) ? 0.0 : texture(cloth_tex, q).a;
+    c.a *= a;
+    COLOR = c;
+}";
+    void UpdateBellyOnCloth()
+    {
+        bool want = ClothOnTop && BellyLineOnCloth && Layers.TryGetValue("肚子", out var src) && src is TextureRect st && st.Texture != null
+                    && Layers.TryGetValue("衣服", out var cl) && cl is TextureRect ct && ct.Texture != null && ct.GetParent() == _charRoot;
+        if (!want) { if (_bellyOnCloth != null && IsInstanceValid(_bellyOnCloth)) _bellyOnCloth.Visible = false; return; }
+        var s2 = (TextureRect)Layers["肚子"]; var c2 = (TextureRect)Layers["衣服"];
+        if (_bellyOnCloth == null || !IsInstanceValid(_bellyOnCloth))
+        {
+            _bellyOnClothMat = new ShaderMaterial { Shader = new Shader { Code = BellyOnClothCode } };
+            _bellyOnCloth = new TextureRect { Name = "BellyLineOnCloth", MouseFilter = Control.MouseFilterEnum.Ignore, Material = _bellyOnClothMat };
+            _charRoot.AddChild(_bellyOnCloth);
+        }
+        { int ci = c2.GetIndex(), oi = _bellyOnCloth.GetIndex(); if (oi != ci + 1) _charRoot.MoveChild(_bellyOnCloth, oi < ci ? ci : ci + 1); }
+        var d = _bellyOnCloth;
+        d.ExpandMode = s2.ExpandMode; d.StretchMode = s2.StretchMode;
+        d.Texture = s2.Texture; d.Size = s2.Size; d.Position = s2.Position;
+        d.PivotOffset = s2.PivotOffset; d.Scale = s2.Scale; d.Rotation = s2.Rotation;
+        d.Modulate = new Color(s2.Modulate.R, s2.Modulate.G, s2.Modulate.B, s2.Modulate.A * BellyLineOnClothAlpha);
+        d.SelfModulate = s2.SelfModulate;
+        d.Visible = s2.Visible;
+        Transform2D T = c2.GetTransform().AffineInverse() * d.GetTransform();
+        _bellyOnClothMat.SetShaderParameter("cloth_tex", c2.Texture);
+        _bellyOnClothMat.SetShaderParameter("bx", T.X);
+        _bellyOnClothMat.SetShaderParameter("by", T.Y);
+        _bellyOnClothMat.SetShaderParameter("bo", T.Origin);
+        _bellyOnClothMat.SetShaderParameter("csize", c2.Size);
+        _bellyOnClothMat.SetShaderParameter("bsize", d.Size);
+    }
+
+    void UpdateClothTop()
+    {
+        if (ClothOnTop && _clothTopInit && _duvet != null && IsInstanceValid(_duvet) && _duvet.GetParent() == _charRoot
+            && Layers.TryGetValue("衣服", out var cth) && cth != null && cth.GetParent() == _charRoot && _duvet.GetIndex() < cth.GetIndex())
+            _clothTopInit = false;   // 被子後來才建立／被移動，重新排一次
+        ApplyClothOnTop();
+        UpdateClothLegMask();
+        UpdateClothThrust();
+        UpdateBellyOnCloth();
+    }
+
+    bool _pantyHiddenByMLeg;
+    void UpdateClothBump()
+    {
+        UpdateInsertMask();
+        {   // M 腿開啟：原本的內褲隱藏（之後會換新的內褲圖）；關掉 M 腿再顯示回來
+            if (Layers.TryGetValue("內褲", out var pn_) && pn_ != null)
+            {
+                if (_mLegOpen && pn_.Visible) { pn_.Visible = false; _pantyHiddenByMLeg = true; }
+                else if (!_mLegOpen && _pantyHiddenByMLeg) { pn_.Visible = true; _pantyHiddenByMLeg = false; }
+            }
+        }
+        if (_clothMat == null) return;
+        _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
+        BumpOne("肚子", 1, ClothBumpBelly);
+        BumpOne("插入", 2, ClothBumpInsert);
+    }
+
+    void BumpOne(string layer, int slot, float k)
+    {
+        float sn = (_jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused) ? Mathf.Clamp(_s2SpeedLv / Mathf.Max(S2SpeedLvMax, 0.01f), 0f, 1f) : 0f;
+        float spd = 1f + ClothBumpSpeedGain * sn;   // 抽插越快，衣服下的晃動／凸起越強
+        float kk = 0f; Vector2 c = new Vector2(-10f, -10f), r = new Vector2(0.05f, 0.05f);
+        if (k > 0f && Layers.TryGetValue(layer, out var l) && l != null && l.IsVisibleInTree() && l.Modulate.A > 0.02f
+            && _layerBasePos.TryGetValue(layer, out var bp) && LayerContentRect(layer) is Rect2 cr && l.Size.X > 0f && l.Size.Y > 0f)
+        {
+            Vector2 off = l.Position - bp;   // 圖層此刻相對原位的位移（跟著雞雞／抽插動）
+            Vector2 ctr = cr.GetCenter() + off * ClothBumpFollow * spd;
+            c = ctr / l.Size;
+            r = new Vector2(Mathf.Max(0.005f, cr.Size.X * 0.5f * ClothBumpRadius / l.Size.X), Mathf.Max(0.005f, cr.Size.Y * 0.5f * ClothBumpRadius / l.Size.Y));
+            kk = k * spd * l.Modulate.A;
+        }
+        _clothMat.SetShaderParameter("bump_c" + slot, c);
+        _clothMat.SetShaderParameter("bump_r" + slot, r);
+        _clothMat.SetShaderParameter("bump_k" + slot, kk);
+    }
+}
