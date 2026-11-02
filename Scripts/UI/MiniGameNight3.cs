@@ -212,7 +212,7 @@ public partial class MiniGameNight3 : CanvasLayer
     public static float CumJijiEdgePx = 16f;                 // 白色只蓋紅色與黑線的交界處，這是交界兩側各算多寬（畫布像素，越大蓋的範圍越寬）
     public static float CumJijiStrokeTime = 3.6f;           // 白色從頂點沿著左右兩邊的線刷到底花多久（秒）
     public static float CumJijiBlobTime = 1.0f;             // 起點那團不規則橢圓浮現、長大的時間（秒），之後才開始往下流
-    public static Vector2 CumJijiBlobCenterPx = new(712f, 182f);   // 那團的中心（雞雞圖畫布像素）
+    public static Vector2 CumJijiBlobCenterPx = new(697f, 187f);   // 那團的中心（雞雞圖畫布像素）
     public static float CumJijiBlobRotDeg = 35f;            // 起點那團橢圓的旋轉角度（度，正＝逆時針歪，跟九宮格同方向；負＝順時針）
     public static Vector2 CumJijiBlobSizePx = new(62f, 26f);       // 那團的半徑 x／y
     public static float CumJijiBrushSoft = 0.1f;            // 筆刷前緣的柔和程度（越大尾巴越長越淡）
