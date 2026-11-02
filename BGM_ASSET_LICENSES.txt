@@ -29,3 +29,15 @@ Apartment、LivingRoom：ゆるやかな朝焼け
 Bathroom、一般結局及圖鑑回放：カスミソウ
 Bedroom、TrainingRoom、檔名含 bad 的結局：静止した宇宙
 主選單／序章原有曲目保留；劇情指定 BGM 或 stop 仍優先控制同一播放器。新配樂跟隨音樂音量及總音量。
+
+----
+2026-11-02 補記：RPG Maker 內建 BGM（來源為使用者口述，尚未查證）
+Resources/Audio/bgm/Scene1.ogg、Scene7.ogg、Town1.ogg：使用者表示為 RPG Maker 內建 BGM，檔名風格亦吻合。
+注意：RPG Maker 內建素材的規約通常限定「只能用於以 RPG Maker 製作的作品」。本專案是 Godot，商用或上架前須對照所持版本（MV/MZ 等）的官方規約確認；若不允許，需更換曲目。
+目前程式碼與 Resources/Data 中搜尋不到這三首的引用，可能未實際使用；未使用則可直接移出專案。
+
+Resources/Audio/bgm/meimei_op.ogg（主選單前奏，MainMenuRuntime.Intro.cs 載入）：
+來源、作者及是否為 AI 生成皆未知（ffmpeg 轉檔，無中繼資料）。使用者已忘記來源。待查證；查不到則建議更換或重製。
+meimei_op - 複製.ogg 與其位元組完全相同，為重複檔。
+
+Resources/Audio/se/Blow1.ogg、Open1.ogg：來源未記錄。
