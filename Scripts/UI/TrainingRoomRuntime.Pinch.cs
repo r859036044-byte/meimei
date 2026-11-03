@@ -39,8 +39,8 @@ public partial class TrainingRoomRuntime
     /// <summary>全年齡模式只開放摸頭／蓋被子／捏臉（可關掉方便在 R18 下測試全年齡）。</summary>
     [Export] public bool AllAgesRestrict = true;
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float AllAgesHemStretchFrac = 0.3f;   // 全年齡：衣服最底下這個比例會往下拉長
-    [Export(PropertyHint.Range, "0,600,1")] public float R18HemStretchPx = 120f;               // R18：衣服最底下（同上比例）往下拉長多少 px（0＝不拉長）
-    [Export(PropertyHint.Range, "0,600,1")] public float AllAgesHemStretchPx = 220f;          // 全年齡：往下拉長多少 px
+    [Export(PropertyHint.Range, "0,600,1")] public float R18HemStretchPx = 0f;                 // R18：衣服最底下（同上比例）往下拉長多少 px（0＝不拉長，維持原樣）
+    [Export(PropertyHint.Range, "0,600,1")] public float AllAgesHemStretchPx = 300f;          // 全年齡：往下拉長多少 px
 
     static readonly string[] PinchLayerNames =
     {
