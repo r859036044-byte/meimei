@@ -1477,6 +1477,24 @@ void fragment() {
         return (x - anchor0) * px;
     }
 
+    // M 腿＋內褲還穿著時：大腿（腿1_M／腿2_M）內側深紅線後面那一圈「被刷淡」的膚色會蓋在內褲上，
+    // 換成預先裁掉那一塊的版本（腿1_M_cut／腿2_M_cut，只裁內褲範圍內、深紅線內側的淡化部分，其他不動）；
+    // 內褲脫掉或關掉 M 腿就換回原圖。
+    Texture2D _thighTexCut1, _thighTexCut2, _thighTexOrig1, _thighTexOrig2;
+    void UpdateMLegPantyThighCut(bool pantyOn)
+    {
+        SwapThighTex("m腿/腿1", "Sprites/腿1_M", "Sprites/腿1_M_cut", ref _thighTexOrig1, ref _thighTexCut1, pantyOn);
+        SwapThighTex("m腿/腿2", "Sprites/腿2_M", "Sprites/腿2_M_cut", ref _thighTexOrig2, ref _thighTexCut2, pantyOn);
+    }
+    void SwapThighTex(string layer, string origPath, string cutPath, ref Texture2D orig, ref Texture2D cut, bool pantyOn)
+    {
+        if (!Layers.TryGetValue(layer, out var c) || c is not TextureRect tr) return;
+        orig ??= ResourceHelper.LoadTexAny(origPath);
+        if (pantyOn) cut ??= ResourceHelper.LoadTexAny(cutPath);
+        var want = pantyOn && cut != null ? cut : orig;
+        if (want != null && tr.Texture != want) tr.Texture = want;
+    }
+
     bool _pantyHiddenByMLeg;
     void UpdateClothBump()
     {
@@ -1490,6 +1508,8 @@ void fragment() {
         }
         // M 腿專用內褲：M 腿打開、而且內褲還沒脫才出現；脫了就不出現
         if (Layers.TryGetValue("m腿/內褲", out var mp_) && mp_ != null) mp_.Visible = _mLegOpen && !_pantyGone;
+        UpdateMLegPantyThighCut(_mLegOpen && !_pantyGone);
+        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開（MLegPantyAside.cs）
         if (_clothMat == null) return;
         _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
         BumpOne("肚子", 1, ClothBumpBelly);

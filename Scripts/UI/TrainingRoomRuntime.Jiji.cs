@@ -903,6 +903,7 @@ void fragment() {
     {
         if (_pullOutAnim) return;
         SayMaleEv(MalePullOutLines, true);
+        FaceController?.SetExpression("插入1");   // 拔出時嘴巴用抖動嘴（插入1 ＝ 抖動嘴）
         _pullOutAnim = true;
         _pullActive = false;
         _resistBodyPushY = 0f;

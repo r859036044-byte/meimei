@@ -1,0 +1,56 @@
+using Godot;
+using System.Collections.Generic;
+
+/// <summary>
+/// TrainingRoomRuntime — 插入時的嘴巴大小：
+/// 剛開始插入（突破）時嘴巴（小嘴／抖動嘴／小嘴吐舌…目前顯示的那張）比較大，
+/// 小穴舒服度（ComfortHole）越高就越小，舒服到 InsertMouthComfortFull 時回到正常大小；
+/// 拔出／沒插入時慢慢回到正常。縮放以嘴巴圖的內容中心為準（不是整張畫布中心）。
+/// </summary>
+public partial class TrainingRoomRuntime
+{
+    [ExportGroup("插入時嘴巴大小")]
+    [Export(PropertyHint.Range, "1,3,0.01")]   public float InsertMouthBigScale = 1.35f;       // 剛開始插入時嘴巴放大倍率
+    [Export(PropertyHint.Range, "1,200,1")]    public float InsertMouthComfortFull = 100f;      // 小穴舒服度到這個值時嘴巴縮回正常大小
+    [Export(PropertyHint.Range, "0.5,20,0.1")] public float InsertMouthLerpSpeed = 5f;          // 大小變化的跟隨速度
+
+    float _imScale = 1f;
+    readonly Dictionary<string, (Vector2 pos, Vector2 off)> _imApplied = new();
+
+    /// <summary>每幀（HeadPat.cs，在所有圖層位置／摸頭疊加之後）呼叫。</summary>
+    void UpdateInsertMouth(float dt)
+    {
+        bool inserted = _jijiPhase == 3 && _jijiStage >= 1 && !_pullOutAnim;
+        float comfort01 = Mathf.Clamp(ComfortHole / Mathf.Max(1f, InsertMouthComfortFull), 0f, 1f);
+        float target = inserted ? Mathf.Lerp(InsertMouthBigScale, 1f, comfort01) : 1f;
+        _imScale = Mathf.Lerp(_imScale, target, 1f - Mathf.Exp(-InsertMouthLerpSpeed * dt));
+        if (!inserted && Mathf.Abs(_imScale - 1f) < 0.002f) _imScale = 1f;
+
+        foreach (var name in _mouthLayerNames)
+        {
+            if (!Layers.TryGetValue(name, out var c) || c == null) continue;
+
+            // 先扣掉上一幀自己加的位移（如果這一幀沒有別的系統重算過位置）
+            Vector2 pos = c.Position;
+            bool had = _imApplied.TryGetValue(name, out var prev);
+            if (had)
+            {
+                if (pos.IsEqualApprox(prev.pos)) pos -= prev.off;
+                _imApplied.Remove(name);
+            }
+
+            if (_imScale == 1f || !c.Visible)
+            {
+                c.Position = pos;
+                if (had) c.Scale = Vector2.One;
+                continue;
+            }
+
+            Vector2 m = LayerContentRect(name)?.GetCenter() ?? c.PivotOffset;   // 嘴巴圖內容中心（圖層本地座標）
+            Vector2 off = (1f - _imScale) * (m - c.PivotOffset);                 // 以內容中心為縮放中心
+            c.Scale = new Vector2(_imScale, _imScale);
+            c.Position = pos + off;
+            _imApplied[name] = (c.Position, off);
+        }
+    }
+}
