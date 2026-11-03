@@ -1362,9 +1362,15 @@ void fragment() {
         // 右緣以外、以及左邊照常被大腿裁切。
         float redge_ = xr + dr;
         float dk_ = smoothstep(0.30, 0.60, 1.0 - dot(c.rgb, vec3(0.3333)));   // 只有深色線條才露在大腿上面；淺色布和外圍淡霧（白色尖角）仍在大腿下面
-        // 黑線以左的內褲（白色布）要全部出現：右緣往內 90px 內不被大腿裁；右緣以外只有深色黑線可以露出來（淡霧、白色尖角留在大腿下面）
-        float inside_ = 1.0 - smoothstep(0.0, 4.0, px.x - redge_ - 2.0);
-        float rin_ = max(inside_ * smoothstep(redge_ - 90.0, redge_ - 60.0, px.x), dk_ * (1.0 - smoothstep(0.0, 6.0, px.x - redge_ - 14.0)));
+        // 黑線以左的內褲（白色布）要全部出現，黑線右上的白角不能出現：
+        // 不用估算的右緣（會跟真正的黑線差好幾 px，白角就跑出來），直接看圖本身——
+        // 這個像素的右邊 ~90px（取圖來源）內真的有深色黑線，才算「黑線左邊」，才不被大腿裁切；黑線右邊沒有黑線了，留在大腿下面。
+        float rd_ = 0.0;
+        for (int i = 0; i < 12; i++) {
+            vec4 ts_ = texture(TEXTURE, vec2((xs + float(i) * 8.0) / 2000.0, ys_ / 3200.0));
+            rd_ = max(rd_, ts_.a * smoothstep(0.30, 0.60, 1.0 - dot(ts_.rgb, vec3(0.3333))));
+        }
+        float rin_ = rd_;
         lw_ = max(lw_, smoothstep(0.0, 6.0, d) * lowT);             // 往下滑到右邊的下半部：照常被大腿裁切（滑到大腿下面）
         lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_ * (1.0 - lowT);
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
