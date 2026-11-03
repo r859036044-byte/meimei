@@ -334,8 +334,17 @@ public partial class MainMenuRuntime : Control
             PlayerDataManager.Instance?.SetR18(!on);
             SettingsManager.Instance?.Save();
         };
-        _settingsDropdowns["解析度"].ItemSelected += _ => {
-            modeIndex[0] = 1; _settingsDropdowns["顯示模式"].Select(1);
+        _settingsDropdowns["解析度"].ItemSelected += selected => {
+            modeIndex[0] = 1;
+            _settingsDropdowns["顯示模式"].Select(1);
+            SettingsManager.Instance?.SetResolution((int)selected);
+            SettingsManager.Instance?.SetFullscreen(false);
+            SettingsManager.Instance?.Save();
+        };
+        _settingsDropdowns["顯示模式"].ItemSelected += selected => {
+            modeIndex[0] = (int)selected;
+            SettingsManager.Instance?.SetFullscreen((int)selected == 0);
+            SettingsManager.Instance?.Save();
         };
         Txt(panel, "SettingsHint", "選擇解析度會切換至視窗模式；全螢幕使用螢幕原生大小。", 16, new Color("a7778e"), UAlign.MiddleCenter,
             V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(0, -272), V2(660, 32));
