@@ -57,6 +57,15 @@ public partial class SettingsManager : Node
         }
         Instance = this;
         Load();
+
+        // 延遲一幀確保視窗設定生效，避免被引擎初始化覆蓋
+        Callable.From(() =>
+        {
+            if (IsFullscreen)
+                SetFullscreen(true);
+            else
+                ApplyResolution();
+        }).CallDeferred();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -98,7 +107,28 @@ public partial class SettingsManager : Node
         string[] locales = { "zh_TW", "zh_CN", "en", "ja" };
         TranslationServer.SetLocale(locales[LanguageIndex]);
     }
-    public void SetResolution(int i) => ResolutionIndex = Mathf.Clamp(i, 0, Resolutions.Length - 1);
+    public void SetResolution(int i)
+    {
+        ResolutionIndex = Mathf.Clamp(i, 0, Resolutions.Length - 1);
+        if (!IsFullscreen)
+        {
+            ApplyResolution();
+        }
+    }
+
+    /// <summary>套用解析度至視窗並置中</summary>
+    public void ApplyResolution()
+    {
+        var targetSize = Resolutions[ResolutionIndex];
+        DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+        DisplayServer.WindowSetSize(targetSize);
+
+        var area = DisplayServer.ScreenGetUsableRect();
+        var posX = area.Position.X + Mathf.Max(0, (area.Size.X - targetSize.X) / 2);
+        var posY = area.Position.Y + Mathf.Max(0, (area.Size.Y - targetSize.Y) / 2);
+        DisplayServer.WindowSetPosition(new Vector2I(posX, posY));
+    }
+
     public void SetTextSpeed(int i)   => TextSpeed = Mathf.Clamp(i, 0, TypeValues.Length - 1);
     public void SetInteractAlpha(float a) => InteractAlpha = Mathf.Clamp(a, 0.2f, 1f);
 
@@ -107,14 +137,12 @@ public partial class SettingsManager : Node
     {
         IsFullscreen = f;
         if (f)
+        {
             DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
+        }
         else
         {
-            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
-            DisplayServer.WindowSetSize(Resolutions[ResolutionIndex]);
-            var area = DisplayServer.ScreenGetUsableRect();
-            var size = DisplayServer.WindowGetSize();
-            DisplayServer.WindowSetPosition(area.Position + new Vector2I(Mathf.Max(0, (area.Size.X - size.X) / 2), Mathf.Max(0, (area.Size.Y - size.Y) / 2)));
+            ApplyResolution();
         }
     }
 
@@ -149,6 +177,7 @@ public partial class SettingsManager : Node
         {
             // 檔案不存在，使用預設值
             ApplyMasterVolume();
+            SetFullscreen(IsFullscreen);
             return;
         }
 

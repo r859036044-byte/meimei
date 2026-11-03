@@ -362,11 +362,22 @@ public partial class MainMenuRuntime : Control
         _settVoiceSlider.ValueChanged += v => SettingsManager.Instance?.SetVoiceVolume((float)v);
         apply.Pressed += () => {
             var settings = SettingsManager.Instance;
-            settings?.SetLanguage(_settLangIdx[0]); settings?.SetTextSpeed(_settSpdIdx[0]);
-            settings?.SetResolution(_settResIdx[0]); settings?.SetFullscreen(modeIndex[0] == 0);
+            settings?.SetLanguage(_settLangIdx[0]);
+            settings?.SetTextSpeed(_settSpdIdx[0]);
+            if (modeIndex[0] == 0)
+            {
+                settings?.SetResolution(_settResIdx[0]);
+                settings?.SetFullscreen(true);
+            }
+            else
+            {
+                settings?.SetFullscreen(false);
+                settings?.SetResolution(_settResIdx[0]);
+            }
             PlayerDataManager.Instance?.SetR18(!allAgesCheck.ButtonPressed);
             settings?.Save();
-            SetActive(panel, false); SetActive(_mainPanel, true);
+            SetActive(panel, false);
+            SetActive(_mainPanel, true);
         };
         cancel.Pressed += () => {
             SettingsManager.Instance?.SetMusicVolume(originalMusic);
@@ -473,11 +484,7 @@ public partial class MainMenuRuntime : Control
         selector.Select(defIdx);
         if (label == "解析度")
         {
-            var screen = DisplayServer.ScreenGetSize();
-            if (screen.X > 0 && screen.Y > 0)
-                for (int i = 0; i < SettingsManager.Resolutions.Length; i++)
-                    selector.SetItemDisabled(i, SettingsManager.Resolutions[i].X > screen.X || SettingsManager.Resolutions[i].Y > screen.Y);
-            selector.TooltipText = "超過目前螢幕大小的解析度無法選取。";
+            selector.TooltipText = "切換視窗解析度（全螢幕時將以原生解析度等比縮放呈現）。";
         }
         UIStyle.ApplyButtonStyle(selector);
         selector.AddThemeFontSizeOverride("font_size", 20);
