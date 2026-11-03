@@ -1348,9 +1348,14 @@ void fragment() {
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
         float ry_ = (pj_.y - 1326.0) / (1684.0 - 1326.0);   // 內褲內容框（畫布 px 1326~1684）由上到下 0~1
         float lw_ = 1.0 - smoothstep(0.45, 0.65, ry_);       // 只裁上半部；下半部（底下那一截）完整保留，不被腿切掉
+        // 撥開時內褲右緣（往內約 45px）那條黑邊線不要被大腿擋斷：右上準備拐進去的線和右下的邊線本來是連著的。
+        // 右緣以外、以及左邊照常被大腿裁切。
+        float redge_ = xr + dr;
+        float rin_ = (1.0 - smoothstep(0.0, 6.0, px.x - redge_)) * smoothstep(redge_ - 50.0, redge_ - 30.0, px.x);
+        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_;
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
             float la_ = texture(leg_tex, lq_).a;
-            la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d));   // 撥開時大腿的輪廓再往左多裁一點
+            la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
             c.a *= 1.0 - la_ * lw_;   // 順著 M 腿的輪廓裁切
         }
     }
