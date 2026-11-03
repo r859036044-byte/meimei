@@ -1447,6 +1447,7 @@ void fragment() {
         // M 腿專用內褲：M 腿打開、而且內褲還沒脫才出現；脫了就不出現
         if (Layers.TryGetValue("m腿/內褲", out var mp_) && mp_ != null) mp_.Visible = _mLegOpen && !_pantyGone;
         UpdateMLegPantyThighCut(_mLegOpen && !_pantyGone);
+        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開（MLegPantyAside.cs）
         if (_clothMat == null) return;
         _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
         BumpOne("肚子", 1, ClothBumpBelly);
