@@ -53,4 +53,27 @@ public partial class TrainingRoomRuntime
             _imApplied[name] = (c.Position, off);
         }
     }
+
+    // ── 拔出後的表情：抖動嘴 2 秒 → 小嘴巴 → 越來越平淡 ──
+    [ExportGroup("拔出後表情")]
+    [Export] public string[] PullOutExprSeq  = { "插入1", "插入2", "做愛(半閉)", "舒服" };   // 插入1＝抖動嘴、插入2＝小嘴巴，後面逐漸平淡
+    [Export] public float[]  PullOutExprSecs = { 2f, 3f, 4f };                               // 每個表情維持幾秒（最後一個維持到被別的表情取代）
+    int _pullExprGen;
+
+    async System.Threading.Tasks.Task PullOutExprSeqAsync()
+    {
+        int gen = ++_pullExprGen;
+        string prev = null;
+        for (int i = 0; i < PullOutExprSeq.Length; i++)
+        {
+            if (!IsInstanceValid(this) || FaceController == null || gen != _pullExprGen) return;
+            if (i > 0 && FaceController.CurrentExpression != prev) return;   // 被別的系統（高潮、再次插入…）換掉了：不再接手
+            FaceController.SetExpression(PullOutExprSeq[i]);
+            prev = PullOutExprSeq[i];
+            if (i >= PullOutExprSeq.Length - 1) return;
+            float sec = i < PullOutExprSecs.Length ? PullOutExprSecs[i] : 2f;
+            await ToSignal(GetTree().CreateTimer(Mathf.Max(0.1f, sec)), SceneTreeTimer.SignalName.Timeout);
+            if (!IsInstanceValid(this) || _jijiPhase == 3) return;   // 又插進去了
+        }
+    }
 }

@@ -1239,25 +1239,39 @@ uniform vec2 lg_y = vec2(0.0, 1.0);
 uniform vec2 lg_o = vec2(0.0);
 uniform vec2 cl_size = vec2(2000.0, 3200.0);
 uniform float lg_on = 0.0;
-// ── 撥開（MLegPantyAside.cs）：抓內褲 Y 的中間往右拉，下半段整片被推到右邊 ──
-uniform float aside = 0.0;                    // 下半段往右推多遠（畫布 px），0＝沒撥開
-uniform vec2 shear_v = vec2(1420.0, 1540.0);  // 中間轉折帶（畫布 px）：上面不動，下面整片被推，帶內漸變＋褶皺
+// ── 撥開（MLegPantyAside.cs）：抓內褲 Y 的中間往右拉，中間那一段被推到右邊；上面不動、底部也不動 ──
+uniform float aside = 0.0;                    // 中間那一段往右推多遠（畫布 px），0＝沒撥開
+uniform vec2 shear_v = vec2(1420.0, 1520.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡開始被推到全量
+uniform vec2 fix_v = vec2(1590.0, 1670.0);    // 下轉折帶：被推的量慢慢回到 0，最底下那一截固定不動
 uniform float fold_k = 0.8;                   // 褶皺濃度
 uniform float fold_freq = 0.11;               // 褶皺間距（越大越密）
+// ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
+uniform sampler2D jj_tex : filter_linear;
+uniform vec2 jj_x = vec2(1.0, 0.0);
+uniform vec2 jj_y = vec2(0.0, 1.0);
+uniform vec2 jj_o = vec2(0.0);
+uniform vec2 jj_size = vec2(2000.0, 3200.0);
+uniform float jj_on = 0.0;
 varying vec4 vc;
 void vertex() { vc = COLOR; }
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
-    float band = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
-    float w = band * band * (3.0 - 2.0 * band);
+    float b1 = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
+    float b2 = clamp((px.y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);
+    float w = (b1 * b1 * (3.0 - 2.0 * b1)) * (1.0 - b2 * b2 * (3.0 - 2.0 * b2));
     float xs = px.x - aside * w;   // 這個位置的內褲是從左邊 aside*w 處被推過來的
-    float env = sin(3.14159 * band) * smoothstep(1.0, 20.0, aside);   // 轉折帶中間褶皺最明顯
+    float env = max(sin(3.14159 * b1), sin(3.14159 * b2)) * smoothstep(1.0, 20.0, aside);   // 兩個轉折帶是褶皺最明顯的地方
     float shade = env * sin(px.y * fold_freq + px.x * 0.03 + sin(px.x * 0.05) * 1.2);
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
     if (xs < 0.0) c.a = 0.0;
     c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
     c.rgb += fold_k * 0.08 * clamp(-shade, 0.0, 1.0);
+    if (jj_on > 0.5) {
+        vec2 pj2_ = UV * jj_size;
+        vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
+        if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) c.a *= 1.0 - texture(jj_tex, jq_).a;
+    }
     if (lg_on > 0.5) {
         vec2 pj_ = UV * cl_size;
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);

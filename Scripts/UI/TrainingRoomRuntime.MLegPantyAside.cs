@@ -16,7 +16,9 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideGrabHalfW = 150f; // 按下的判定：小穴中間左右各多寬（畫布 px）
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1440f, 1580f);   // 按下的判定：內褲 Y 中間的範圍（畫布 px；內褲高度 1326~1684，中間約 1505）
-    [Export] public Vector2 MPantyAsideShearV = new Vector2(1420f, 1540f);  // 轉折帶：上面不動、下面整片被推到右邊，帶內漸變＋褶皺（畫布 px）
+    [Export] public Vector2 MPantyAsideShearV = new Vector2(1420f, 1520f);  // 上轉折帶：上面不動，過了這裡開始被推到全量（畫布 px）
+    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1590f, 1670f);  // 下轉折帶：被推的量慢慢回到 0，最底下那一截固定不動（畫布 px）
+    [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
     [Export] public float MPantyAsideFoldFreq  = 0.11f; // 褶皺間距（越大越密）
@@ -98,7 +100,50 @@ public partial class TrainingRoomRuntime
         if (panty.Material != _mPantyMat) panty.Material = _mPantyMat;
         _mPantyMat.SetShaderParameter("aside", _mpA);
         _mPantyMat.SetShaderParameter("shear_v", MPantyAsideShearV);
+        _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);
+        UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
+    }
+
+    // ── 雞雞裁切內褲：把「雞雞／精液」離屏渲染成遮罩，內褲 shader 用它把被雞雞蓋到的地方裁掉 ──
+    static readonly string[] MPantyJijiClipLayers = { "雞雞", "精液" };
+    SubViewport _mpJjVP; Node2D _mpJjRoot;
+    readonly System.Collections.Generic.Dictionary<string, TextureRect> _mpJjDup = new();
+
+    void UpdateMPantyJijiClip(TextureRect panty)
+    {
+        bool on = MPantyJijiClip && _mLegOpen && !_pantyGone
+                  && Layers.TryGetValue("雞雞", out var jj) && jj != null && jj.IsVisibleInTree() && jj.Modulate.A > 0.02f;
+        _mPantyMat.SetShaderParameter("jj_on", on ? 1f : 0f);
+        if (!on) { if (_mpJjVP != null) _mpJjVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; return; }
+        if (_mpJjVP == null)
+        {
+            _mpJjVP = new SubViewport { TransparentBg = true, Size = new Vector2I(1000, 1600), RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+            AddChild(_mpJjVP);
+            _mpJjRoot = new Node2D { Scale = new Vector2(0.5f, 0.5f) };
+            _mpJjVP.AddChild(_mpJjRoot);
+        }
+        _mpJjVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+        foreach (var n in MPantyJijiClipLayers)
+        {
+            if (!Layers.TryGetValue(n, out var src) || src is not TextureRect st) continue;
+            if (!_mpJjDup.TryGetValue(n, out var d) || !IsInstanceValid(d))
+            {
+                d = new TextureRect { MouseFilter = Control.MouseFilterEnum.Ignore };
+                _mpJjRoot.AddChild(d); _mpJjDup[n] = d;
+            }
+            d.ExpandMode = st.ExpandMode; d.StretchMode = st.StretchMode;
+            d.Texture = st.Texture; d.Size = st.Size; d.Position = st.Position;
+            d.PivotOffset = st.PivotOffset; d.Scale = st.Scale; d.Rotation = st.Rotation;
+            d.Material = st.Material; d.Modulate = st.Modulate; d.SelfModulate = st.SelfModulate;
+            d.Visible = st.Visible && st.Texture != null;
+        }
+        Transform2D T = panty.GetTransform();
+        _mPantyMat.SetShaderParameter("jj_tex", (Texture2D)_mpJjVP.GetTexture());
+        _mPantyMat.SetShaderParameter("jj_x", T.X);
+        _mPantyMat.SetShaderParameter("jj_y", T.Y);
+        _mPantyMat.SetShaderParameter("jj_o", T.Origin);
+        _mPantyMat.SetShaderParameter("jj_size", panty.Size);
     }
 }

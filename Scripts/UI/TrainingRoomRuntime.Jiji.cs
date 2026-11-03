@@ -904,7 +904,7 @@ void fragment() {
     {
         if (_pullOutAnim) return;
         SayMaleEv(MalePullOutLines, true);
-        FaceController?.SetExpression("插入1");   // 拔出時嘴巴用抖動嘴（插入1 ＝ 抖動嘴）
+        _ = PullOutExprSeqAsync();   // 拔出後表情：抖動嘴 2 秒 → 小嘴巴 → 越來越平淡（InsertMouth.cs）
         _pullOutAnim = true;
         _pullActive = false;
         _resistBodyPushY = 0f;
