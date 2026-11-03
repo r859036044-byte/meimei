@@ -1257,9 +1257,10 @@ uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：�
 uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
-uniform float fold_k = 0.5;                   // 褶皺濃度（黑線少一點）
+uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
+uniform float low_k = 0.6;                    // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
 uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」起訖高度（畫布 px）
@@ -1304,9 +1305,12 @@ void fragment() {
     float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
     float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
     float wd = max(1.0, xr - xl);
-    float d = min(aside * w * left_boost, wd * 0.8);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成）
+    // 越靠下面拉開越多：下半部（肛門那一帶）右邊也跟著一起滑，整塊往右滑到大腿下面去（不再壓縮），肛門才會露出來
+    float lowT = smoothstep(1500.0, 1600.0, ys_);
+    float capf = mix(0.8, 3.0, lowT);
+    float d = min(aside * w * left_boost * (1.0 + low_k * lowT), wd * capf);          // 左邊被推過去的距離（上面最多推掉寬度 8 成，下面可以整塊滑走）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
-    float dr = d * right_follow;                 // 右邊跟著往右移的量（一點點）
+    float dr = d * mix(right_follow, 1.0, lowT);   // 右邊跟著往右移的量：上面只一點點，下面整塊跟著滑
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
@@ -1315,14 +1319,14 @@ void fragment() {
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, ys_ / 3200.0));
     // 開口：只有「真的被推動」的地方才切；沒推動的地方（最底下的尾巴、上面）完全不切，
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
-    float hb = xl + d - edge_pad;
+    float hb = xl + d - mix(edge_pad, 28.0, lowT);   // 下半部（尾巴）的左緣估算比實際偏右，多留一些，不然尾巴左下角又會被切掉
     float holeA = (d > 1.0) ? smoothstep(hb - 1.0, hb + 1.5, px.x) : 1.0;   // 開口邊緣柔邊（不要一格一格的鋸齒）
     c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
-    c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
+    c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     float redge0_ = xr + dr;
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
-    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.85, 0.0, 0.85) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_));   // 其他被擠壓出來的黑線（褶皺）大幅淡化
+    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1358,8 +1362,11 @@ void fragment() {
         // 右緣以外、以及左邊照常被大腿裁切。
         float redge_ = xr + dr;
         float dk_ = smoothstep(0.30, 0.60, 1.0 - dot(c.rgb, vec3(0.3333)));   // 只有深色線條才露在大腿上面；淺色布和外圍淡霧（白色尖角）仍在大腿下面
-        float rin_ = (1.0 - smoothstep(0.0, 6.0, px.x - redge_)) * smoothstep(redge_ - 50.0, redge_ - 30.0, px.x) * dk_;
-        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_;
+        // 黑線以左的內褲（白色布）要全部出現：右緣往內 90px 內不被大腿裁；右緣以外只有深色黑線可以露出來（淡霧、白色尖角留在大腿下面）
+        float inside_ = 1.0 - smoothstep(0.0, 4.0, px.x - redge_ - 2.0);
+        float rin_ = max(inside_ * smoothstep(redge_ - 90.0, redge_ - 60.0, px.x), dk_ * (1.0 - smoothstep(0.0, 6.0, px.x - redge_ - 14.0)));
+        lw_ = max(lw_, smoothstep(0.0, 6.0, d) * lowT);             // 往下滑到右邊的下半部：照常被大腿裁切（滑到大腿下面）
+        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_ * (1.0 - lowT);
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
             const vec2 o_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，邊緣才不會一格一格
             float la_ = 0.25 * (texture(leg_tex, lq_ + o_).a + texture(leg_tex, lq_ - o_).a + texture(leg_tex, lq_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lq_ + vec2(-o_.x, o_.y)).a);
