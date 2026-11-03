@@ -140,7 +140,7 @@ public partial class MainMenuRuntime : Control
         _mainPanel.MoveChild(flashRect, _mainPanel.GetChildCount() - 1);
 
         // 播放主選單 BGM
-        var opClip = LoadAudio("Audio/bgm/meimei_op");
+        var opClip = LoadBgm("Audio/bgm/meimei_op");
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
@@ -649,7 +649,7 @@ public partial class MainMenuRuntime : Control
         SetActive(_mainPanel, true);
 
         // 開場曲（與按下 SKIP 後的狀態一致）
-        var opClip = LoadAudio("Audio/bgm/meimei_op");
+        var opClip = LoadBgm("Audio/bgm/meimei_op");
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
