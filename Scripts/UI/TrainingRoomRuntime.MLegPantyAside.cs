@@ -21,6 +21,8 @@ public partial class TrainingRoomRuntime
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.2f;   // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定）
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
@@ -103,6 +105,8 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);   // edge_l／edge_r 用 shader 預設值（內褲_M 實測左右緣）
         UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
+        _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
+        _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
     }
 

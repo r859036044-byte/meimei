@@ -1247,6 +1247,8 @@ uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 +
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.8;                   // 褶皺濃度
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
+uniform float right_follow = 0.2;             // 右邊也會跟著往右移一點點（相對左邊被推的量）
+uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
 // ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
 uniform sampler2D jj_tex : filter_linear;
 uniform vec2 jj_x = vec2(1.0, 0.0);
@@ -1267,8 +1269,10 @@ void fragment() {
     float wd = max(1.0, xr - xl);
     float d = min(aside * w, wd * 0.8);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
-    float xs = xl + (px.x - xl - d) * wd / max(1.0, wd - d);
-    float comp = wd / max(1.0, wd - d);          // 壓縮倍率（1＝沒壓）
+    float dr = d * right_follow;                 // 右邊跟著往右移的量（一點點）
+    float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
+    float xs = xl + (px.x - xl - d) * wd / nw;
+    float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
     float env = clamp((comp - 1.0) / 1.5, 0.0, 1.0);
     float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
@@ -1276,6 +1280,9 @@ void fragment() {
     c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
     c.rgb += fold_k * 0.08 * clamp(-shade, 0.0, 1.0);
+    float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
+    float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
+    c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.85);
     if (jj_on > 0.5) {
         vec2 pj2_ = UV * jj_size;
         vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
