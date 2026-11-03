@@ -756,7 +756,7 @@ void fragment() {
         {   // 全年齡：衣服最底下 AllAgesHemStretchFrac 往下拉長 AllAgesHemStretchPx
             bool aa_ = AllAgesLocked;
             _clothMat.SetShaderParameter("stretch_s", ClothHemEndV - Mathf.Clamp(AllAgesHemStretchFrac, 0.01f, 1f) * (ClothHemEndV - ClothTopV));
-            _clothMat.SetShaderParameter("stretch_ext", aa_ ? AllAgesHemStretchPx / 3200f : 0f);
+            _clothMat.SetShaderParameter("stretch_ext", (aa_ ? AllAgesHemStretchPx : R18HemStretchPx) / 3200f);   // R18 也拉長裙子底部
         }
         UpdateClothBump();
         _clothMat.SetShaderParameter("ta_hem", AllAgesLocked ? 0f : ClothHemFadeAmt);
