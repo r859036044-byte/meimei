@@ -99,6 +99,13 @@ uniform vec2 lg_y = vec2(0.0, 1.0);
 uniform vec2 lg_o = vec2(0.0);
 uniform vec2 cl_size = vec2(2000.0, 3200.0);
 uniform float lg_on = 0.0;
+// ── 雞雞裁切衣服（MLegPantyAside.cs）：入口以下露在外面的雞雞蓋在衣服上面；入口以上（插進去的部分）衣服照常蓋住 ──
+uniform sampler2D jc_tex : filter_linear;
+uniform vec2 jc_x = vec2(1.0, 0.0);
+uniform vec2 jc_y = vec2(0.0, 1.0);
+uniform vec2 jc_o = vec2(0.0);
+uniform float jc_on = 0.0;
+uniform float jc_from_y = 1500.0;
 uniform float expand_amount = 0.0;
 uniform float center_u = 0.5225;
 uniform float taper_start_v = 0.3716;
@@ -498,6 +505,11 @@ void fragment() {
         vec2 pj_ = UV * cl_size;
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) c.a *= 1.0 - texture(leg_tex, lq_).a;
+    }
+    if (jc_on > 0.5) {
+        vec2 pj3_ = UV * cl_size;
+        vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - texture(jc_tex, jq3_).a * smoothstep(jc_from_y, jc_from_y + 40.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1249,7 +1261,6 @@ uniform float fold_k = 0.5;                   // 褶皺濃度（黑線少一點�
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
-uniform float corner_tint = 0.6;              // 上轉折帶的白色加深程度（0＝不加深）
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
 uniform float sag_k = 0.2;                    // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
@@ -1271,7 +1282,7 @@ void fragment() {
     float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
     float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
     float wd = max(1.0, xr - xl);
-    float d = min(aside * w, wd * 0.6);          // 左邊被推過去的距離（最多推掉內褲寬度的 6 成，太多黑線會擠在一起）
+    float d = min(aside * w, wd * 0.8);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
     float dr = d * right_follow;                 // 右邊跟著往右移的量（一點點）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
@@ -1285,14 +1296,10 @@ void fragment() {
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
     float hb = xl + d - edge_pad;
     if (d > 1.0 && px.x < hb) c.a = 0.0;
-    c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
+    c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a);   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
-    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.7, 0.0, 0.7) * smoothstep(0.30, 0.65, dark_));
-    // 上轉折帶（腰帶那段和被壓窄的部分接起來的地方）：原本是全白的布，右邊會露出一個白色尖角，
-    // 很突兀；這裡用跟內褲下半部一樣的淡紫灰色加深（像折起來的陰影），白色就不會那麼明顯
-    float env_t = sin(3.14159 * b1) * smoothstep(1.0, 20.0, aside);
-    c.rgb = mix(c.rgb, vec3(0.78, 0.76, 0.87), env_t * corner_tint);
+    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.5, 0.0, 0.5) * smoothstep(0.30, 0.65, dark_));
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1306,7 +1313,7 @@ void fragment() {
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
         float ry_ = (pj_.y - 1326.0) / (1684.0 - 1326.0);   // 內褲內容框（畫布 px 1326~1684）由上到下 0~1
         float lw_ = 1.0 - smoothstep(0.45, 0.65, ry_);       // 只裁上半部；下半部（底下那一截）完整保留，不被腿切掉
-        lw_ *= 1.0 - smoothstep(0.0, 6.0, d);                // 撥開（被推動）的地方不要被腿裁切
+        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * (1.0 - smoothstep(960.0, 1040.0, pj_.x));   // 撥開（被推動）的地方，左半邊不要被腿裁切；右半邊照常被大腿裁切（不然布會蓋到右大腿上變成白色尖角）
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) c.a *= 1.0 - texture(leg_tex, lq_).a * lw_;   // 順著 M 腿的輪廓裁切
     }
     COLOR = c * vc;
