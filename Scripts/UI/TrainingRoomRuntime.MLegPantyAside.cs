@@ -18,9 +18,10 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
     [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
     [Export] public Vector2 MPantyAsideFixV   = new Vector2(1480f, 1640f);  // 下轉折帶：被推的量慢慢回到 0，最底下固定不動（畫布 px；範圍越長，上下越連貫）
+    [Export] public float MPantyJijiClipFromY = 1500f;   // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；以上＝插進去的部分，內褲在雞雞上面
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.5f;   // 褶皺（陰影／亮面）濃度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.2f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
@@ -114,6 +115,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
+        _mPantyMat.SetShaderParameter("jj_from_y", MPantyJijiClipFromY);
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
     }
