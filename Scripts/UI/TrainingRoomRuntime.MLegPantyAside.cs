@@ -33,57 +33,6 @@ public partial class TrainingRoomRuntime
     bool _mpDrag, _mpMoved;
     float _mpT, _mpA, _mpStartT, _mpStartLX;
     Vector2 _mpDownScreen;
-    ShaderMaterial _mpMat;
-
-    const string MPantyAsideShader = @"
-shader_type canvas_item;
-uniform float aside = 0.0;        // 開口寬度（px）
-uniform float cx = 979.0;         // 小穴中間（px）
-uniform float right_edge = 1250.0;
-uniform vec2 band_top = vec2(1380.0, 1440.0);
-uniform vec2 band_bot = vec2(1560.0, 1650.0);
-uniform float fold_k = 0.5;
-uniform float fold_len = 80.0;
-uniform float fold_freq = 0.16;
-varying vec4 vc;
-void vertex() { vc = COLOR; }
-void fragment() {
-    vec2 px = UV * vec2(2000.0, 3200.0);
-    // 開口是橢圓形：上下端收尖（band_top.x 到 band_bot.y 之間，用開根號讓上下圓潤）
-    float vc_ = 0.5 * (band_top.x + band_bot.y);
-    float vh_ = 0.5 * (band_bot.y - band_top.x);
-    float t_v = (px.y - vc_) / vh_;
-    float vb = sqrt(clamp(1.0 - t_v * t_v, 0.0, 1.0));
-    float a = aside * vb;
-    float hl = cx - 0.3 * a;       // 開口左緣
-    float hr = cx + 0.7 * a;       // 開口右緣
-    float xs = px.x;
-    float shade = 0.0;
-    float edge = 0.0;
-    float s_in = -1000.0;          // 開口內部的距離（正＝在開口裡，離邊緣多遠；負＝在布上）
-    if (a > 0.5) {
-        s_in = min(px.x - hl, hr - px.x);
-        if (px.x >= hr) {
-            // 被撥開的那一段布料往右擠：開口右邊的布料來源從 hl 開始（多出來的布被壓縮）
-            xs = hl + (px.x - hr) * (right_edge - hl) / max(1.0, right_edge - hr);
-            float d = px.x - hr;
-            float env = exp(-d / max(1.0, fold_len * 0.5)) * smoothstep(0.5, 12.0, a);
-            float f = sin(d * fold_freq * 6.2832 / 6.0 + px.y * 0.035 + sin(px.y * 0.05) * 1.3);
-            shade = env * f;
-            edge = exp(-d / 6.0) * smoothstep(0.5, 12.0, a);   // 開口右緣的布料堆疊暗線
-        }
-    }
-    vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
-    c.rgb *= 1.0 - fold_k * 0.28 * clamp(shade, 0.0, 1.0) - fold_k * 0.35 * edge;
-    c.rgb += fold_k * 0.07 * clamp(-shade, 0.0, 1.0);
-    if (s_in > 0.0) c.a = 0.0;   // 開口裡：看到底下的小穴
-    // 布邊深色細線（跟內褲原本的線同色系）
-    float line = (1.0 - smoothstep(0.6, 1.8, abs(s_in))) * step(0.5, a) * smoothstep(0.5, 6.0, a);
-    c.rgb = mix(c.rgb, vec3(0.42, 0.18, 0.18), line * 0.85);
-    c.a = max(c.a, line * 0.85);
-    COLOR = c * vc;
-}
-";
 
     Control MPantyLayer => Layers.TryGetValue("m腿/內褲", out var l) ? l : null;
 
@@ -148,20 +97,16 @@ void fragment() {
         _mpA += (_mpT - _mpA) * Mathf.Clamp(MPantyAsideFollow * dt, 0f, 1f);
         if (Mathf.Abs(_mpT - _mpA) < 0.05f) _mpA = _mpT;
 
-        if (_mpA <= 0.01f && _mpT <= 0.01f)
-        {
-            if (panty.Material == _mpMat && _mpMat != null) panty.Material = null;   // 沒撥開就不用 shader
-            return;
-        }
-        if (_mpMat == null) _mpMat = new ShaderMaterial { Shader = new Shader { Code = MPantyAsideShader } };
-        if (panty.Material != _mpMat) panty.Material = _mpMat;
-        _mpMat.SetShaderParameter("aside", _mpA);
-        _mpMat.SetShaderParameter("cx", MPantyAsideCenterX);
-        _mpMat.SetShaderParameter("right_edge", MPantyAsidePanRightEdge);
-        _mpMat.SetShaderParameter("band_top", MPantyAsideBandTop);
-        _mpMat.SetShaderParameter("band_bot", MPantyAsideBandBot);
-        _mpMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
-        _mpMat.SetShaderParameter("fold_len", MPantyAsideFoldLenPx);
-        _mpMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
+        // 用 Cloth.cs 的 M 腿內褲 shader（_mPantyMat，同時負責被腿輪廓裁切），不另外掛材質，避免互相覆蓋
+        if (_mPantyMat == null) _mPantyMat = new ShaderMaterial { Shader = new Shader { Code = MPantyShaderCode } };
+        if (panty.Material != _mPantyMat) panty.Material = _mPantyMat;
+        _mPantyMat.SetShaderParameter("aside", _mpA);
+        _mPantyMat.SetShaderParameter("cx", MPantyAsideCenterX);
+        _mPantyMat.SetShaderParameter("right_edge", MPantyAsidePanRightEdge);
+        _mPantyMat.SetShaderParameter("band_top", MPantyAsideBandTop);
+        _mPantyMat.SetShaderParameter("band_bot", MPantyAsideBandBot);
+        _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
+        _mPantyMat.SetShaderParameter("fold_len", MPantyAsideFoldLenPx);
+        _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
     }
 }

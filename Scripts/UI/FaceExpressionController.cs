@@ -127,7 +127,7 @@ public partial class FaceExpressionController : Node
 
     static readonly string[] _allMouthKeys = new[]
     {
-        "笑","笑2","小嘴","吐舌","張嘴1","張嘴2","斜動嘴","抖動嘴","小嘴吐舌","表情/嘴巴"
+        "笑","笑2","小嘴","吐舌","張嘴1","張嘴2","斜動嘴","抖動嘴","小嘴吐舌","小嘴巴","表情/嘴巴"
     };
 
     static readonly string[] DefaultExpressionNames = new[]
@@ -493,7 +493,7 @@ public partial class FaceExpressionController : Node
     {
         var mouthLayerNames = new[]
         {
-            "笑", "笑2", "小嘴", "吐舌", "張嘴1", "張嘴2", "斜動嘴", "抖動嘴", "小嘴吐舌", "表情/嘴巴"
+            "笑", "笑2", "小嘴", "吐舌", "張嘴1", "張嘴2", "斜動嘴", "抖動嘴", "小嘴吐舌", "小嘴巴", "表情/嘴巴"
         };
         if (PartGroups == null) PartGroups = System.Array.Empty<FacePartGroup>();
 
@@ -609,7 +609,7 @@ public partial class FaceExpressionController : Node
         var mouthOverrides = new Dictionary<string, string>
         {
             { "插入1",      "抖動嘴"    },
-            { "插入2",      "小嘴吐舌"  },
+            { "插入2",      "小嘴巴"    },   // 完全突破：小嘴巴
             { "做愛(半閉)", "表情/嘴巴" },
             { "做愛(全閉)", "小嘴"      },
             { "做愛3",      "小嘴"      },

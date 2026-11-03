@@ -1154,8 +1154,8 @@ void fragment() {
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
     bool _clothTopApplied; bool _clothTopInit;
     static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
-    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "蝴蝶結2" };   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
-    static readonly string[] LegMaskLayers = { "m腿/小穴", "m腿/內褲", "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };   // M 腿的小穴／內褲也裁切衣服（跟腿一樣出現在衣服上面）
+    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "m腿/內褲", "蝴蝶結2" };   // m腿/內褲：在衣服上面，但被 M 腿的輪廓裁切（見 SetMPantyLegClip）   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
+    static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
     [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
     SubViewport _legMaskVP; Node2D _legMaskRoot;
     readonly System.Collections.Generic.Dictionary<string, TextureRect> _legDup = new();
@@ -1197,7 +1197,7 @@ void fragment() {
         if (_clothMat == null || _charRoot == null) return;
         bool on = ClothOnTop && ClothLegClip && Layers.TryGetValue("衣服", out var cl) && cl is TextureRect;
         _clothMat.SetShaderParameter("lg_on", on ? 1f : 0f);
-        if (!on) { if (_legMaskVP != null) _legMaskVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; return; }
+        if (!on) { if (_legMaskVP != null) _legMaskVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; SetMPantyLegClip(false); return; }
         var cr = (TextureRect)Layers["衣服"];
         if (_legMaskVP == null)
         {
@@ -1227,6 +1227,86 @@ void fragment() {
         _clothMat.SetShaderParameter("lg_y", T.Y);
         _clothMat.SetShaderParameter("lg_o", T.Origin);
         _clothMat.SetShaderParameter("cl_size", cr.Size);
+        SetMPantyLegClip(true);
+    }
+
+    // ── M 腿內褲：跟衣服一樣被 M 腿（腿／腳／足）裁切；被衣服蓋住的部分靠圖層順序（衣服在它上面）──
+    ShaderMaterial _mPantyMat;
+    const string MPantyShaderCode = @"shader_type canvas_item;
+uniform sampler2D leg_tex : filter_linear;
+uniform vec2 lg_x = vec2(1.0, 0.0);
+uniform vec2 lg_y = vec2(0.0, 1.0);
+uniform vec2 lg_o = vec2(0.0);
+uniform vec2 cl_size = vec2(2000.0, 3200.0);
+uniform float lg_on = 0.0;
+// ── 撥開（MLegPantyAside.cs）：開口寬度 aside（畫布 px），0＝沒撥開 ──
+uniform float aside = 0.0;
+uniform float cx = 979.0;          // 小穴中間（畫布 px）
+uniform float right_edge = 1250.0; // 內褲右緣（畫布 px）
+uniform vec2 band_top = vec2(1380.0, 1440.0);
+uniform vec2 band_bot = vec2(1560.0, 1650.0);
+uniform float fold_k = 0.8;
+uniform float fold_len = 110.0;
+uniform float fold_freq = 0.16;
+varying vec4 vc;
+void vertex() { vc = COLOR; }
+void fragment() {
+    vec2 px = UV * vec2(2000.0, 3200.0);
+    // 開口是橢圓形：上下端收尖
+    float vc_ = 0.5 * (band_top.x + band_bot.y);
+    float vh_ = 0.5 * (band_bot.y - band_top.x);
+    float t_v = (px.y - vc_) / vh_;
+    float vb = sqrt(clamp(1.0 - t_v * t_v, 0.0, 1.0));
+    float a = aside * vb;
+    float hl = cx - 0.3 * a;       // 開口左緣
+    float hr = cx + 0.7 * a;       // 開口右緣
+    float xs = px.x;
+    float shade = 0.0;
+    float edge = 0.0;
+    float s_in = -1000.0;          // 開口內的距離（正＝在開口裡；負／極小＝在布上）
+    if (a > 0.5) {
+        s_in = min(px.x - hl, hr - px.x);
+        if (px.x >= hr) {
+            // 被撥開的布往右擠：開口右邊的來源從 hl 開始（多出來的布被壓縮）
+            xs = hl + (px.x - hr) * (right_edge - hl) / max(1.0, right_edge - hr);
+            float d = px.x - hr;
+            float env = exp(-d / max(1.0, fold_len * 0.5)) * smoothstep(0.5, 12.0, a);
+            float f = sin(d * fold_freq * 6.2832 / 6.0 + px.y * 0.035 + sin(px.y * 0.05) * 1.3);
+            shade = env * f;
+            edge = exp(-d / 6.0) * smoothstep(0.5, 12.0, a);   // 開口右緣的布料堆疊暗線
+        }
+    }
+    vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
+    c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
+    c.rgb *= 1.0 - fold_k * 0.28 * clamp(shade, 0.0, 1.0) - fold_k * 0.35 * edge;
+    c.rgb += fold_k * 0.07 * clamp(-shade, 0.0, 1.0);
+    if (s_in > 0.0) c.a = 0.0;   // 開口裡：看到底下的小穴
+    float line = (1.0 - smoothstep(0.6, 1.8, abs(s_in))) * step(0.5, a) * smoothstep(0.5, 6.0, a);   // 布邊深色細線
+    c.rgb = mix(c.rgb, vec3(0.42, 0.18, 0.18), line * 0.85);
+    c.a = max(c.a, line * 0.85);
+    if (lg_on > 0.5) {
+        vec2 pj_ = UV * cl_size;
+        vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
+        float ry_ = (pj_.y - 1326.0) / (1684.0 - 1326.0);   // 內褲內容框（畫布 px 1326~1684）由上到下 0~1
+        float lw_ = 1.0 - smoothstep(0.45, 0.65, ry_);       // 只裁上半部；下半部（底下那一截）完整保留，不被腿切掉
+        if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) c.a *= 1.0 - texture(leg_tex, lq_).a * lw_;   // 順著 M 腿的輪廓裁切
+    }
+    COLOR = c * vc;
+}
+";
+    void SetMPantyLegClip(bool on)
+    {
+        if (!Layers.TryGetValue("m腿/內褲", out var l) || l is not TextureRect mp) return;
+        if (_mPantyMat == null) _mPantyMat = new ShaderMaterial { Shader = new Shader { Code = MPantyShaderCode } };
+        if (mp.Material != _mPantyMat) mp.Material = _mPantyMat;
+        _mPantyMat.SetShaderParameter("lg_on", on ? 1f : 0f);
+        if (!on || _legMaskVP == null) return;
+        Transform2D T = mp.GetTransform();
+        _mPantyMat.SetShaderParameter("leg_tex", (Texture2D)_legMaskVP.GetTexture());
+        _mPantyMat.SetShaderParameter("lg_x", T.X);
+        _mPantyMat.SetShaderParameter("lg_y", T.Y);
+        _mPantyMat.SetShaderParameter("lg_o", T.Origin);
+        _mPantyMat.SetShaderParameter("cl_size", mp.Size);
     }
     // ── 抽插時衣服跟著上下動 ──
     [Export(PropertyHint.Range, "0,3,0.05")] public float ClothThrustMoveGain = 0.6f;     // 衣服跟插入上下移動的比例（0＝不動）
@@ -1311,7 +1391,24 @@ void fragment() {
         UpdateClothLegMask();
         UpdateClothThrust();
         UpdateBellyOnCloth();
+        UpdateMPantyFollow();
         UpdateBowLayers();
+    }
+
+    // ── M 腿內褲：跟著 M 腿的呼吸／搖擺／插入推擠一起動（腿1／腿2 的位移取平均，兩腿張開角度變大時內褲左右微微撐寬）──
+    [Export(PropertyHint.Range, "0,3,0.05")] public float MPantyLegFollow = 1.2f;       // 跟著兩條腿平均位移的倍率（1＝剛好一樣，再多一點更貼）
+    [Export(PropertyHint.Range, "0,0.03,0.0005")] public float MPantySpreadScale = 0.006f;   // 兩腿夾角每多 1 度，內褲左右撐寬多少（比例）
+    void UpdateMPantyFollow()
+    {
+        if (!Layers.TryGetValue("m腿/內褲", out var mp) || mp == null || !mp.Visible) return;
+        if (!Layers.TryGetValue("m腿/腿1", out var l1) || l1 == null || !Layers.TryGetValue("m腿/腿2", out var l2) || l2 == null) return;
+        if (!_layerBasePos.TryGetValue("m腿/內褲", out var bp) || !_layerBasePos.TryGetValue("m腿/腿1", out var b1) || !_layerBasePos.TryGetValue("m腿/腿2", out var b2)) return;
+        Vector2 delta = ((l1.Position - b1) + (l2.Position - b2)) * 0.5f;
+        Vector2 thrust = MLegThrustOffset.TryGetValue("m腿/小穴", out var to) ? to : Vector2.Zero;   // 插入推擠：跟小穴一起往上
+        mp.Position = bp + delta * MPantyLegFollow + thrust;
+        float spread = Mathf.Abs(l1.RotationDegrees - l2.RotationDegrees);
+        mp.PivotOffset = mp.Size * 0.5f;
+        mp.Scale = new Vector2(1f + spread * MPantySpreadScale, 1f);
     }
 
     // ── 蝴蝶結（內褲／衣服各一個）：不變形，只跟著所屬衣物「蝴蝶結原本那一點」移動 ──
@@ -1332,10 +1429,10 @@ void fragment() {
             Vector2 d = Vector2.Zero;
             if (_pantyMat != null)
             {   // 內褲 shader 的主要位移：整件下移（down_y）＋上緣下拉壓縮（pull_s）＋變寬（widen）
-                float topV = _pantyMat.GetShaderParameter("top_v").AsSingle(), botV = _pantyMat.GetShaderParameter("bot_v").AsSingle();
-                float downY = _pantyMat.GetShaderParameter("down_y").AsSingle(), pullS = _pantyMat.GetShaderParameter("pull_s").AsSingle();
-                float fixCut = _pantyMat.GetShaderParameter("fix_cut").AsSingle(), fixW = _pantyMat.GetShaderParameter("fix_w").AsSingle();
-                float widen = _pantyMat.GetShaderParameter("widen").AsSingle(), cxU = _pantyMat.GetShaderParameter("cx_u").AsSingle();
+                float topV = PantyF("top_v", 0f), botV = PantyF("bot_v", 1f);
+                float downY = PantyF("down_y", 0f), pullS = PantyF("pull_s", 0f);
+                float fixCut = PantyF("fix_cut", -1f), fixW = PantyF("fix_w", 1f);
+                float widen = PantyF("widen", 0f), cxU = PantyF("cx_u", 0.4865f);
                 float v0 = BowPantyAnchorPx.Y / 3200f, k = fixCut >= 0f && v0 >= fixCut ? fixW : 1f;
                 float h = Mathf.Max(0.0001f, botV - topV), ps = pullS * k;
                 float vy = v0;
@@ -1371,6 +1468,11 @@ void fragment() {
     [Export] public float BowTiltSpanPx = 40f;         // 量歪斜用的左右取樣距離（畫布 px）
     static readonly Vector2 BowClothFileCenterPx = new Vector2(991f, 1395.5f);   // 蝴蝶結2.png 裡蝴蝶結的中心
 
+    // 沒被設定過的 shader 參數 GetShaderParameter 會回傳 Nil（轉成數值就是 0），要用 shader 裡寫的預設值
+    float PantyF(string name, float def) { var v = _pantyMat.GetShaderParameter(name); return v.VariantType == Variant.Type.Nil ? def : v.AsSingle(); }
+    float ClothF(string name, float def) { var v = _clothMat.GetShaderParameter(name); return v.VariantType == Variant.Type.Nil ? def : v.AsSingle(); }
+    Vector2 ClothV2(string name, Vector2 def) { var v = _clothMat.GetShaderParameter(name); return v.VariantType == Variant.Type.Nil ? def : v.AsVector2(); }
+
     /// <summary>衣服原圖上某一點（畫布 px）在目前畫面上被推到哪：回傳位移（畫布 px）。先反推呼吸上提／收腰，再反推上半部拉扯。</summary>
     Vector2 ClothBowShiftPx(Vector2 anchorPx)
     {
@@ -1378,11 +1480,11 @@ void fragment() {
         Vector2 anchor0 = anchorPx / px, uv0 = anchor0;
         if (_clothMat != null)
         {   // 摸胸：shader 最後一步 chest() 把胸口附近的衣服推開／放大；先反推這一點被推到哪
-            Vector2 cr = _clothMat.GetShaderParameter("chest_r").AsVector2();
-            float inner = _clothMat.GetShaderParameter("chest_inner").AsSingle();
-            Vector2 c1 = _clothMat.GetShaderParameter("chest1_c").AsVector2(), o1 = _clothMat.GetShaderParameter("chest1_off").AsVector2();
-            Vector2 c2 = _clothMat.GetShaderParameter("chest2_c").AsVector2(), o2 = _clothMat.GetShaderParameter("chest2_off").AsVector2();
-            float s1 = _clothMat.GetShaderParameter("chest1_s").AsSingle(), s2 = _clothMat.GetShaderParameter("chest2_s").AsSingle();
+            Vector2 cr = ClothV2("chest_r", new Vector2(260f, 230f));
+            float inner = ClothF("chest_inner", 0.35f);
+            Vector2 c1 = ClothV2("chest1_c", new Vector2(0.4885f, 0.3119f)), o1 = ClothV2("chest1_off", Vector2.Zero);
+            Vector2 c2 = ClothV2("chest2_c", new Vector2(0.4365f, 0.3088f)), o2 = ClothV2("chest2_off", Vector2.Zero);
+            float s1 = ClothF("chest1_s", 1f), s2 = ClothF("chest2_s", 1f);
             Vector2 Chest(Vector2 uv, Vector2 c, Vector2 off, float s)
             {
                 float w = 1f - SStep(inner, 1f, ((uv - c) * px / cr).Length());
@@ -1394,11 +1496,11 @@ void fragment() {
         Vector2 base0 = uv0;
         if (_clothMat != null)
         {   // 身體呼吸／撐開的上提與收腰（shader 最後一步：uv.y += lift…、x 依 expand 收縮）
-            float liftTop = _clothMat.GetShaderParameter("lift_top_v").AsSingle(), liftBot = _clothMat.GetShaderParameter("lift_bottom_v").AsSingle();
-            float neck = _clothMat.GetShaderParameter("lift_neck_v").AsSingle(), navel = _clothMat.GetShaderParameter("lift_navel_v").AsSingle();
-            float botEnd = _clothMat.GetShaderParameter("lift_bottom_end_v").AsSingle(), expand = _clothMat.GetShaderParameter("expand_amount").AsSingle();
-            float baseR = _clothMat.GetShaderParameter("base_ratio").AsSingle(), cu = _clothMat.GetShaderParameter("center_u").AsSingle();
-            float ts = _clothMat.GetShaderParameter("taper_start_v").AsSingle(), te = _clothMat.GetShaderParameter("taper_end_v").AsSingle();
+            float liftTop = ClothF("lift_top_v", 0f), liftBot = ClothF("lift_bottom_v", 0f);
+            float neck = ClothF("lift_neck_v", 0.12f), navel = ClothF("lift_navel_v", 0.36f);
+            float botEnd = ClothF("lift_bottom_end_v", 0.55f), expand = ClothF("expand_amount", 0f);
+            float baseR = ClothF("base_ratio", 0f), cu = ClothF("center_u", 0.5225f);
+            float ts = ClothF("taper_start_v", 0.3716f), te = ClothF("taper_end_v", 0.5472f);
             float py = uv0.Y;
             for (int i = 0; i < 3; i++) py = base0.Y - liftTop * SStep(neck, navel, py) - liftBot * SStep(navel, botEnd, py);
             float shrink = 1f - Mathf.Lerp(baseR, 1f, Mathf.Clamp((py - ts) / Mathf.Max(0.001f, te - ts), 0f, 1f)) * expand;
