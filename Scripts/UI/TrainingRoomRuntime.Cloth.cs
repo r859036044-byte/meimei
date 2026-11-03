@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1710.0, 1790.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
