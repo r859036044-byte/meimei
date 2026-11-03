@@ -27,7 +27,7 @@ public partial class TrainingRoomRuntime
     [Export] public string[] MaleSoftLines    = { "（軟掉了1）", "（軟掉了2）", "（軟掉了3）" };      // 勃起度掉到 <30
     [Export] public string[] EndureOkLines    = { "（忍住了1）", "（忍住了2）", "（忍住了3）" };
     [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
-    [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 50f;   // 勃起度 ≥ 這個才勃起
+    [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 30f;   // 勃起度 < 這個就軟掉
     [Export(PropertyHint.Range, "0,20,0.1")] public float ErectGain = 0.8f;     // 有任何互動時每秒增加的勃起度
     [Export(PropertyHint.Range, "0,5,0.05")] public float ErectDecay = 0.4f;  // 沒互動時每秒下降

@@ -751,7 +751,7 @@ void fragment() {
 
         _semenBar = new ProgressBar
         {
-            Name = "SemenBar", TooltipText = "勃起度（≥50 勃起，<30 軟掉）",
+            Name = "SemenBar", TooltipText = "勃起度（≥30 勃起，<30 軟掉）",
             FillMode = (int)ProgressBar.FillModeEnum.BottomToTop,
             MinValue = 0, MaxValue = 1, Value = 0, ShowPercentage = false,
         };

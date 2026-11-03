@@ -223,7 +223,7 @@ void fragment() {
     P.y += stair * wy * comp;   // 乘上壓縮倍率：螢幕上看到的起伏大小不會因為壓縮而縮小
     // 左右邊緣也帶不規則的階梯：被折的區段每隔一小段橫向錯位一點
     float sideH = fract(sin(floor(UV.y * 60.0) * 78.233) * 43758.5453);
-    float sideAmt = clamp(wsum / 0.03, 0.0, 1.0) * step(bt, UV.y);
+    float sideAmt = clamp(wsum / 0.03, 0.0, 1.0) * smoothstep(bt, bt + 0.03, UV.y);   // 漸入：不要在折起區段最上面突然錯位一大塊
     P.x += (sideH - 0.5) * 0.014 * sideAmt;
     // 下擺是金字塔形（底部寬）：往上拉後越靠近邊緣越往內收，避免拉起來的底部變得比上面還寬
     float uR = clamp((UV.y - bt) / max(0.001, hem_end_v - wsum - bt), 0.0, 1.0);
@@ -1154,7 +1154,7 @@ void fragment() {
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
     bool _clothTopApplied; bool _clothTopInit;
     static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
-    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服" };
+    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "蝴蝶結2" };   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
     static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
     [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
     SubViewport _legMaskVP; Node2D _legMaskRoot;
@@ -1306,6 +1306,113 @@ void fragment() {
         UpdateClothLegMask();
         UpdateClothThrust();
         UpdateBellyOnCloth();
+        UpdateBowLayers();
+    }
+
+    // ── 蝴蝶結（內褲／衣服各一個）：不變形，只跟著所屬衣物「蝴蝶結原本那一點」移動 ──
+    // 圖檔是整張畫布，但蝴蝶結畫的位置跟原本衣物上的不一樣，所以先用 Offset 平移到原位，
+    // 再加上衣物變形後該點被推到哪裡的位移（不套 shader，所以蝴蝶結本身不變形）。
+    [Export] public Vector2 BowPantyOffsetPx = new Vector2(-4f, 44f);     // 蝴蝶結.png → 內褲原蝴蝶結位置（畫布 px）
+    [Export] public Vector2 BowClothOffsetPx = new Vector2(-26f, -390f);  // 蝴蝶結2.png → 衣服原蝴蝶結位置（畫布 px）
+    static readonly Vector2 BowPantyAnchorPx = new Vector2(988f, 1439f);  // 內褲原蝴蝶結中心（畫布 px）
+    static readonly Vector2 BowClothAnchorPx = new Vector2(965f, 1006f);  // 衣服原蝴蝶結中心（畫布 px）
+
+    void UpdateBowLayers()
+    {
+        if (Layers.TryGetValue("蝴蝶結", out var bow) && bow != null && Layers.TryGetValue("內褲", out var panty) && panty != null)
+        {
+            bow.PivotOffset = panty.PivotOffset; bow.Scale = panty.Scale; bow.Rotation = panty.Rotation;
+            bow.Modulate = panty.Modulate;
+            bool shown = panty.Visible && !_pantyGone;
+            Vector2 d = Vector2.Zero;
+            if (_pantyMat != null)
+            {   // 內褲 shader 的主要位移：整件下移（down_y）＋上緣下拉壓縮（pull_s）＋變寬（widen）
+                float topV = _pantyMat.GetShaderParameter("top_v").AsSingle(), botV = _pantyMat.GetShaderParameter("bot_v").AsSingle();
+                float downY = _pantyMat.GetShaderParameter("down_y").AsSingle(), pullS = _pantyMat.GetShaderParameter("pull_s").AsSingle();
+                float fixCut = _pantyMat.GetShaderParameter("fix_cut").AsSingle(), fixW = _pantyMat.GetShaderParameter("fix_w").AsSingle();
+                float widen = _pantyMat.GetShaderParameter("widen").AsSingle(), cxU = _pantyMat.GetShaderParameter("cx_u").AsSingle();
+                float v0 = BowPantyAnchorPx.Y / 3200f, k = fixCut >= 0f && v0 >= fixCut ? fixW : 1f;
+                float h = Mathf.Max(0.0001f, botV - topV), ps = pullS * k;
+                float vy = v0;
+                if (ps > 0f) { vy = topV + ps + (v0 - topV) * (h - ps) / h; if (vy < topV + ps) shown = false; }
+                vy += downY * k;
+                d = new Vector2((BowPantyAnchorPx.X - cxU * 2000f) * widen, (vy - v0) * 3200f);
+            }
+            bow.Visible = shown;
+            bow.Position = panty.Position + BowPantyOffsetPx + d;
+        }
+        if (Layers.TryGetValue("蝴蝶結2", out var bow2) && bow2 != null && Layers.TryGetValue("衣服", out var cloth) && cloth != null)
+        {
+            bow2.Modulate = cloth.Modulate; bow2.Visible = cloth.Visible;
+            var px = new Vector2(2000f, 3200f);
+            // 左右各取蝴蝶結旁邊一點，量出兩邊被推到哪：中心位移＝下移加成，兩邊高低差＝歪斜角度
+            Vector2 cNow = BowClothAnchorPx + ClothBowShiftPx(BowClothAnchorPx);
+            Vector2 lNow = BowClothAnchorPx + new Vector2(-BowTiltSpanPx, 0f); lNow += ClothBowShiftPx(lNow);
+            Vector2 rNow = BowClothAnchorPx + new Vector2(BowTiltSpanPx, 0f); rNow += ClothBowShiftPx(rNow);
+            Vector2 shift = cNow - BowClothAnchorPx;
+            if (shift.Y > 0f) shift.Y *= BowClothDownGain;   // 肩帶拉下去時，蝴蝶結往下多走一點
+            float tilt = Mathf.Clamp(Mathf.Atan2(rNow.Y - lNow.Y, rNow.X - lNow.X) * BowTiltGain, -Mathf.DegToRad(BowTiltMaxDeg), Mathf.DegToRad(BowTiltMaxDeg));
+            // 以蝴蝶結中心為軸轉：中心在衣服座標的位置（含呼吸縮放）算出來，再把貼圖的蝴蝶結中心對上去
+            Vector2 cLocal = BowClothAnchorPx + shift;
+            Vector2 cScreen = cloth.Position + cloth.PivotOffset + (cLocal - cloth.PivotOffset) * cloth.Scale;
+            bow2.PivotOffset = BowClothFileCenterPx; bow2.Scale = cloth.Scale; bow2.Rotation = cloth.Rotation + tilt;
+            bow2.Position = cScreen - BowClothFileCenterPx;
+        }
+    }
+
+    [Export] public float BowClothDownGain = 1.2f;     // 肩帶拉下時蝴蝶結向下位移的倍率
+    [Export] public float BowTiltGain = 1.5f;          // 左右高低差換成歪斜角度的倍率
+    [Export] public float BowTiltMaxDeg = 35f;         // 最多歪幾度
+    [Export] public float BowTiltSpanPx = 40f;         // 量歪斜用的左右取樣距離（畫布 px）
+    static readonly Vector2 BowClothFileCenterPx = new Vector2(991f, 1395.5f);   // 蝴蝶結2.png 裡蝴蝶結的中心
+
+    /// <summary>衣服原圖上某一點（畫布 px）在目前畫面上被推到哪：回傳位移（畫布 px）。先反推呼吸上提／收腰，再反推上半部拉扯。</summary>
+    Vector2 ClothBowShiftPx(Vector2 anchorPx)
+    {
+        var px = new Vector2(2000f, 3200f);
+        Vector2 anchor0 = anchorPx / px, uv0 = anchor0;
+        if (_clothMat != null)
+        {   // 摸胸：shader 最後一步 chest() 把胸口附近的衣服推開／放大；先反推這一點被推到哪
+            Vector2 cr = _clothMat.GetShaderParameter("chest_r").AsVector2();
+            float inner = _clothMat.GetShaderParameter("chest_inner").AsSingle();
+            Vector2 c1 = _clothMat.GetShaderParameter("chest1_c").AsVector2(), o1 = _clothMat.GetShaderParameter("chest1_off").AsVector2();
+            Vector2 c2 = _clothMat.GetShaderParameter("chest2_c").AsVector2(), o2 = _clothMat.GetShaderParameter("chest2_off").AsVector2();
+            float s1 = _clothMat.GetShaderParameter("chest1_s").AsSingle(), s2 = _clothMat.GetShaderParameter("chest2_s").AsSingle();
+            Vector2 Chest(Vector2 uv, Vector2 c, Vector2 off, float s)
+            {
+                float w = 1f - SStep(inner, 1f, ((uv - c) * px / cr).Length());
+                uv -= w * off;
+                return c + (uv - c) / (1f + w * (s - 1f));
+            }
+            for (int i = 0; i < 8; i++) uv0 -= Chest(Chest(uv0, c1, o1, s1), c2, o2, s2) - anchor0;   // 找 uv0 使 chest2(chest1(uv0)) = 原位
+        }
+        Vector2 base0 = uv0;
+        if (_clothMat != null)
+        {   // 身體呼吸／撐開的上提與收腰（shader 最後一步：uv.y += lift…、x 依 expand 收縮）
+            float liftTop = _clothMat.GetShaderParameter("lift_top_v").AsSingle(), liftBot = _clothMat.GetShaderParameter("lift_bottom_v").AsSingle();
+            float neck = _clothMat.GetShaderParameter("lift_neck_v").AsSingle(), navel = _clothMat.GetShaderParameter("lift_navel_v").AsSingle();
+            float botEnd = _clothMat.GetShaderParameter("lift_bottom_end_v").AsSingle(), expand = _clothMat.GetShaderParameter("expand_amount").AsSingle();
+            float baseR = _clothMat.GetShaderParameter("base_ratio").AsSingle(), cu = _clothMat.GetShaderParameter("center_u").AsSingle();
+            float ts = _clothMat.GetShaderParameter("taper_start_v").AsSingle(), te = _clothMat.GetShaderParameter("taper_end_v").AsSingle();
+            float py = uv0.Y;
+            for (int i = 0; i < 3; i++) py = base0.Y - liftTop * SStep(neck, navel, py) - liftBot * SStep(navel, botEnd, py);
+            float shrink = 1f - Mathf.Lerp(baseR, 1f, Mathf.Clamp((py - ts) / Mathf.Max(0.001f, te - ts), 0f, 1f)) * expand;
+            uv0 = new Vector2(cu + (base0.X - cu) / Mathf.Max(0.05f, shrink), py);
+        }
+        Vector2 x = uv0;
+        // ClothTopInv＝畫面→原圖；反過來找原圖上這一點現在在畫面哪裡：Y 用二分法（壓縮很大時單純迭代會過衝），X 再微調
+        for (int it = 0; it < 4; it++)
+        {
+            float lo = uv0.Y - 0.1f, hi = uv0.Y + 0.4f;
+            for (int b = 0; b < 18; b++)
+            {
+                float mid = (lo + hi) * 0.5f;
+                if (ClothTopInv(new Vector2(x.X, mid)).Y < uv0.Y) lo = mid; else hi = mid;
+            }
+            x.Y = (lo + hi) * 0.5f;
+            x.X -= ClothTopInv(x).X - uv0.X;
+        }
+        return (x - anchor0) * px;
     }
 
     bool _pantyHiddenByMLeg;
@@ -1319,6 +1426,8 @@ void fragment() {
                 else if (!_mLegOpen && _pantyHiddenByMLeg) { pn_.Visible = true; _pantyHiddenByMLeg = false; }
             }
         }
+        // M 腿專用內褲：M 腿打開、而且內褲還沒脫才出現；脫了就不出現
+        if (Layers.TryGetValue("m腿/內褲", out var mp_) && mp_ != null) mp_.Visible = _mLegOpen && !_pantyGone;
         if (_clothMat == null) return;
         _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
         BumpOne("肚子", 1, ClothBumpBelly);
