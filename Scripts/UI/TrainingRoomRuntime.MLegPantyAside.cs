@@ -21,8 +21,9 @@ public partial class TrainingRoomRuntime
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.2f;   // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.2f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
@@ -96,9 +97,10 @@ public partial class TrainingRoomRuntime
     void UpdateMLegPantyAside(float dt)
     {
         if (MPantyLayer is not TextureRect panty) return;
-        bool can = MPantyAsideEnabled && _mLegOpen && !_pantyGone && _jijiPhase < 3;
-        if (!can && !_mpDrag) _mpT = 0f;
-        if (!can) _mpDrag = false;
+        // 插入中（雞雞階段 3）撥開要維持，不能馬上縮回去；只有關掉 M 腿、脫掉內褲、功能關閉才復原
+        bool keep = MPantyAsideEnabled && _mLegOpen && !_pantyGone;
+        if (!keep && !_mpDrag) _mpT = 0f;
+        if (!keep || _jijiPhase >= 3) _mpDrag = false;
         _mpA += (_mpT - _mpA) * Mathf.Clamp(MPantyAsideFollow * dt, 0f, 1f);
         if (Mathf.Abs(_mpT - _mpA) < 0.05f) _mpA = _mpT;
 
@@ -111,6 +113,7 @@ public partial class TrainingRoomRuntime
         UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
+        _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
     }
