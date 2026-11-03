@@ -30,7 +30,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 30f;   // 勃起度 < 這個就軟掉
     [Export(PropertyHint.Range, "0,30,0.1")] public float ErectGain = 6f;       // 有任何互動時每秒增加的勃起度（黃條，基礎；再乘上連續動作的加速倍率）
-    [Export(PropertyHint.Range, "0,30,0.1")] public float ErectDecay = 8f;      // 什麼都不做時每秒下降（快速下降，最低降到「自然上升的底」）
+    [Export(PropertyHint.Range, "0,30,0.1")] public float ErectDecay = 3f;      // 停手超過 ErectHoldSec 之後每秒下降（最低降到「自然上升的底」）
+    [Export(PropertyHint.Range, "0,10,0.1")] public float ErectHoldSec = 1.5f;  // 停手後先撐這麼久才開始下降（操控內褲、動作之間短暫停頓不會掉）
     [Export(PropertyHint.Range, "0,5,0.05")] public float ErectIdleGain = 0.5f; // 沒蓋被子時，不做任何事也會慢慢增加的底（每秒）
     [Export(PropertyHint.Range, "0,100,1")] public float ErectIdleMax = 45f;    // 自然增加的底最多到這
     [Export(PropertyHint.Range, "0,10,0.1")] public float ErectBoostMax = 3f;   // 連續動作的加速倍率上限（每秒增加量 ×(1+倍率)）
@@ -90,7 +91,7 @@ public partial class TrainingRoomRuntime
     }
 
     // ── 狀態 ──
-    float _erectBase, _erectBoost;   // 勃起度：自然上升的底／連續動作的加速倍率
+    float _erectBase, _erectBoost, _erectIdleT;   // 勃起度：自然上升的底／連續動作的加速倍率
     bool _playForced, _ejacDone;
     bool _erectOn;               // 目前是否勃起（有遲滯）
     bool _breaking, _prevBreaking;   // 破功中（精力往 120 衝）
@@ -150,15 +151,18 @@ public partial class TrainingRoomRuntime
         float er = _semenLevel * 100f;
         _erectBase = Mathf.Min(_erectBase, er);                                    // 底不會比現在的值高（射精／被痛扣掉之後底跟著降）
         if (DuvetState == 1) _erectBase = Mathf.Min(ErectIdleMax, _erectBase + ErectIdleGain * dt);   // 沒蓋被子：慢慢自己增加
-        if (anything)
+        bool act = anything || _mpDrag || _pantyDrag;   // 操控內褲（撥開／往下拉）也算有在動作
+        if (act)
         {
+            _erectIdleT = 0f;
             _erectBoost = Mathf.Min(ErectBoostMax, _erectBoost + ErectBoostRise * dt);   // 越做越快
             er += ErectGain * (1f + _erectBoost) * dt;
         }
         else
         {
+            _erectIdleT += dt;
             _erectBoost = Mathf.Max(0f, _erectBoost - ErectBoostFall * dt);
-            er = Mathf.Max(_erectBase, er - ErectDecay * dt);                          // 停手後快速下降，但不低於自然上升的底
+            if (_erectIdleT > ErectHoldSec) er = Mathf.Max(_erectBase, er - ErectDecay * dt);   // 停手一下之後才下降，但不低於自然上升的底
         }
         if (DuvetState == 1 && er < _erectBase) er = _erectBase;
         er -= PainErectDrain * _pain * dt;

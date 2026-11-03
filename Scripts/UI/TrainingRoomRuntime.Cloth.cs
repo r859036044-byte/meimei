@@ -1239,51 +1239,25 @@ uniform vec2 lg_y = vec2(0.0, 1.0);
 uniform vec2 lg_o = vec2(0.0);
 uniform vec2 cl_size = vec2(2000.0, 3200.0);
 uniform float lg_on = 0.0;
-// ── 撥開（MLegPantyAside.cs）：開口寬度 aside（畫布 px），0＝沒撥開 ──
-uniform float aside = 0.0;
-uniform float cx = 979.0;          // 小穴中間（畫布 px）
-uniform float right_edge = 1250.0; // 內褲右緣（畫布 px）
-uniform vec2 band_top = vec2(1380.0, 1440.0);
-uniform vec2 band_bot = vec2(1560.0, 1650.0);
-uniform float fold_k = 0.8;
-uniform float fold_len = 110.0;
-uniform float fold_freq = 0.16;
+// ── 撥開（MLegPantyAside.cs）：抓內褲 Y 的中間往右拉，下半段整片被推到右邊 ──
+uniform float aside = 0.0;                    // 下半段往右推多遠（畫布 px），0＝沒撥開
+uniform vec2 shear_v = vec2(1420.0, 1540.0);  // 中間轉折帶（畫布 px）：上面不動，下面整片被推，帶內漸變＋褶皺
+uniform float fold_k = 0.8;                   // 褶皺濃度
+uniform float fold_freq = 0.11;               // 褶皺間距（越大越密）
 varying vec4 vc;
 void vertex() { vc = COLOR; }
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
-    // 開口是橢圓形：上下端收尖
-    float vc_ = 0.5 * (band_top.x + band_bot.y);
-    float vh_ = 0.5 * (band_bot.y - band_top.x);
-    float t_v = (px.y - vc_) / vh_;
-    float vb = sqrt(clamp(1.0 - t_v * t_v, 0.0, 1.0));
-    float a = aside * vb;
-    float hl = cx - 0.3 * a;       // 開口左緣
-    float hr = cx + 0.7 * a;       // 開口右緣
-    float xs = px.x;
-    float shade = 0.0;
-    float edge = 0.0;
-    float s_in = -1000.0;          // 開口內的距離（正＝在開口裡；負／極小＝在布上）
-    if (a > 0.5) {
-        s_in = min(px.x - hl, hr - px.x);
-        if (px.x >= hr) {
-            // 被撥開的布往右擠：開口右邊的來源從 hl 開始（多出來的布被壓縮）
-            xs = hl + (px.x - hr) * (right_edge - hl) / max(1.0, right_edge - hr);
-            float d = px.x - hr;
-            float env = exp(-d / max(1.0, fold_len * 0.5)) * smoothstep(0.5, 12.0, a);
-            float f = sin(d * fold_freq * 6.2832 / 6.0 + px.y * 0.035 + sin(px.y * 0.05) * 1.3);
-            shade = env * f;
-            edge = exp(-d / 6.0) * smoothstep(0.5, 12.0, a);   // 開口右緣的布料堆疊暗線
-        }
-    }
+    float band = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
+    float w = band * band * (3.0 - 2.0 * band);
+    float xs = px.x - aside * w;   // 這個位置的內褲是從左邊 aside*w 處被推過來的
+    float env = sin(3.14159 * band) * smoothstep(1.0, 20.0, aside);   // 轉折帶中間褶皺最明顯
+    float shade = env * sin(px.y * fold_freq + px.x * 0.03 + sin(px.x * 0.05) * 1.2);
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
+    if (xs < 0.0) c.a = 0.0;
     c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
-    c.rgb *= 1.0 - fold_k * 0.28 * clamp(shade, 0.0, 1.0) - fold_k * 0.35 * edge;
-    c.rgb += fold_k * 0.07 * clamp(-shade, 0.0, 1.0);
-    if (s_in > 0.0) c.a = 0.0;   // 開口裡：看到底下的小穴
-    float line = (1.0 - smoothstep(0.6, 1.8, abs(s_in))) * step(0.5, a) * smoothstep(0.5, 6.0, a);   // 布邊深色細線
-    c.rgb = mix(c.rgb, vec3(0.42, 0.18, 0.18), line * 0.85);
-    c.a = max(c.a, line * 0.85);
+    c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
+    c.rgb += fold_k * 0.08 * clamp(-shade, 0.0, 1.0);
     if (lg_on > 0.5) {
         vec2 pj_ = UV * cl_size;
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
@@ -1531,11 +1505,14 @@ void fragment() {
         SwapThighTex("m腿/腿1", "Sprites/腿1_M", "Sprites/腿1_M_cut", ref _thighTexOrig1, ref _thighTexCut1, pantyOn);
         SwapThighTex("m腿/腿2", "Sprites/腿2_M", "Sprites/腿2_M_cut", ref _thighTexOrig2, ref _thighTexCut2, pantyOn);
     }
+    bool _thighTexTried;
     void SwapThighTex(string layer, string origPath, string cutPath, ref Texture2D orig, ref Texture2D cut, bool pantyOn)
     {
         if (!Layers.TryGetValue(layer, out var c) || c is not TextureRect tr) return;
+        if (!pantyOn && tr.Texture != null && orig == null) orig = tr.Texture as Texture2D;   // 直接記住原圖，不用重載
         orig ??= ResourceHelper.LoadTexAny(origPath);
-        if (pantyOn) cut ??= ResourceHelper.LoadTexAny(cutPath);
+        if (pantyOn && cut == null && !_thighTexTried) cut = ResourceHelper.LoadTexAny(cutPath);   // 載不到（還沒匯入）只試一次，不要每幀印警告
+        if (pantyOn && layer == "m腿/腿2") _thighTexTried = true;
         var want = pantyOn && cut != null ? cut : orig;
         if (want != null && tr.Texture != want) tr.Texture = want;
     }
