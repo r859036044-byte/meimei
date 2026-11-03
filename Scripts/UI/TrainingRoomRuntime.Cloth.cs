@@ -1271,6 +1271,10 @@ uniform vec2 jj_y = vec2(0.0, 1.0);
 uniform vec2 jj_o = vec2(0.0);
 uniform vec2 jj_size = vec2(2000.0, 3200.0);
 uniform float jj_on = 0.0;
+// ── 內褲在衣服下面：用「衣服變形後的輪廓」裁切內褲（衣服蓋到的地方內褲不顯示，衣擺拉開的地方才看得到）──
+uniform sampler2D cc_tex : filter_linear;
+uniform float cc_on = 0.0;
+uniform float cc_k = 1.0;
 varying vec4 vc;
 void vertex() { vc = COLOR; }
 void fragment() {
@@ -1307,6 +1311,11 @@ void fragment() {
         vec2 pj2_ = UV * jj_size;
         vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
         if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) c.a *= 1.0 - texture(jj_tex, jq_).a * smoothstep(jj_from_y, jj_from_y + 40.0, px.y);   // 只有這條線以下的雞雞蓋在內褲上面
+    }
+    if (cc_on > 0.5) {
+        vec2 pj4_ = UV * jj_size;
+        vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);
+        if (cq_.x >= 0.0 && cq_.x <= 1.0 && cq_.y >= 0.0 && cq_.y <= 1.0) c.a *= 1.0 - texture(cc_tex, cq_).a * cc_k;   // 衣服蓋到的地方，內褲被裁掉（內褲在衣服下面）
     }
     if (lg_on > 0.5) {
         vec2 pj_ = UV * cl_size;
