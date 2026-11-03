@@ -215,6 +215,7 @@ public partial class TrainingRoomRuntime
         UpdateTongue(dt);    // 舌頭（Tongue.cs）：放在摸頭之後，才能跟著臉的最終位置
         foreach (var name in _headLayerSet)  PatLayer(name, headDeg, 0f, Vector2.Zero);
         foreach (var name in _patHeadExtra)  PatLayer(name, headDeg, 0f, Vector2.Zero);
+        UpdateInsertMouth(dt);   // 插入時嘴巴放大、越舒服越小（InsertMouth.cs）
         if (_patCur == 0f) _patApplied.Clear();
     }
 
