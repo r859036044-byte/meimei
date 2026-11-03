@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
     [Export] public Vector2 MPantySlashY  = new Vector2(1400f, 1470f);   // 右上歪進來的黑線：起訖高度（畫布 px）
     [Export] public Vector2 MPantySlashIn = new Vector2(4f, 50f);        // 黑線起點／終點離內褲右緣往內多遠（終點更多＝往左下歪進來）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySlashK = 0.8f;   // 黑線濃度（0＝不要）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySlashK = 0f;   // 自己畫的直斜線濃度（預設關掉；右邊那條彎曲的黑線是內褲原本的邊線，不是這個）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
