@@ -25,6 +25,11 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.2f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
+    [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
+    [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
+    [Export] public Vector2 MPantySlashY  = new Vector2(1400f, 1470f);   // 右上歪進來的黑線：起訖高度（畫布 px）
+    [Export] public Vector2 MPantySlashIn = new Vector2(4f, 50f);        // 黑線起點／終點離內褲右緣往內多遠（終點更多＝往左下歪進來）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySlashK = 0.8f;   // 黑線濃度（0＝不要）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
@@ -124,6 +129,11 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
+        _mPantyMat.SetShaderParameter("left_boost", MPantyAsideLeftBoost);
+        _mPantyMat.SetShaderParameter("leg_grow", MPantyAsideLegGrow);
+        _mPantyMat.SetShaderParameter("slash_y", MPantySlashY);
+        _mPantyMat.SetShaderParameter("slash_in", MPantySlashIn);
+        _mPantyMat.SetShaderParameter("slash_k", MPantySlashK);
         _mPantyMat.SetShaderParameter("jj_from_y", MPantyJijiClipFromY);
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
