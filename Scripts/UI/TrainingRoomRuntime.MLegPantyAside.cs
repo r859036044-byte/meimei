@@ -27,6 +27,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyAsideLowBoost = 0.6f;   // 下半部（肛門那一帶）比上面多拉開的倍率
     [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
+    [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0.005f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
     [Export] public Vector2 MPantySlashY  = new Vector2(1400f, 1470f);   // 右上歪進來的黑線：起訖高度（畫布 px）
     [Export] public Vector2 MPantySlashIn = new Vector2(4f, 50f);        // 黑線起點／終點離內褲右緣往內多遠（終點更多＝往左下歪進來）
@@ -133,6 +134,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("left_boost", MPantyAsideLeftBoost);
         _mPantyMat.SetShaderParameter("low_k", MPantyAsideLowBoost);
         _mPantyMat.SetShaderParameter("leg_grow", MPantyAsideLegGrow);
+        _mPantyMat.SetShaderParameter("leg_relax", MPantyAsideLegRelax);
         _mPantyMat.SetShaderParameter("slash_y", MPantySlashY);
         _mPantyMat.SetShaderParameter("slash_in", MPantySlashIn);
         _mPantyMat.SetShaderParameter("slash_k", MPantySlashK);
