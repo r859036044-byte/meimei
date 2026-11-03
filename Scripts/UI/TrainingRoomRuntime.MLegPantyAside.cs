@@ -11,6 +11,7 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("M 腿內褲撥開")]
     [Export] public bool MPantyAsideEnabled = true;
+    [Export] public bool MPantyAsideDebugLog = true;   // 按下左鍵時在 Output 印出能不能撥、不能的原因
     [Export] public float MPantyAsideMaxPx   = 130f;   // 最多撥開多寬（畫布 px；開口寬度）
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
     [Export] public float MPantyAsideGrabHalfW = 90f;  // 按下的判定：小穴中間左右各多寬（畫布 px）
@@ -93,22 +94,28 @@ void fragment() {
     /// <summary>輸入：按在小穴中間 → 往右拖撥開、往左拖放回。放手維持位置。</summary>
     bool MLegPantyAsideInput(InputEvent e)
     {
-        if (!MPantyAsideAvailable() && !_mpDrag) return false;
+        if (!MPantyAsideAvailable() && !_mpDrag)
+        {
+            if (MPantyAsideDebugLog && e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } && _mLegOpen)
+                GD.Print($"[MPantyDbg] 不能撥：內褲不可用（開啟={MPantyAsideEnabled} M腿={_mLegOpen} 已脫={_pantyGone} 雞雞階段={_jijiPhase} 圖層可見={MPantyLayer?.IsVisibleInTree()}）");
+            return false;
+        }
         if (MPantyLayer is not TextureRect panty) return false;
 
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
         {
             if (mb.Pressed)
             {
-                if (IsPointerOverUi() || _tongueTool || _handMode != HandMode.None) return false;
+                if (IsPointerOverUi() || _tongueTool || _handMode != HandMode.None) { if (MPantyAsideDebugLog) GD.Print("[MPantyDbg] 不能撥：滑鼠在 UI 上／舌頭工具／手工具"); return false; }
                 Vector2 w = ScreenToWorld(mb.Position);
-                if (PantyCoveredByDress(w)) return false;
                 var lp = panty.GetGlobalTransform().AffineInverse() * w;
                 float px = lp.X / Mathf.Max(1f, panty.Size.X) * 2000f;
                 float py = lp.Y / Mathf.Max(1f, panty.Size.Y) * 3200f;
                 // 開口目前的範圍也算可抓（已經撥開時，抓開口附近的布往左拖放回去）
                 float reach = MPantyAsideGrabHalfW + Mathf.Max(0f, _mpA) * 1.2f;
-                if (Mathf.Abs(px - MPantyAsideCenterX) > reach || py < MPantyAsideGrabV.X || py > MPantyAsideGrabV.Y) return false;
+                if (Mathf.Abs(px - MPantyAsideCenterX) > reach || py < MPantyAsideGrabV.X || py > MPantyAsideGrabV.Y)
+                { if (MPantyAsideDebugLog) GD.Print($"[MPantyDbg] 不能撥：按的位置不在小穴中間範圍（內褲圖座標 x={px:F0} y={py:F0}；要 x≈{MPantyAsideCenterX:F0}±{reach:F0}、y {MPantyAsideGrabV.X:F0}~{MPantyAsideGrabV.Y:F0}）"); return false; }
+                if (MPantyAsideDebugLog) GD.Print($"[MPantyDbg] 抓住內褲（x={px:F0} y={py:F0}）");
                 _mpDrag = true; _mpMoved = false;
                 _mpDownScreen = mb.Position; _mpStartLX = px; _mpStartT = _mpT;
                 return true;

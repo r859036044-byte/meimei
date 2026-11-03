@@ -481,18 +481,20 @@ public partial class TrainingRoomRuntime : Node
         }
         if (_dragTool)   // 拖曳模式：只處理被子／衣服／鏡頭，其他一律無視
         {
+            if (MLegPantyAsideInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // M 腿內褲撥開（MLegPantyAside.cs）：排最前面，不被衣擺／被子搶走
             if (PantyBedInput(@event)) { GetViewport().SetInputAsHandled(); return; }
             if (DuvetInput(@event)) { GetViewport().SetInputAsHandled(); return; }
-            if (ClothHemInput(@event) || PantyInput(@event) || MLegPantyAsideInput(@event)) { GetViewport().SetInputAsHandled(); return; }
+            if (ClothHemInput(@event) || PantyInput(@event)) { GetViewport().SetInputAsHandled(); return; }
             if (HandleCameraInput(@event)) { GetViewport().SetInputAsHandled(); return; }
             return;
         }
+        if (MLegPantyAsideInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // M 腿內褲撥開（MLegPantyAside.cs）：排最前面，不被衣擺／被子搶走
         if (PinchInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 捏臉（Pinch.cs）
         HeadPatInput(@event);
         TongueInput(@event);
         if (PantyBedInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 床上的內褲：拖動／往上拖穿回去（PantyPull.cs）
         if (DuvetInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 抓被子上緣往下拉（Bedding.cs）
-        if (ClothHemInput(@event) || PantyInput(@event) || MLegPantyAsideInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 抓衣擺往上拉、捲起來（Cloth.cs）
+        if (ClothHemInput(@event) || PantyInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 抓衣擺往上拉、捲起來（Cloth.cs）
         NippleHoverInput(@event);   // 滑鼠停在奶頭上：游標換成碰奶頭用的食指手
         if (NippleInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 摸乳頭（Nipple.cs）    // 舌頭：從嘴巴開始的拖曳＝調速度   // 摸頭：前髮上半部按住左鍵（不吃掉事件）
         if (HandleCameraInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 滾輪縮放 / 中鍵平移（Camera.cs）
