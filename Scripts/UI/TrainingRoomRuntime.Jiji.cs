@@ -461,6 +461,7 @@ void fragment() {
     void StartInsertion()
     {
         if (!_mLegOpen) { GD.Print("[Jiji] 沒開 M 腿：不能插入／突破"); return; }
+        if (!_jijiAnus && MPantyBlocksInsert) { GD.Print("[Jiji] 內褲還穿著：要先把內褲向右撥開才能插入"); return; }
         SayMaleEv(MaleInsertLines);   // 一般腿只能靠近，不能向上突破
         _holeLeftOpen = false;   // 重新插入：洞回到一般的張開邏輯
         _jijiPhase = 3; _jijiStage = 0; _jijiInsertY = 0f;

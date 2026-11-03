@@ -1155,7 +1155,7 @@ void fragment() {
     bool _clothTopApplied; bool _clothTopInit;
     static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
     static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "蝴蝶結2" };   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
-    static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
+    static readonly string[] LegMaskLayers = { "m腿/小穴", "m腿/內褲", "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };   // M 腿的小穴／內褲也裁切衣服（跟腿一樣出現在衣服上面）
     [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
     SubViewport _legMaskVP; Node2D _legMaskRoot;
     readonly System.Collections.Generic.Dictionary<string, TextureRect> _legDup = new();

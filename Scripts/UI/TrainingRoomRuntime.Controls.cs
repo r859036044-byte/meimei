@@ -88,6 +88,9 @@ public partial class TrainingRoomRuntime
         // 摸乳頭：右鍵點乳頭取消
         if (_nipL.On && IsPointOnLayer("奶頭2", w)) { CancelNipple("NL"); return true; }
         if (_nipR.On && IsPointOnLayer("奶頭1", w)) { CancelNipple("NR"); return true; }
+        // 右鍵點胸部也可以取消摸乳頭（胸2＝左邊那顆／奶頭2、胸1＝右邊那顆／奶頭1）
+        if (_nipL.On && IsPointOnLayer("胸2", w)) { CancelNipple("NL"); return true; }
+        if (_nipR.On && IsPointOnLayer("胸1", w)) { CancelNipple("NR"); return true; }
         // 舔：右鍵點正在舔的地方停止
         if (_lickOn && IsOnLickTarget(w)) { StopLick(); return true; }
         // 舌頭：右鍵點嘴巴停止

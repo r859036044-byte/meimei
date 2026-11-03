@@ -23,6 +23,12 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideFoldFreq  = 0.16f; // 褶皺間距（越大越密）
     [Export] public float MPantyAsidePanRightEdge = 1250f;   // 內褲右緣（畫布 px），布料被推擠後在這裡之前壓縮
 
+    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.6f;   // 內褲撥開到最大的幾成以上才能插入（0.6＝撥開 60%）
+    /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
+    bool MPantyBlocksInsert =>
+        MPantyAsideEnabled && _mLegOpen && !_pantyGone && MPantyLayer is TextureRect { Visible: true }
+        && _mpA < MPantyAsideMaxPx * MPantyAsideInsertFrac;
+
     bool _mpDrag, _mpMoved;
     float _mpT, _mpA, _mpStartT, _mpStartLX;
     Vector2 _mpDownScreen;
@@ -81,7 +87,7 @@ void fragment() {
     Control MPantyLayer => Layers.TryGetValue("m腿/內褲", out var l) ? l : null;
 
     bool MPantyAsideAvailable() =>
-        MPantyAsideEnabled && _mLegOpen && !_pantyGone && _jijiPhase < 2
+        MPantyAsideEnabled && _mLegOpen && !_pantyGone && _jijiPhase < 3
         && MPantyLayer is TextureRect { Texture: not null } tr && tr.IsVisibleInTree();
 
     /// <summary>輸入：按在小穴中間 → 往右拖撥開、往左拖放回。放手維持位置。</summary>
@@ -129,7 +135,7 @@ void fragment() {
     void UpdateMLegPantyAside(float dt)
     {
         if (MPantyLayer is not TextureRect panty) return;
-        bool can = MPantyAsideEnabled && _mLegOpen && !_pantyGone && _jijiPhase < 2;
+        bool can = MPantyAsideEnabled && _mLegOpen && !_pantyGone && _jijiPhase < 3;
         if (!can && !_mpDrag) _mpT = 0f;
         if (!can) _mpDrag = false;
         _mpA += (_mpT - _mpA) * Mathf.Clamp(MPantyAsideFollow * dt, 0f, 1f);
