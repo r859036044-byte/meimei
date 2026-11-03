@@ -120,6 +120,16 @@ public partial class SettingsManager : Node
     public void ApplyResolution()
     {
         var targetSize = Resolutions[ResolutionIndex];
+
+        // 1. 同步設置高階 Window 屬性（確保 Godot 編輯器內嵌遊戲檢視 SubWindow 響應尺寸變化）
+        var win = GetWindow();
+        if (win != null)
+        {
+            win.Mode = Window.ModeEnum.Windowed;
+            win.Size = targetSize;
+        }
+
+        // 2. 設置底層作業系統視窗（適用於獨立視窗與發布後 .exe 遊戲）
         DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetSize(targetSize);
 
@@ -136,12 +146,17 @@ public partial class SettingsManager : Node
     public void SetFullscreen(bool f)
     {
         IsFullscreen = f;
+        var win = GetWindow();
         if (f)
         {
+            if (win != null)
+                win.Mode = Window.ModeEnum.Fullscreen;
             DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
         }
         else
         {
+            if (win != null)
+                win.Mode = Window.ModeEnum.Windowed;
             ApplyResolution();
         }
     }
