@@ -34,9 +34,9 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,30,0.5")] public float PainErectDrain = 12f; // 痛到滿時每秒下降的勃起度
     [Export(PropertyHint.Range, "0,100,1")] public float ErectDropOnEjac = 35f; // 射精後勃起度下降
     [Export(PropertyHint.Range, "0,120,1")] public float FeelCapNoInsert = 40f; // 沒插入時精力最多到這
-    [Export(PropertyHint.Range, "0,20,0.1")] public float FeelRateTouch = 0.6f; // 沒插入、有互動時每秒增加
-    [Export(PropertyHint.Range, "0,20,0.1")] public float FeelRateBase = 1.2f;  // 抽插中每秒增加（最慢）
-    [Export(PropertyHint.Range, "0,30,0.1")] public float FeelRatePerSpeed = 3.5f; // 速度滿檔時額外每秒增加
+    [Export(PropertyHint.Range, "0,20,0.1")] public float FeelRateTouch = 0.25f; // 沒插入、有互動時每秒增加（綠條，非雞雞功能很難升）
+    [Export(PropertyHint.Range, "0,20,0.1")] public float FeelRateBase = 2.5f;  // 抽插中每秒增加（最慢；雞雞功能才升得快）
+    [Export(PropertyHint.Range, "0,30,0.1")] public float FeelRatePerSpeed = 6f; // 速度滿檔時額外每秒增加
     [Export(PropertyHint.Range, "0,3,0.05")] public float FeelHoleBoost = 0.8f; // 小穴高潮值 100 時累積速度額外 ×(1+這個)：小穴越舒服越容易射
     [Export(PropertyHint.Range, "0,5,0.05")] public float FeelDecay = 0.8f;     // 沒累積時每秒下降
     [Export(PropertyHint.Range, "0,200,1")] public float FeelBreakRate = 45f;   // 破功（超過 100）後每秒衝多少
