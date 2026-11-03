@@ -1293,6 +1293,7 @@ void fragment() {
         vec2 lq_ = (lg_x * pj_.x + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
         float ry_ = (pj_.y - 1326.0) / (1684.0 - 1326.0);   // 內褲內容框（畫布 px 1326~1684）由上到下 0~1
         float lw_ = 1.0 - smoothstep(0.45, 0.65, ry_);       // 只裁上半部；下半部（底下那一截）完整保留，不被腿切掉
+        lw_ *= 1.0 - smoothstep(0.0, 6.0, d);                // 撥開（被推動）的地方不要被腿裁切
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) c.a *= 1.0 - texture(leg_tex, lq_).a * lw_;   // 順著 M 腿的輪廓裁切
     }
     COLOR = c * vc;

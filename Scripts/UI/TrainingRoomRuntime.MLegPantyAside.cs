@@ -17,7 +17,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
     [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
-    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1520f, 1600f);  // 下轉折帶：被推的量慢慢回到 0，最底下固定不動（畫布 px）
+    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1480f, 1640f);  // 下轉折帶：被推的量慢慢回到 0，最底下固定不動（畫布 px；範圍越長，上下越連貫）
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
@@ -72,15 +72,20 @@ public partial class TrainingRoomRuntime
             if (_mpDrag)
             {
                 _mpDrag = false;
-                if (!_mpMoved && _mpT < 0.5f) OnHotspotClicked(4);   // 沒拖就放手：當成點小穴（跟一般內褲一樣）
+                if (!_mpMoved) OnHotspotClicked(4);   // 沒拖就放手：當成點小穴（摸 B／雞雞靠近），不會動到已撥開的內褲
                 return true;
             }
         }
         else if (e is InputEventMouseMotion mm && _mpDrag)
         {
-            if ((mm.Position - _mpDownScreen).Length() >= PantyAsideTrigPx) _mpMoved = true;
             var lp = panty.GetGlobalTransform().AffineInverse() * ScreenToWorld(mm.Position);
             float px = lp.X / Mathf.Max(1f, panty.Size.X) * 2000f;
+            if (!_mpMoved)
+            {   // 死區：滑鼠移動超過 PantyAsideTrigPx 才算「拖」；之前的小抖動不會改變內褲
+                if ((mm.Position - _mpDownScreen).Length() < PantyAsideTrigPx) return true;
+                _mpMoved = true; _mpStartLX = px; _mpStartT = _mpT;   // 從開始拖的位置起算，不會跳一下
+                return true;
+            }
             _mpT = Mathf.Clamp(_mpStartT + (px - _mpStartLX), 0f, MPantyAsideMaxPx);
             return true;
         }
