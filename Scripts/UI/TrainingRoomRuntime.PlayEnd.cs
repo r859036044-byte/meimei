@@ -29,8 +29,8 @@ public partial class TrainingRoomRuntime
     [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 30f;   // 勃起度 < 這個就軟掉
-    [Export(PropertyHint.Range, "0,20,0.1")] public float ErectGain = 0.8f;     // 有任何互動時每秒增加的勃起度
-    [Export(PropertyHint.Range, "0,5,0.05")] public float ErectDecay = 0.4f;  // 沒互動時每秒下降
+    [Export(PropertyHint.Range, "0,20,0.1")] public float ErectGain = 4f;     // 有任何互動時每秒增加的勃起度（黃條，要好升）
+    [Export(PropertyHint.Range, "0,5,0.05")] public float ErectDecay = 0.3f;  // 沒互動時每秒下降
     [Export(PropertyHint.Range, "0,30,0.5")] public float PainErectDrain = 12f; // 痛到滿時每秒下降的勃起度
     [Export(PropertyHint.Range, "0,100,1")] public float ErectDropOnEjac = 35f; // 射精後勃起度下降
     [Export(PropertyHint.Range, "0,120,1")] public float FeelCapNoInsert = 40f; // 沒插入時精力最多到這
