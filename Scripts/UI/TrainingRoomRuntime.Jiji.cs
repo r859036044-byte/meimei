@@ -1005,6 +1005,7 @@ void fragment() {
                 if (_resistProgress <= 0f)
                 {
                     _resistProgress = 0f; _resistBlocking = false; _resistBodyPushY = 0f; _jijiSurgeVel = 0f;
+                    if (FaceController != null && FaceController.CurrentExpression == "插入1" && !string.IsNullOrEmpty(_preResistExpr)) FaceController.SetExpression(_preResistExpr);   // 突破失敗：表情還原
                     if (_jijiStage == 0) { BackToPhase2("突破失敗（Stage 0）"); return; }
                     _jijiMovingUp = false;           // Stage 1+：停在原地，按住往上拖可再挑戰
                     _jijiInsertY = Mathf.Min(_jijiInsertY, stageMaxY);
@@ -1026,6 +1027,8 @@ void fragment() {
                 _resistTarget = Mathf.Max(target, 1f);
                 _resistProgress = 0f;
                 _resistBlocking = true;
+                _preResistExpr = FaceController?.CurrentExpression;
+                FaceController?.SetExpression("插入1");   // 按住突破中：抖動嘴
                 GD.Print($"[Jiji] Stage {_jijiStage} 到上限 → 阻力（目標 {_resistTarget:F0}，按住左鍵累積）");
             }
             else
@@ -1052,16 +1055,10 @@ void fragment() {
         if (!_jijiAnus) OnBreakthroughBleed();   // 第一次（處女）→ 破處流血（InsertEjac.cs）；肛門不套用
         // 玩法串接（Play.cs）：濕度不夠就硬突破 → 穴高潮值下降（越乾扣越多）
         OnBreakthroughWetCheck();
-        _ = BreakthroughExprAsync();
+        FaceController?.SetExpression("插入2");   // 完全突破：小嘴巴
     }
 
-    /// <summary>突破表情：插入1（1 秒）→ 插入2（對照 Unity BreakthroughExprCoroutine）。</summary>
-    async System.Threading.Tasks.Task BreakthroughExprAsync()
-    {
-        FaceController?.SetExpression("插入1");
-        await ToSignal(GetTree().CreateTimer(1.0), SceneTreeTimer.SignalName.Timeout);
-        if (IsInstanceValid(this) && _jijiPhase == 3) FaceController?.SetExpression("插入2");
-    }
+    string _preResistExpr;   // 開始按住突破之前的表情（突破失敗時還原）
 
     float WetnessRatio()
     {
