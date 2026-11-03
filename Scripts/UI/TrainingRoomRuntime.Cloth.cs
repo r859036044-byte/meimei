@@ -1239,12 +1239,14 @@ uniform vec2 lg_y = vec2(0.0, 1.0);
 uniform vec2 lg_o = vec2(0.0);
 uniform vec2 cl_size = vec2(2000.0, 3200.0);
 uniform float lg_on = 0.0;
-// ── 撥開（MLegPantyAside.cs）：抓內褲 Y 的中間往右拉，中間那一段被推到右邊；上面不動、底部也不動 ──
-uniform float aside = 0.0;                    // 中間那一段往右推多遠（畫布 px），0＝沒撥開
-uniform vec2 shear_v = vec2(1420.0, 1520.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡開始被推到全量
-uniform vec2 fix_v = vec2(1590.0, 1670.0);    // 下轉折帶：被推的量慢慢回到 0，最底下那一截固定不動
+// ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
+uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
+uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
+uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
+uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.8;                   // 褶皺濃度
-uniform float fold_freq = 0.11;               // 褶皺間距（越大越密）
+uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 // ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
 uniform sampler2D jj_tex : filter_linear;
 uniform vec2 jj_x = vec2(1.0, 0.0);
@@ -1259,11 +1261,18 @@ void fragment() {
     float b1 = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
     float b2 = clamp((px.y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);
     float w = (b1 * b1 * (3.0 - 2.0 * b1)) * (1.0 - b2 * b2 * (3.0 - 2.0 * b2));
-    float xs = px.x - aside * w;   // 這個位置的內褲是從左邊 aside*w 處被推過來的
-    float env = max(sin(3.14159 * b1), sin(3.14159 * b2)) * smoothstep(1.0, 20.0, aside);   // 兩個轉折帶是褶皺最明顯的地方
-    float shade = env * sin(px.y * fold_freq + px.x * 0.03 + sin(px.x * 0.05) * 1.2);
+    float t_ = (px.y - 1400.0) / 100.0;
+    float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
+    float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
+    float wd = max(1.0, xr - xl);
+    float d = min(aside * w, wd * 0.8);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成）
+    // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
+    float xs = xl + (px.x - xl - d) * wd / max(1.0, wd - d);
+    float comp = wd / max(1.0, wd - d);          // 壓縮倍率（1＝沒壓）
+    float env = clamp((comp - 1.0) / 1.5, 0.0, 1.0);
+    float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, UV.y));
-    if (xs < 0.0) c.a = 0.0;
+    if (px.x < xl + d) c.a = 0.0;
     c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
     c.rgb += fold_k * 0.08 * clamp(-shade, 0.0, 1.0);

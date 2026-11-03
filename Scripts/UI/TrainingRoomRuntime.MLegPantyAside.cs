@@ -12,17 +12,17 @@ public partial class TrainingRoomRuntime
     [ExportGroup("M 腿內褲撥開")]
     [Export] public bool MPantyAsideEnabled = true;
     [Export] public bool MPantyAsideDebugLog = true;   // 按下左鍵時在 Output 印出能不能撥、不能的原因
-    [Export] public float MPantyAsideMaxPx   = 180f;   // 內褲下半段最多被推到右邊多遠（畫布 px）
+    [Export] public float MPantyAsideMaxPx   = 150f;   // 內褲左邊最多被推到右邊多遠（畫布 px；右邊固定，布被壓扁）
     [Export] public float MPantyAsideGrabHalfW = 150f; // 按下的判定：小穴中間左右各多寬（畫布 px）
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
-    [Export] public Vector2 MPantyAsideGrabV = new Vector2(1440f, 1580f);   // 按下的判定：內褲 Y 中間的範圍（畫布 px；內褲高度 1326~1684，中間約 1505）
-    [Export] public Vector2 MPantyAsideShearV = new Vector2(1420f, 1520f);  // 上轉折帶：上面不動，過了這裡開始被推到全量（畫布 px）
-    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1590f, 1670f);  // 下轉折帶：被推的量慢慢回到 0，最底下那一截固定不動（畫布 px）
+    [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
+    [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
+    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1520f, 1600f);  // 下轉折帶：被推的量慢慢回到 0，最底下固定不動（畫布 px）
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0.8f;   // 褶皺（陰影／亮面）濃度
-    [Export] public float MPantyAsideFoldFreq  = 0.11f; // 褶皺間距（越大越密）
-    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.6f;   // 內褲撥開到最大的幾成以上才能插入（0.6＝撥開 60%）
+    [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
     bool MPantyBlocksInsert =>
         MPantyAsideEnabled && _mLegOpen && !_pantyGone && MPantyLayer is TextureRect { Visible: true }
@@ -100,7 +100,7 @@ public partial class TrainingRoomRuntime
         if (panty.Material != _mPantyMat) panty.Material = _mPantyMat;
         _mPantyMat.SetShaderParameter("aside", _mpA);
         _mPantyMat.SetShaderParameter("shear_v", MPantyAsideShearV);
-        _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);
+        _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);   // edge_l／edge_r 用 shader 預設值（內褲_M 實測左右緣）
         UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
