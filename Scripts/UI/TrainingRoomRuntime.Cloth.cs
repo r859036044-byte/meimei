@@ -1252,6 +1252,8 @@ void fragment() {
     [Export(PropertyHint.Range, "0,1,0.01")] public float BellyLineOnClothAlpha = 1f;
     TextureRect _bellyOnCloth; ShaderMaterial _bellyOnClothMat;
     const string BellyOnClothCode = @"shader_type canvas_item;
+uniform float line_lo = 0.2;    // 線條判定：R-G 低於這個＝完全不顯示
+uniform float line_hi = 0.4;    // 高於這個＝完全顯示
 uniform sampler2D cloth_tex : filter_linear;
 uniform vec2 bx = vec2(1.0, 0.0);
 uniform vec2 by = vec2(0.0, 1.0);
@@ -1266,6 +1268,9 @@ void fragment() {
     vec2 q = (bx * pj_.x + by * pj_.y + bo) / csize;
     float a = (q.x < 0.0 || q.x > 1.0 || q.y < 0.0 || q.y > 1.0) ? 0.0 : texture(cloth_tex, q).a;
     c.a *= a;
+    // 只保留肚子圖的紅色外框線（偏紅的像素：R-G 大）；膚色的塊面不要疊到衣服上
+    vec4 t_ = texture(TEXTURE, UV);
+    c.a *= smoothstep(line_lo, line_hi, t_.r - t_.g);
     COLOR = c;
 }";
     void UpdateBellyOnCloth()
