@@ -54,7 +54,7 @@ public partial class MiniGameNight3 : CanvasLayer
     Control _root;
     TextureRect _imgBottom, _imgBottom2, _imgFrame;
     ShaderMaterial _bottom2Mat, _bottomMat;
-    float _tipUvY, _jRotDeg, _expK, _upFollow;
+    float _tipUvY, _jRotDeg, _expK, _upFollow; Vector2 _jiDisp;
     Control _panel, _marker, _fill, _track;
     Label _round, _pct, _org, _posLbl, _gain, _hint, _spk, _react, _cont;
     Button[] _btns = new Button[3];
@@ -76,7 +76,8 @@ public partial class MiniGameNight3 : CanvasLayer
         finally { if (IsInstanceValid(g)) g.QueueFree(); }
     }
 
-    public override void _ExitTree() => _done.TrySetCanceled();
+    public static float SkipScale = 8f;   // 按住 Ctrl（或滑鼠右鍵）時全部動畫的倍速；要選擇的時候（待機中）不會加速
+    public override void _ExitTree() { Engine.TimeScale = 1.0; _done.TrySetCanceled(); }
 
     public override void _Ready()
     {
@@ -100,6 +101,9 @@ public partial class MiniGameNight3 : CanvasLayer
     // 每幀固定更新雞雞/子宮動畫（不依賴遊戲流程目前在哪個等待狀態，雞雞往上子宮就一定會跟著動）
     public override void _Process(double delta)
     {
+        if (_cumMat != null && _cumRect != null && IsInstanceValid(_cumRect)) UpdateSlosh((float)delta);
+        bool ff = (Input.IsKeyPressed(Key.Ctrl) || Input.IsMouseButtonPressed(MouseButton.Right)) && !_idling;
+        Engine.TimeScale = ff ? SkipScale : 1.0;   // 任何動畫（開場後的淡入、掃動、射精、白色流動…）按住都能快轉
         if (_osc)   // 待機與選完掃動共用同一個動作：標記以 SweepSpeed 等速在 20~580 來回
         {
             float step = (_idling ? IdleSpeed : _sweepSpeed) * (float)delta;
@@ -140,7 +144,7 @@ public partial class MiniGameNight3 : CanvasLayer
     public static Vector2 BgOffsetPx = new(-100f, 0f);       // 背景圖位移（畫面像素，負=往左）
     public static float UiScale = 1.15f;                     // 面板與氣泡的放大倍率
     public static int SweepCycles = 2;                      // 選完後完整上下掃幾次才開始隨機停止
-    public static float UterusLiftSmooth = 1.2f;            // 子宮被頂上移的平滑速度（越小越慢）
+    public static float UterusLiftSmooth = 3.5f;            // 子宮被頂上移的平滑速度（越小越慢）
     public static float UterusRate = 0.7f;                  // 子宮變形最快速度（變形量/秒，越小越慢）
     public static float UterusIdleMul = 0.5f;               // 子宮待機自己的起伏幅度（相對 IdleAmp）
     public static float FrameStretchPx = 50f;               // 外框向下拉長（畫面像素）
@@ -166,8 +170,13 @@ public partial class MiniGameNight3 : CanvasLayer
     public static float JijiTipPx = 79f;                    // 雞雞前端在畫布上的 Y（畫布像素）
     public static int UterusStartRow = 2;                   // 雞雞碰到九宮格第幾排錨點才開始變形（由上數，0~3；2＝由下數第二排）
     public static float UterusRampRows = 1f;                // 從開始到變形最大，雞雞要再往上走幾排的距離
-    public static float JijiRotMul = 0.22f;                  // 旋轉擺動幅度倍率（1=原本，越小轉越少）
-    public static float DefSmooth = 5f;                     // 變形/位置平滑速度（越小越慢越柔）
+    public static float JijiRotMul = 0.05f;                  // 旋轉擺動幅度倍率（1=原本，越小轉越少）
+    public static float PushRiseTime = 0.7f, PushRiseExtra = 0.12f, PushJitter = 0.012f;   // 頂到底後慢慢再往上的時間／再往上多少（占雞雞行程比例）／抖動幅度
+    float _pushExtra, _pushJit, _thrustPx; int _thrustPhase;
+    public static float ThrustLastPx = 10f;   // 最後一次（第 3 次）往下多少
+    public static float ThrustPx = 5f;   // 「用力插」：前面幾次再往上多 5px，最後一次（頂到底）往下 5px
+    public static float JijiUpExtraPx = 50f;               // 雞雞向上的最大位移再多加這麼多（畫布像素）
+    public static float DefSmooth = 8f;                     // 變形/位置平滑速度（越小越慢越柔）
     public static int MaxRounds = 10, NeedOrgasms = 2;       // 最多回合、需要的高潮次數
     public static int PhaseEarlyEnd = 3, PhaseMidEnd = 7;    // 前戲期/過渡期結束的回合
     public static float EnergyMax = 100f, EnergyRecover = 3f; // 精力上限、每回合回復
@@ -191,12 +200,19 @@ public partial class MiniGameNight3 : CanvasLayer
     public static float CumMistPx = 70f, CumMistAlpha = 0.45f;   // 子宮底隨機模糊白斑的大小／最濃的程度（0=沒有）
     public static bool CumWhiteOnBottom = true;             // 白色流進「底」圖的深紅通道（黑線不蓋）
     public static float CumJijiY0 = 480f, CumJijiY1 = 1120f;   // 白色在雞雞上流動的範圍（雞雞圖畫布 y，從前端往下）
-    public static float CumPoolAlpha = 1f;                  // 灌滿的液面的不透明度（1=不透明，不淡化）
+    public static float CumPoolAlpha = 0.95f;                 // 灌滿的液面的不透明度（1=不透明，不淡化）
+    public static float CumSloshGain = 1f, CumSloshSpring = 28f, CumSloshDamp = 3.2f;   // 液面晃動：力道／彈性（越大越快回正）／阻尼（越小晃越久）
+    float _slX, _slV, _lastTipY, _lastDefPx, _slB, _slBV;
+    public static float CumBulgeGain = 5f, CumBulgeMaxPx = 30f, CumWaveCalm = 0.7f, CumWaveCalmAmp = 0.8f, CumWaveBigAmp = 3f;   // 凸起力道／最大高度；沒動作後波慢慢平靜的速度；平靜時／最大動作時的波大小倍率
+    float _slE, _slEImp, _lastPool; bool _slReset; ShaderMaterial _cumMat; Rect2 _cumA;
+    public static float _unusedSl;   // 往上頂時液面中間凸起、往下退時中間凹進去的力道／最大高度（畫布像素）
+    public static float CumSloshDef = 2.5f;   // 液面受子宮格子變形影響的程度（變形的速度推動晃動；格子左右高低差直接讓液面傾斜）
+    public static float CumHazeTop = 0.55f;                 // 白底漸層最上面的濃度（0=最上面沒有白；1=整片一樣濃）
     public static float CumHazeAlpha = 0.3f;                // 被射完後子宮內圈下半部半透明白底的濃度（0=沒有）
     public static float CumJijiEdgePx = 16f;                 // 白色只蓋紅色與黑線的交界處，這是交界兩側各算多寬（畫布像素，越大蓋的範圍越寬）
     public static float CumJijiStrokeTime = 3.6f;           // 白色從頂點沿著左右兩邊的線刷到底花多久（秒）
     public static float CumJijiBlobTime = 1.0f;             // 起點那團不規則橢圓浮現、長大的時間（秒），之後才開始往下流
-    public static Vector2 CumJijiBlobCenterPx = new(717f, 182f);   // 那團的中心（雞雞圖畫布像素）
+    public static Vector2 CumJijiBlobCenterPx = new(697f, 187f);   // 那團的中心（雞雞圖畫布像素）
     public static float CumJijiBlobRotDeg = 35f;            // 起點那團橢圓的旋轉角度（度，正＝逆時針歪，跟九宮格同方向；負＝順時針）
     public static Vector2 CumJijiBlobSizePx = new(62f, 26f);       // 那團的半徑 x／y
     public static float CumJijiBrushSoft = 0.1f;            // 筆刷前緣的柔和程度（越大尾巴越長越淡）
@@ -204,14 +220,14 @@ public partial class MiniGameNight3 : CanvasLayer
     public static float CumJijiHalfW = 200f;                // 白色範圍的半寬（畫布像素），左右對稱
     public static float CumJijiMid = 0.75f;                 // 中線附近的白色濃度（相對兩側；1=一樣濃）
     public static float CumJijiLineCover = 1f;              // 黑線本身被白色蓋住的程度（1=完全蓋住，0=線不蓋、只有旁邊有白暈）
-    public static float CumJijiWhiteStr = 1f;             // 白色蓋過雞雞紅色與黑線的程度
+    public static float CumJijiWhiteStr = 0.95f;             // 白色蓋過雞雞紅色與黑線的程度
     public static float CumWhiteX0 = 895f, CumWhiteX1 = 1185f;   // 白色流入的橫向範圍（底圖畫布像素，包含兩側黑線）
     public static float CumBrushArc = 60f;                  // 白色前緣像筆刷刷過的弧線彎多少（畫布像素；0=一條直線，兩側比中間更晚到）
     public static float CumBrushSlant = 20f;                // 前緣整體斜多少（畫布像素；負=往另一邊斜）
     public static float CumWhiteMid = 0.3f;                 // 通道中間的白色濃度（相對兩側；1=一樣濃）
     public static float CumWhiteTiltDeg = 15f;              // 中間淡的那條線歪的角度（度，正＝由上往右下歪）
     public static float CumWhiteCenterOfs = 0.1f;           // 中間淡的那條線偏離正中間多少（-1~1，相對半寬）
-    public static float CumWhiteStrength = 0.8f;            // 白色蓋過去的程度（1=完全蓋過黑線）
+    public static float CumWhiteStrength = 0.95f;            // 白色蓋過去的程度（1=完全蓋過黑線）
     public static float CumWhiteFlowTime = 4.5f;            // 白色流入底圖深紅通道花多久（秒）
     public static bool CumTroomStyle = true;                // 照調教房的射精：直的一串圓依序飛出，頭落地形成一團再被後面吸收變大（false=蝌蚪風格）
     public static float CumTailDelay = 0.35f;               // 調教房風格：尾巴比頭晚多久到（相對往上射的時間，越大越長）
@@ -244,8 +260,8 @@ public partial class MiniGameNight3 : CanvasLayer
     public static float JijiStartRotDeg = 10f;               // 初始位置（G點端）額外旋轉角，正=順時針；往子宮端逐漸減為 0
     // ── 子宮變形（3x3 九宮格錨點，頂排固定、底排中間變形最多）──
     public static Rect2 UterusBoxPx = new(1334f, 0f, 534f, 484f);   // 子宮在畫布上的範圍（畫布像素）
-    public static float UterusDeformPx = 120f;              // 變形量最大值（畫布像素，往上）
-    public static float[] UterusGridW = { 0f, 0f, 0f, 0f,   0.1f, 0.25f, 0.25f, 0.1f,   0.3f, 0.9f, 1.1f, 0.8f,   0.5f, 1f, 1f, 0.1f };   // 4x4 錨點（=3x3 九宮格）權重，由上到下、左到右
+    public static float UterusDeformPx = 123f;              // 變形量最大值（畫布像素，往上）
+    public static float[] UterusGridW = { 0f, 0f, 0f, 0f,   0.1f, 0.25f, 0.25f, 0.1f,   0.3f, 1.108f, 1.308f, 0.8f,   0.5f, 1f, 1f, 0.1f };   // 4x4 錨點（=3x3 九宮格）權重，由上到下、左到右
     public static float UterusGridRotDeg = 30f;             // 九宮格逆時針旋轉角（度）
     public static float UterusScale = 1.2f;                 // 子宮放大倍率（以子宮中心放大）
     public static float UterusTouchLiftPx = 40f;            // 雞雞頂到子宮時，子宮額外上移量（畫布像素）
@@ -262,7 +278,7 @@ public partial class MiniGameNight3 : CanvasLayer
     public static bool ShowJijiGrid = false;
     public static float BgFollow = 0.3f;                    // 背景跟隨雞雞上下位移的比例（0=不動，1=完全跟隨）
     public static bool ShowPivot = false;                    // 顯示雞雞旋轉錨點（紅點）
-    public static Vector2 JijiFinePx = new(315f, 410f);        // 雞雞單獨微調
+    public static Vector2 JijiFinePx = new(315f, 375f);        // 雞雞單獨微調
     const float PanelW = 400f, PanelH = 250f, TK = 352f / TrackW;   // TK：軌道顯示比例
 
     Control _stage;
@@ -345,6 +361,8 @@ uniform float wf_cofs = 0.1;
 uniform float wf_slant = 0.2;
 uniform float wf_x0 = 0.44;
 uniform float wf_x1 = 0.57;
+uniform sampler2D wf_tex : filter_linear;
+uniform float wf_soft = 0.12;
 void fragment() {
     vec2 uv0 = unrot(UV);
     vec2 qq = expandq(uv0);
@@ -360,6 +378,12 @@ void fragment() {
         float u = (qq.x - cxm - (qq.y - wf_t0) * wf_slant) / max((wf_x1 - wf_x0) * 0.5, 0.001);   // 中線有點歪、而且不在正中間
         float prof = mix(wf_mid, 1.0, smoothstep(0.05, 0.8, abs(u)));   // 左右兩邊比較濃、中間比較淡
         c.rgb = mix(c.rgb, vec3(0.97, 0.95, 0.92), deep * wm * wf_str * prof);
+        // 另外新增：
+        // 跟雞雞一樣用預先算好的筆刷遮罩 mg_bottom_stroke.png：R＝深紅通道的範圍（邊緣濃、中間淡、邊緣不規則）、G＝由上往下的進度
+        vec4 sm = texture(wf_tex, qq);
+        float frontp = wf_amt * (1.0 + wf_soft);
+        float wm2 = smoothstep(frontp, frontp - wf_soft, sm.g) * step(0.001, wf_amt);
+        c.rgb = mix(c.rgb, vec3(0.97, 0.95, 0.92), sm.r * wm2 * wf_str);
     }
     float fc = fclip();
     c.a *= fc;
@@ -393,6 +417,15 @@ uniform float jf_mid = 0.35;
 uniform float jf_brush_a = 60.0;
 uniform float jf_brush_s = 20.0;
 uniform vec2 jf_canvas = vec2(2050.0, 1250.0);
+uniform vec2 dp_c = vec2(680.0, 130.0);
+uniform vec2 dp_r = vec2(75.0, 45.0);
+uniform float dp_amp = 1.0;
+uniform float dp_a = 0.9;
+uniform float dp_in = 0.0;
+uniform float dp_sl = 0.0;
+uniform float dp_dbg = 0.0;
+uniform float dp_under = 1.0;
+uniform float dp_rot = 0.0;
 void fragment() {
     vec2 q = unrot((wpos - m_pos) / m_size);
     q = expandq(q);
@@ -411,10 +444,97 @@ void fragment() {
         bd = vec2(jb_cs * bd.x - jb_sn * bd.y, jb_sn * bd.x + jb_cs * bd.y);   // 整團跟你的圖一樣歪一點（逆時針旋轉）
         float ba = atan(bd.y, bd.x);
         float brad = length(bd) / (1.0 + 0.16 * sin(2.0 * ba + 0.8) + 0.11 * sin(3.0 * ba + 2.1) + 0.06 * sin(5.0 * ba + 0.3));
-        blobA = smoothstep(1.0, 0.72, brad) * jb_amt * jf_str;
+        float bl = smoothstep(1.0, 0.55, brad) * 0.9;   // 邊緣柔和一點、整體稍微透明
+        // 像精液一樣，從這團往下垂出幾條不規則的流：長短、粗細、彎曲都不一樣，越往下越細越淡
+        vec2 dq0 = UV * jf_canvas - jb_c;
+        vec2 dq = vec2(dot(dq0, vec2(0.91, -0.42)), dot(dq0, vec2(0.42, 0.91)));   // 跟雞雞圖一樣歪：沿著歪的中軸往右下流
+        const float FanW = 95.0;   // 流水最上面那段的橫向放大量（像素，沿歪的軸）
+        float gr = smoothstep(0.5, 1.0, jb_amt) * clamp((jf_amt - 0.12) / 0.88, 0.0, 1.0);   // 先長出來，再隨著白色往下流的進度一路流長
+        float dr = 0.0;
+        float xs[4] = float[4](-18.0, -6.0, 6.0, 18.0);      // 全部從原點出發
+        float sg[4] = float[4](-1.0, -1.0, 1.0, 1.0);          // 左邊兩條往左彎、右邊兩條往右彎（像雞雞兩側主線的弧線）
+        float mg[4] = float[4](210.0, 105.0, 15.0, 105.0);  // 弧線向外的幅度（左右分得更開）
+        float xe[4] = float[4](-120.0, -120.0, 25.0, 25.0); // 流到後來靠攏併入的位置
+        float ts[4] = float[4](150.0, 220.0, 120.0, 220.0);
+        float te[4] = float[4](360.0, 460.0, 400.0, 430.0);
+        float ln[4] = float[4](370.0, 550.0, 470.0, 310.0); // 從原點出發，最長流到下方約 600 像素再淡掉
+        for (int i = 0; i < 4; i++) {
+            float fy = ln[i] * gr;                     // 這一條目前流到的位置（流頭）
+            // 沿著流的中心線：yh 位置的左右偏移（流身和流頭共用）
+            float cy = clamp(dq.y, 0.0, 2000.0);
+            float cx = mix(xs[i] + sg[i] * mg[i] * (1.0 - exp(-cy / 95.0)), xe[i], smoothstep(ts[i], te[i], cy))
+                     + 22.0 * (0.35 + 0.65 * smoothstep(0.0, 300.0, cy)) * sin(cy * 0.017 + float(i) * 2.3) + 9.0 * sin(cy * 0.043 + float(i) * 4.1);
+            float hy = fy;
+            float hx = mix(xs[i] + sg[i] * mg[i] * (1.0 - exp(-hy / 95.0)), xe[i], smoothstep(ts[i], te[i], hy))
+                     + 22.0 * (0.35 + 0.65 * smoothstep(0.0, 300.0, hy)) * sin(hy * 0.017 + float(i) * 2.3) + 9.0 * sin(hy * 0.043 + float(i) * 4.1);
+            float prog = clamp(dq.y / ln[i], 0.0, 1.0);
+            float rnd = 1.0 + 0.12 * sin(dq.y * 0.05 + float(i) * 1.7) + 0.08 * sin(dq.y * 0.13 + float(i) * 3.1);   // 粗細有一點隨機變化（範圍不大）
+            float near = 1.0 - smoothstep(0.0, 110.0, dq.y);   // 靠近原點那一段：更粗、更濃，跟原點那團接在一起
+            float w = (27.0 * (1.0 - 0.62 * prog) + 14.0 * near + 16.0 * (1.0 - smoothstep(0.0, 55.0, dq.y))) * rnd + (FanW + (sg[i] < 0.0 ? 50.0 : -75.0)) * (1.0 - smoothstep(30.0, 100.0, dq.y));   // 最上面約 30px 橫向放大，四條合起來蓋住整個雞雞的頂   // 越上面越粗
+            float hr = 27.0 * (1.0 - 0.62 * clamp(fy / ln[i], 0.0, 1.0)) + 9.0;   // 水滴頭的半徑
+            float sw = pow(smoothstep(fy - 130.0, fy, dq.y), 1.7);   // 流身在接近流頭的 130 像素內，平順地鼓起來變成水滴（不是另外貼一顆圓）
+            w = mix(w, hr, sw);
+            float body = smoothstep(w, w * 0.2, abs(dq.x - cx)) * smoothstep(sg[i] < 0.0 ? -115.0 : -60.0, 6.0, dq.y) * smoothstep(fy + 6.0, fy - 4.0, dq.y) * clamp(1.0 - 0.6 * prog + 0.35 * near, 0.0, 1.0);   // 流身一路連到流頭，不再先淡掉
+            vec2 hv = vec2(dq.x - hx, dq.y - hy);   // 流頭只負責圓圓的底，上面由流身鼓起來接上
+            float head = smoothstep(hr, hr * 0.55, length(hv)) * (0.95 - 0.5 * clamp(fy / ln[i], 0.0, 1.0)) * step(0.01, gr) * (1.0 - smoothstep(0.8, 1.0, gr));
+            dr = max(dr, max(body, head));
+        }
+        {   // 流水不能超過兩側主線：用雞雞輪廓左右邊緣（每 75px 一個點）內縮一點，超出的地方就收掉
+            float py = UV.y * jf_canvas.y; float fi = clamp((py - 150.0) / 75.0, 0.0, 12.99); int i0 = int(fi); float ft = fi - float(i0);
+            float eL[14] = float[14](545.0,481.0,452.0,419.0,400.0,395.0,413.0,434.0,462.0,500.0,526.0,539.0,566.0,659.0);
+            float eR[14] = float[14](908.0,1018.0,1086.0,1129.0,1146.0,1163.0,1172.0,1172.0,1155.0,1167.0,1183.0,1184.0,1161.0,1059.0);
+            float xl = mix(eL[i0], eL[i0 + 1], ft) + 30.0, xr = mix(eR[i0], eR[i0 + 1], ft) - 30.0;
+            float px = UV.x * jf_canvas.x;
+            dr *= smoothstep(xl - 12.0, xl + 14.0, px) * smoothstep(xr + 12.0, xr - 14.0, px);
+        }
+        // 一團大的柔和橢圓：帶著流一起往下走，越往下越淡
+        float ey = gr * 400.0;
+        vec2 ed = vec2(dq.x / 95.0, (dq.y - ey) / 60.0);
+        float el_ = smoothstep(1.0, 0.0, length(ed)) * 0.5 * (1.0 - clamp(ey / 520.0, 0.0, 1.0)) * step(0.01, gr);
+        dr = max(dr, el_);
+        blobA = max(bl, dr) * jb_amt * jf_str;
+    }
+    float dropA = 0.0;
+    {   // 雞雞前端旁邊那一小灘會晃的水：直接畫在雞雞這一層（跟原點、流水同一個畫法），所以一定跟著雞雞走、不會被別的圖層切到
+        vec2 pd = UV * jf_canvas - dp_c;
+        pd = vec2(cos(dp_rot) * pd.x + sin(dp_rot) * pd.y, -sin(dp_rot) * pd.x + cos(dp_rot) * pd.y);   // 整個水灘（包含水面的波）一起旋轉
+        vec2 dq2 = pd / dp_r;
+        float body = smoothstep(1.0, 0.78, length(dq2));
+        float tw = -0.42 + (sin(UV.x * jf_canvas.x * 0.05 + TIME * 2.4) * 0.11 + sin(UV.x * jf_canvas.x * 0.022 - TIME * 1.5 + 1.3) * 0.07) * dp_amp + dp_sl * dq2.x * 0.12;
+        tw = clamp(tw, -0.80, -0.12);
+        float fillm = smoothstep(tw - 0.05, tw + 0.05, dq2.y);
+        float depth = mix(0.92, 1.0, smoothstep(tw, tw + 0.5, dq2.y));
+        dropA = body * fillm * depth * dp_a * dp_in;
     }
     COLOR.a *= mix(1.0, a, m_on) * fclip();
-    COLOR = vec4(mix(COLOR.rgb, vec3(0.97, 0.95, 0.92), blobA), max(COLOR.a, blobA));   // 起點那團不受雞雞輪廓、遮色片、外框裁切限制
+    dropA *= 1.0 - COLOR.a * dp_under;   // 水灘在雞雞後面：雞雞身體有畫到的地方蓋住它，只有雞雞外面（雞雞和底之間）看得到
+    blobA = max(blobA, dropA);
+    COLOR = vec4(mix(COLOR.rgb, vec3(0.97, 0.95, 0.92), blobA), max(COLOR.a, blobA));
+    COLOR.rgb = mix(COLOR.rgb, vec3(1.0, 1.0, 1.0), clamp(dropA * 1.2, 0.0, 1.0) * (1.0 - dp_dbg));   // 水灘的部分再白一點
+    COLOR.rgb = mix(COLOR.rgb, vec3(1.0, 0.1, 0.1), dropA * dp_dbg);   // 起點那團不受雞雞輪廓、遮色片、外框裁切限制
+}";
+    const string DropShader = @"
+shader_type canvas_item;" + FClipDecl + @"
+uniform vec2 canvas_px = vec2(2050.0, 1250.0);
+uniform vec2 d_c = vec2(1000.0, 700.0);
+uniform vec2 d_r = vec2(75.0, 30.0);
+uniform float d_amp = 1.0;
+uniform float d_a = 0.7;
+uniform float d_in = 0.0;
+uniform float d_sl = 0.0;
+uniform float d_dbg = 0.0;
+uniform float d_rot = 0.0;
+void fragment() {
+    vec2 p = UV * canvas_px;
+    vec2 pd = p - d_c;
+    pd = vec2(cos(d_rot) * pd.x + sin(d_rot) * pd.y, -sin(d_rot) * pd.x + cos(d_rot) * pd.y);
+    vec2 q = pd / d_r;
+    float body = smoothstep(1.0, 0.78, length(q));
+    float tw = -0.42 + (sin(p.x * 0.05 + TIME * 2.4) * 0.11 + sin(p.x * 0.022 - TIME * 1.5 + 1.3) * 0.07) * d_amp + d_sl * q.x * 0.12;
+    tw = clamp(tw, -0.80, -0.12);   // 水面再怎麼晃都不會升到水灘中間以上，不會把水灘吃掉一塊   // 液面：跟子宮一樣的水波，量少
+    float fillm = smoothstep(tw - 0.05, tw + 0.05, q.y);
+    float depth = mix(0.7, 1.0, smoothstep(tw, tw + 0.5, q.y));
+    COLOR = vec4(mix(vec3(0.96, 0.94, 0.89), vec3(0.2, 0.45, 1.0), d_dbg), mix(body * fillm * depth * d_a * d_in, 0.35 * step(abs(p.x - d_c.x), 400.0) * step(abs(p.y - d_c.y), 300.0), d_dbg * 0.0) + d_dbg * 0.0);   // 不再套外框裁切，才不會被切掉一塊
 }";
     const string CumShader = @"
 shader_type canvas_item;" + FClipDecl + @"
@@ -429,6 +549,7 @@ uniform float pool_a = 0.8;
 uniform float haze = 0.0;
 uniform vec2 haze_y = vec2(100.0, 360.0);
 uniform float haze_a = 0.3;
+uniform float haze_top = 0.55;
 uniform float tro = 0.0;   // 1＝調教房風格：直的一串圓（頭大尾小、越後越淡）
 uniform float bead_k = 0.5;
 uniform float bead_a = 0.55;
@@ -440,6 +561,11 @@ uniform vec4 tl4; uniform vec4 tl5; uniform vec4 tl6; uniform vec4 tl7;
 uniform vec4 hd0; uniform vec4 hd1; uniform vec4 hd2; uniform vec4 hd3;
 uniform vec4 hd4; uniform vec4 hd5; uniform vec4 hd6; uniform vec4 hd7;
 uniform float pool_top = 100000.0;
+uniform float sl_x = 0.0;
+uniform float sl_cx = 0.0;
+uniform float sl_hw = 150.0;
+uniform float sl_b = 0.0;
+uniform float sl_amp = 1.0;
 uniform float iso = 0.17;
 // 蝌蚪：頭（圓、有深棕色輪廓、中心半透明）＋沿著軌跡彎曲、越來越細且越來越透明的尾巴
 void tad(vec2 p, vec4 tl, vec4 hd, inout vec3 c, inout float a) {
@@ -475,13 +601,13 @@ void tad(vec2 p, vec4 tl, vec4 hd, inout vec3 c, inout float a) {
 void fragment() {
     vec2 p = UV * canvas_px;   // 子宮自己的座標（沒變形）；液體畫在跟子宮一樣的網格上，所以會跟著子宮一起變形、移動
     // 積在底部的液面
-    float top = pool_top + sin(p.x * 0.05 + TIME * 2.2) * 2.0;
+    float top = pool_top + (sin(p.x * 0.022 + TIME * 2.2) * 5.5 + sin(p.x * 0.011 - TIME * 1.3 + 1.7) * 3.0) * sl_amp + sl_x * (p.x - sl_cx) - sl_b * (1.0 - pow(clamp((p.x - sl_cx) / sl_hw, -1.0, 1.0), 2.0));   // 多個不同速度的波疊起來＋被頂/雞雞下降時液面整個傾斜晃動
     float f = clamp(iso + (p.y - top) * 0.03, 0.0, 0.9) * step(top - 6.0, p.y);
     float a = smoothstep(iso - 0.03, iso + 0.03, f) * pool_a;
     vec3 c = col;
     a *= mix(0.72, 1.0, smoothstep(iso, iso + 0.2, f));
     {   // 被射完之後，子宮內圈下半部一層半透明的白底（越靠下越濃）
-        float hz = haze * haze_a * smoothstep(haze_y.x, haze_y.y, p.y);
+        float hz = haze * haze_a * mix(haze_top, 1.0, smoothstep(haze_y.x, haze_y.y, p.y));
         c = mix(c, col, hz / max(hz + a * (1.0 - hz), 0.001));
         a = hz + a * (1.0 - hz);
     }
@@ -499,7 +625,39 @@ void fragment() {
 
     Vector2 _tipScr;   // 雞雞前端在 _stage 內的位置（SyncJiji 每幀更新）
     Texture2D _uterusTex;
-    Node _cumRect;
+    Node _cumRect; Polygon2D _dropPoly; ShaderMaterial _dropMat; float _dropIn;
+    public static bool CumDropOn = true;
+    public static bool CumDrop2On = true, CumDrop2Blue = false;   // 子宮底部的那個小水灘（藍色方便辨認；確認位置後把 CumDrop2Blue 改成 false 變白）
+    public static Vector2 CumDrop2OffsetPx = new(50f, 90f), CumDrop2RadiusPx = new(42.5f, 23f);
+    public static float CumDrop2Alpha = 0.9f, CumDrop2RotDeg = 165f;   // 水滴旋轉角度（負＝右邊往上）
+    public static float CumDropRotDeg = -15f;   // 水灘旋轉角度（正＝右邊往下，負＝右邊往上）
+    public static bool CumDropBehindJiji = true;   // true＝水灘在雞雞後面（雞雞蓋住它）、底的前面
+    public static bool CumDropDebug = false;  // true＝水灘塗成紅色，用來看清楚哪一塊是它、哪一塊是別的東西被切；確認後改成 false
+    public static bool CumDropAboveFrame = false;   // true＝畫在最上面（外框也蓋不到它，完全不會被切）
+    public static bool CumDropBelowJiji = false;   // true＝水灘在雞雞下面（會被雞雞的輪廓切掉一部分）
+    public static Vector2 CumDropOffsetPx = new(-100f, 87f), CumDropRadiusPx = new(75f, 45f);   // 子宮底部小水滴：位置微調／大小
+    public static float CumDropAlpha = 1f;
+    public static float CumDropFollow = 1f;   // 水灘跟著雞雞位移的比例（1=完全一起動，0=只跟著子宮）
+
+    void UpdateSlosh(float dts)
+    {
+        dts = Mathf.Max(dts, 0.0001f);
+        var A = _cumA; var mat = _cumMat;
+        float vel = (_tipScr.Y - _lastTipY) / dts; _lastTipY = _tipScr.Y;
+        float defPx = UterusDeformPx * _uDefCur, dvel = (defPx - _lastDefPx) / dts; _lastDefPx = defPx;
+        if (_slReset) { _slX = _slV = _slB = _slBV = _slE = 0f; vel = dvel = 0f; _slReset = false; }
+        _slV += (-CumSloshSpring * _slX - CumSloshDamp * _slV + vel * CumSloshGain * 0.00035f + dvel * CumSloshDef * 0.0008f) * dts;
+        _slX = Mathf.Clamp(_slX + _slV * dts, -0.3f, 0.3f);
+        _slBV += (-CumSloshSpring * _slB - CumSloshDamp * _slBV - vel * CumBulgeGain * 0.6f + _slEImp * 40f) * dts;   // 雞雞往上(vel<0)→中間凸起；往下→中間凹；落下／水位上升也推一下
+        _slB = Mathf.Clamp(_slB + _slBV * dts, -CumBulgeMaxPx, CumBulgeMaxPx);
+        float inE = Mathf.Max(Mathf.Max(Mathf.Abs(vel) / 120f, Mathf.Abs(dvel) / 120f), _slEImp); _slEImp = 0f;
+        _slE = Mathf.Max(_slE * Mathf.Exp(-dts * CumWaveCalm), Mathf.Clamp(inE, 0f, 1f));   // 動作越大波越大；停下來後慢慢平靜
+        mat.SetShaderParameter("sl_amp", Mathf.Lerp(CumWaveCalmAmp, CumWaveBigAmp, _slE));
+        mat.SetShaderParameter("sl_b", _slB); mat.SetShaderParameter("sl_hw", A.Size.X * 0.5f * CumWallScale);
+        float yL = A.Position.Y + A.Size.Y * 0.6f;   // 格子變形在液面左右兩端的高低差＝液面跟著格子傾斜
+        float gradDef = (UterusDisp(new Vector2(A.End.X, yL)).Y - UterusDisp(new Vector2(A.Position.X, yL)).Y) / A.Size.X;
+        mat.SetShaderParameter("sl_x", Mathf.Clamp(_slX + gradDef * CumSloshDef, -0.5f, 0.5f)); mat.SetShaderParameter("sl_cx", A.GetCenter().X);
+    }
 
     /// 子宮變形後，某個「畫布座標」的點實際被推到哪（位移量，畫布像素）
     Vector2 UterusDisp(Vector2 canvasPt)
@@ -524,6 +682,15 @@ void fragment() {
         poly.Material = mat;
         _stage.AddChild(poly); _stage.MoveChild(poly, _imgFrame.GetIndex());   // 子宮上面、外框下面
         SetFClip(mat);
+        if (_dropPoly != null && IsInstanceValid(_dropPoly)) _dropPoly.QueueFree();
+        _dropPoly = null; _dropIn = 0f;
+        if (CumDrop2On)
+        {   // 子宮底部（九宮格由下數第二排正中間，雞雞上面凹進去的地方）一小灘會晃的水；圖層在雞雞下面
+            _dropMat = new ShaderMaterial { Shader = new Shader { Code = DropShader } };
+            _dropPoly = new Polygon2D { Name = "cumdrop", Texture = _uterusPoly.Texture, Polygons = _uterusPoly.Polygons, UV = _uterusPoly.UV, Material = _dropMat };
+            _stage.AddChild(_dropPoly); _stage.MoveChild(_dropPoly, _uterusPoly.GetIndex() + 1);   // 掛在子宮上面：跟子宮同一個網格，一起變形、移動
+            SetFClip(_dropMat);
+        }
         _osc = false;
         float m0 = _markerX;
         for (float t = 0; t < 1f && Alive; t += Dt / CumPushTime) { _markerX = Mathf.Lerp(m0, CumMarkerX, t * t * (3f - 2f * t)); await Frame(); }
@@ -559,9 +726,10 @@ void fragment() {
         }
         firstP += CumFirstOffsetPx;   // 整體微調（預設往左 100）
         var mist = new Vector4[6];
-        for (int k = 0; k < 6; k++)   // 子宮底的模糊白斑：隨機位置、大小、濃度
+        for (int k = 0; k < 6; k++)   // 子宮的模糊白斑：隨機位置、大小、濃度；前 3 個落在上半部，其餘在底部
             mist[k] = new Vector4(Mathf.Lerp(A.Position.X + A.Size.X * 0.18f, A.End.X - A.Size.X * 0.18f, (float)_rng.NextDouble()),
-                                  Mathf.Lerp(A.End.Y - A.Size.Y * 0.38f, A.End.Y - A.Size.Y * 0.05f, (float)_rng.NextDouble()),
+                                  k < 3 ? Mathf.Lerp(A.Position.Y + A.Size.Y * 0.08f, A.Position.Y + A.Size.Y * 0.42f, (float)_rng.NextDouble())
+                                        : Mathf.Lerp(A.End.Y - A.Size.Y * 0.38f, A.End.Y - A.Size.Y * 0.05f, (float)_rng.NextDouble()),
                                   Rf2(CumMistPx * 0.6f, CumMistPx * 1.3f), Rf2(CumMistAlpha * 0.5f, CumMistAlpha));
         float rx = A.Size.X / 2f * CumWallScale, ry = A.Size.Y / 2f * CumWallScale;
         float tilt = Mathf.DegToRad(CumTiltDeg);
@@ -634,14 +802,21 @@ void fragment() {
             float mk = Mathf.Clamp((el - t0[Mathf.Max(CumWaveSize, 1) - 1 < n ? Mathf.Max(CumWaveSize, 1) - 1 : 0] - firstLand) / 0.8f, 0f, 1f);
             for (int k = 0; k < 6; k++) mat.SetShaderParameter("ms" + k, new Vector4(mist[k].X, mist[k].Y, mist[k].Z, mist[k].W * mk));
             mat.SetShaderParameter("haze", Mathf.Clamp((el - t0[0] - firstLand) / 2.5f, 0f, 1f));
-            mat.SetShaderParameter("haze_a", CumHazeAlpha);
+            mat.SetShaderParameter("haze_a", CumHazeAlpha); mat.SetShaderParameter("haze_top", CumHazeTop);
             mat.SetShaderParameter("pool_a", CumPoolAlpha);
             mat.SetShaderParameter("haze_y", new Vector2(A.Position.Y + A.Size.Y * 0.25f, A.End.Y));
             _cumJb = Mathf.Clamp((el - t0[0] - firstLand) / CumJijiBlobTime, 0f, 1f);
+            _dropIn = Mathf.Clamp((el - t0[0] - firstLand - 0.3f) / 1.2f, 0f, 1f);
             _cumJf = Mathf.Clamp((el - t0[0] - firstLand - CumJijiBlobTime * 0.8f) / CumJijiStrokeTime, 0f, 1f);
             _cumWf = Mathf.Clamp((el - t0[0] - firstLand) / CumWhiteFlowTime, 0f, 1f);
             for (int i = 0; i < 8; i++) { mat.SetShaderParameter("tl" + i, tl[i]); mat.SetShaderParameter("hd" + i, hd[i]); }
             mat.SetShaderParameter("bead_k", CumBeadScale); mat.SetShaderParameter("bead_a", CumBeadAlpha); mat.SetShaderParameter("wob", CumTroomStyle ? 0f : CumWobble); mat.SetShaderParameter("tro", CumTroomStyle ? 1f : 0f); mat.SetShaderParameter("col", CumTroomStyle ? new Color(0.96f, 0.94f, 0.89f) : new Color(0.98f, 0.97f, 0.94f)); mat.SetShaderParameter("ol_w", CumOutlinePx); mat.SetShaderParameter("ctr_a", CumTroomStyle ? 1f : CumHeadCenterAlpha);
+            {   // 液面晃動改在 _Process 每幀更新（射完之後也會繼續動）；這裡只送「液面變化」造成的波（落下去、水位上升）
+                float dts2 = Mathf.Max(Dt, 0.0001f);
+                if (el < 0.05f) { _slReset = true; _lastPool = 0f; }
+                _slEImp = Mathf.Max(_slEImp, Mathf.Clamp(Mathf.Abs(pool - _lastPool) / dts2 / 120f, 0f, 1f)); _lastPool = pool;
+                _cumMat = mat; _cumA = A;
+            }
             mat.SetShaderParameter("pool_top", pool > 0.5f ? yBot - pool : 100000f);
             mat.SetShaderParameter("amt", CumAlpha);
             mat.SetShaderParameter("ut_tex", _uterusTex);
@@ -864,9 +1039,12 @@ void fragment() {
         _nxS = Mathf.Lerp(_nxS, nxRaw, 1f - Mathf.Exp(-DefSmooth * Dt));   // 平滑：位置/變形慢慢跟上，不會突然跳
         float nx = _nxS;
         float sr = Mathf.Lerp(_cfg.JijiRot_Uterus, _cfg.JijiRot_G, nx);
-        float jUp = (_cfg.JijiY_Uterus - _cfg.JijiY_G) * JijiMoveScale;   // 雞雞前端最大上移量（畫布像素）
-        float dj = Mathf.Clamp(1f - nx, 0f, 1.3f);   // 雞雞與子宮用同一個值：待機、選完掃動都是標記位置驅動
+        float jUp = (_cfg.JijiY_Uterus - _cfg.JijiY_G) * JijiMoveScale + JijiUpExtraPx;   // 雞雞前端最大上移量（畫布像素）
+        float jit = _pushJit * PushJitter * (Mathf.Sin(Time.GetTicksMsec() * 0.045f) * 0.6f + Mathf.Sin(Time.GetTicksMsec() * 0.113f) * 0.4f);   // 頂到底時的輕微抖動
+        _thrustPx = Mathf.Lerp(_thrustPx, _thrustPhase == 1 ? ThrustPx : _thrustPhase == 2 ? -ThrustLastPx : 0f, 1f - Mathf.Exp(-14f * Dt));
+        float dj = Mathf.Clamp(1f - nx + _pushExtra * PushRiseExtra + jit + _thrustPx / Mathf.Max(jUp, 1f), 0f, 1.3f);   // 雞雞與子宮用同一個值：待機、選完掃動都是標記位置驅動
         _tipUvY = 0f;
+        _jiDisp = new Vector2(-JijiLeftCompPx, -jUp) * dj;   // 雞雞這一層現在整個移動了多少（原點要扣掉，才會停在子宮上不跟著雞雞跑）
         // 子宮變形：雞雞前端碰到九宮格第 UterusStartRow 排錨點（由上數，0=最頂；預設 2＝由下數第二排）才開始，
         // 再往上走 UterusRampRows 排的距離變形量才到最大
         float tipY = StageOffsetPx.Y + JijiFinePx.Y - _cfg.JijiOffsetY + JijiTipPx - jUp * dj;
@@ -897,6 +1075,19 @@ void fragment() {
         if (_cumRect is Polygon2D cp && IsInstanceValid(cp))   // 精液跟著子宮的變形／收縮（射完以後也一直同步）
         {
             cp.Polygon = _uterusPoly.Polygon; cp.Position = _uterusPoly.Position; cp.Scale = _uterusPoly.Scale;
+        }
+        if (_dropPoly != null && IsInstanceValid(_dropPoly) && _dropMat != null)
+        {
+            _dropPoly.Polygon = _uterusPoly.Polygon; _dropPoly.Position = _uterusPoly.Position; _dropPoly.Scale = _uterusPoly.Scale;
+            _dropMat.SetShaderParameter("canvas_px", CanvasPx);
+            {   // 九宮格正中間（子宮框的中心）；網格一起動，所以不用再算上抬
+                var ub3 = UterusBoxPx;
+                _dropMat.SetShaderParameter("d_c", ub3.Position + ub3.Size / 2f + CumDrop2OffsetPx);
+            }
+            _dropMat.SetShaderParameter("d_r", CumDrop2RadiusPx);
+            _dropMat.SetShaderParameter("d_amp", Mathf.Lerp(0.9f, 1.8f, _slE)); _dropMat.SetShaderParameter("d_rot", Mathf.DegToRad(CumDrop2RotDeg));   // 水面的波（動作越大越大）   // 動作越大晃越大，平常也輕輕晃
+            _dropMat.SetShaderParameter("d_sl", Mathf.Clamp(_slX * 3f, -0.3f, 0.3f));
+            _dropMat.SetShaderParameter("d_dbg", CumDrop2Blue ? 1f : 0f); _dropMat.SetShaderParameter("d_a", CumDrop2Alpha); _dropMat.SetShaderParameter("d_in", _dropIn);
         }
         UpdateMask();
     }
@@ -954,7 +1145,7 @@ void fragment() {
         _jijiPoly.Polygons = polys;
     }
 
-    float _uDefCur, _cumWf, _cumJf, _cumJb; Texture2D _jfTex;
+    float _uDefCur, _cumWf, _cumJf, _cumJb; Texture2D _jfTex, _wfTex;
     void UpdateUterus(float def, float touch)
     {
         _uDefCur = def;
@@ -1087,6 +1278,10 @@ void fragment() {
             _jfTex ??= ResourceLoader.Load<Texture2D>("res://Resources/MG/mg_jiji_stroke.png");
             _maskJiji.SetShaderParameter("jf_tex", _jfTex); _maskJiji.SetShaderParameter("jf_soft", CumJijiBrushSoft);
             _maskJiji.SetShaderParameter("jf_amt", _cumJf); _maskJiji.SetShaderParameter("jb_amt", _cumJb); _maskJiji.SetShaderParameter("jb_cs", Mathf.Cos(Mathf.DegToRad(CumJijiBlobRotDeg))); _maskJiji.SetShaderParameter("jb_sn", Mathf.Sin(Mathf.DegToRad(CumJijiBlobRotDeg))); _maskJiji.SetShaderParameter("jb_c", CumJijiBlobCenterPx); _maskJiji.SetShaderParameter("jb_r", CumJijiBlobSizePx);
+            if (_maskUterus != null) { _maskUterus.SetShaderParameter("jb_amt", _cumJb); _maskUterus.SetShaderParameter("jb_cs", Mathf.Cos(Mathf.DegToRad(CumJijiBlobRotDeg))); _maskUterus.SetShaderParameter("jb_sn", Mathf.Sin(Mathf.DegToRad(CumJijiBlobRotDeg))); _maskUterus.SetShaderParameter("jb_c", CumJijiBlobCenterPx + _jiDisp); _maskUterus.SetShaderParameter("jb_r", CumJijiBlobSizePx); _maskUterus.SetShaderParameter("jf_str", CumJijiWhiteStr); _maskUterus.SetShaderParameter("jf_canvas", CanvasPx); }   // 起點那團也畫在子宮這層上（子宮蓋在雞雞上面，不然會被擋住）
+            _maskJiji.SetShaderParameter("dp_c", new Vector2(782f, 79f) + CumDropOffsetPx); _maskJiji.SetShaderParameter("dp_r", CumDropRadiusPx);
+            _maskJiji.SetShaderParameter("dp_amp", Mathf.Lerp(0.35f, 0.8f, _slE)); _maskJiji.SetShaderParameter("dp_sl", Mathf.Clamp(_slX * 1.5f, -0.15f, 0.15f));   // 雞雞旁邊那灘白水的波：幅度縮小約一半
+            _maskJiji.SetShaderParameter("dp_a", CumDropAlpha); _maskJiji.SetShaderParameter("dp_in", CumDropOn ? _dropIn : 0f); _maskJiji.SetShaderParameter("dp_dbg", CumDropDebug ? 1f : 0f); _maskJiji.SetShaderParameter("dp_rot", Mathf.DegToRad(CumDropRotDeg)); _maskJiji.SetShaderParameter("dp_under", CumDropBehindJiji ? 1f : 0f);
             _maskJiji.SetShaderParameter("jf_y0", CumJijiY0); _maskJiji.SetShaderParameter("jf_y1", CumJijiY1);
             _maskJiji.SetShaderParameter("jf_str", CumJijiWhiteStr); _maskJiji.SetShaderParameter("jf_edge", CumJijiEdgePx); _maskJiji.SetShaderParameter("jf_line", CumJijiLineCover); _maskJiji.SetShaderParameter("jf_c0", CumJijiCenterX); _maskJiji.SetShaderParameter("jf_cs", CumJijiSlope); _maskJiji.SetShaderParameter("jf_w", CumJijiHalfW); _maskJiji.SetShaderParameter("jf_mid", CumJijiMid); _maskJiji.SetShaderParameter("jf_brush_a", CumBrushArc); _maskJiji.SetShaderParameter("jf_brush_s", CumBrushSlant); _maskJiji.SetShaderParameter("jf_canvas", CanvasPx);
         }
@@ -1098,6 +1293,8 @@ void fragment() {
             bmat.SetShaderParameter("ex_tilt", Mathf.DegToRad(BottomExpandTiltDeg));
             bmat.SetShaderParameter("top_cut", BottomTopCutPx / (CanvasPx.Y + BottomStretchPx / StageScale));
             bmat.SetShaderParameter("wh_on", BottomWhiteRemove ? 1f : 0f);
+            _wfTex ??= ResourceLoader.Load<Texture2D>("res://Resources/MG/mg_bottom_stroke.png");
+            bmat.SetShaderParameter("wf_tex", _wfTex);
             bmat.SetShaderParameter("wf_amt", CumWhiteOnBottom ? _cumWf : 0f);
             bmat.SetShaderParameter("wf_str", CumWhiteStrength);
             bmat.SetShaderParameter("wf_mid", CumWhiteMid);
@@ -1250,11 +1447,18 @@ void fragment() {
             energy -= EnergyCost[Mathf.Clamp(action, 0, 2)];
             if (energy < 0f) { exhausted = true; break; }   // 精力不夠了：沒力氣繼續，遊戲結束
             _sweepSpeed = ActionSpeeds[Mathf.Clamp(action, 0, 2)]; _traveled = 0f;
+            _thrustPhase = action == 2 ? 1 : 0;
             // 選完後繼續同一個上下動作，再完整掃 SweepCycles 個來回（一個來回 = 2×560），才開始隨機停止
             SetMarkerColor(false);
             float sweepEnd = _traveled + SweepCycles * 1120f;
             while (Alive && _traveled < sweepEnd) await Frame();
+            _thrustPhase = action == 2 ? 2 : 0;   // 前面的幾次過了，最後一次往下 5px
+            while (Alive && _markerX > 21f) await Frame();   // 不管選哪個，最後一定會再繼續到最深處把子宮頂一下，然後才隨機落點
             _osc = false;
+            _markerX = Mathf.Min(_markerX, 20f);
+            for (float s = 0; s < 1f && Alive; s += Dt / PushRiseTime)   // 頂到底之後，子宮慢慢往上，雞雞也跟著再往上一點，並且輕微抖動
+            { _pushExtra = Mathf.Sin(s * Mathf.Pi * 0.5f); _pushJit = 1f; await Frame(); }
+            _pushExtra = 1f;
             if (!Alive) return;
             int roll = _rng.Next(0, 20);
             int posCat = roll < 3 ? 0 : roll < 8 ? 1 : roll < 18 ? 2 : 3;
@@ -1265,12 +1469,13 @@ void fragment() {
             float targetX = posCat == 3 ? R(20f, 70f) : posCat == 2 ? R(110f, 200f) : posCat == 1 ? R(400f, 490f) : R(258f, 310f);
 
             float oldX = _markerX;
-            for (float s = 0; s < 1f && Alive; s += Dt * 3f)
+            for (float s = 0; s < 1f && Alive; s += Dt * 4.5f)
             {
+                _pushExtra = 1f - Mathf.SmoothStep(0f, 1f, s); _pushJit = 1f - s;
                 _markerX = Mathf.Lerp(oldX, targetX, Mathf.SmoothStep(0f, 1f, s));
                 await Frame();
             }
-            _markerX = targetX;
+            _markerX = targetX; _pushExtra = _pushJit = 0f; _thrustPhase = 0;
             SetMarkerColor(posCat == 0 || posCat == 3);
             int gain = CalcGain(action, round, posCat);
             int oldPl = pl; pl = Math.Min(pl + gain, 100);

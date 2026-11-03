@@ -41,3 +41,27 @@
 2026-10-24 全年齡宣傳圖及8款可編輯模板：使用專案既有角色、表情、客廳、LOGO及真實閱讀元件展示畫面。白粉裝飾底圖和兩張合成宣傳圖使用內建image_gen生成，未新增外部網站素材。完整提示詞及素材來源紀錄位於桌面「莉奈_全年齡宣傳模板_20261024」。
 
 2026-10-25 宣傳模板客廳版：使用專案既有客廳、角色、LOGO及介面展示，未新增外部網站素材。製作八款可編輯模板，素材權利沿用既有紀錄。輸出桌面：莉奈_全年齡宣傳模板_20261025_客廳版。
+
+2026-11-02｜走廊白色配色修改
+檔案：Resources/Backgrounds/bg_Hallway.png
+以使用者專案現有走廊背景為輸入，使用內建 image_gen.imagegen 編輯，將牆面、門片、櫃體與頂燈由米黃／暖黃改為偏白、淡灰與中性白光，保留夜景與構圖。未新增外部網站素材，原素材權利紀錄沿用既有來源。
+提示詞與工具紀錄：Codex工作目錄 outputs/hallway-white-20261102/製作紀錄.json；原圖備份 bg_Hallway_before.png。
+
+2026-11-02｜走廊門位修正與玄關／門外配色統一
+使用內建 image_gen.imagegen 編輯使用者專案現有背景，無新增外部網站下載素材；原素材來源與權利紀錄沿用既有內容。
+走廊：保留盡頭正面門，於其右側牆增加一扇門；移除近處右側門及中段右側櫃板、把手，補成白牆。
+更新檔案：Resources/Backgrounds/bg_Hallway.png、bg_ApartmentDoor.png、bg_Entrance.png、bg_ApartmentBalcony.png；Resources/CG/linai knock background.png、linai knock background2.png。
+玄關與門外同步中性白色／淡灰配色，保留夜景或日景、背景模糊與角色用空間；行李箱圖層背景保留原有粉色行李箱。
+原圖、最終圖與完整提示詞：本次Codex工作目錄 outputs/entrance-hallway-layout-20261102/。實際使用的原檔名保持不變。
+
+2026-11-02｜男主家門外背景構造修正
+檔案：Resources/CG/linai knock background.png
+修正為男主家門外的普通公寓室外公共走廊，移除太空艙般的菱形牆板，加入與另一門外畫面一致的白色矮牆、金屬欄杆、室外地坪與模糊樓景，保留俯視構圖及粉色行李箱。
+使用內建 image_gen.imagegen 編輯使用者原有素材，沒有新增外部網站素材，原素材權利紀錄沿用既有來源。
+原圖備份、成品與提示詞：Codex工作目錄 outputs/doorway-outdoor-correction-20261102/。
+
+2026-11-03｜門口背景恢復原構圖，去除太空艙設計
+檔案：Resources/CG/linai knock background.png
+以使用者指定的 exec-d32c268a-6983-4d7c-a694-2edee043a01f.png 為構圖基準，保留近距離俯視、門檻、地面及粉色行李箱位置，僅將菱形牆板改為普通公寓白牆與灰色門框。室外走廊採俯視裁切，不增加欄杆或城市遠景。
+使用內建 image_gen.imagegen，無新增外部網站素材，原素材權利紀錄沿用既有來源。
+原圖備份、成品、完整提示詞：Codex工作目錄 outputs/doorway-preserve-composition-20261103/。
