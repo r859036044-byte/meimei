@@ -25,7 +25,6 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.2f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideCornerTint = 0.6f;   // 撥開後上面轉折處（右上角白色尖角）加深成淡紫灰的程度（0＝不加深）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
@@ -112,11 +111,19 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("aside", _mpA);
         _mPantyMat.SetShaderParameter("shear_v", MPantyAsideShearV);
         _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);   // edge_l／edge_r 用 shader 預設值（內褲_M 實測左右緣）
+        // 內褲圖層的座標轉換（雞雞遮罩、衣服輪廓遮罩共用）
+        {
+            Transform2D Tp = panty.GetTransform();
+            _mPantyMat.SetShaderParameter("jj_x", Tp.X);
+            _mPantyMat.SetShaderParameter("jj_y", Tp.Y);
+            _mPantyMat.SetShaderParameter("jj_o", Tp.Origin);
+            _mPantyMat.SetShaderParameter("jj_size", panty.Size);
+        }
+        UpdateMPantyClothCut(panty);
         UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
-        _mPantyMat.SetShaderParameter("corner_tint", MPantyAsideCornerTint);
         _mPantyMat.SetShaderParameter("jj_from_y", MPantyJijiClipFromY);
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
@@ -129,9 +136,13 @@ public partial class TrainingRoomRuntime
 
     void UpdateMPantyJijiClip(TextureRect panty)
     {
-        bool on = MPantyJijiClip && _mLegOpen && !_pantyGone
-                  && Layers.TryGetValue("雞雞", out var jj) && jj != null && jj.IsVisibleInTree() && jj.Modulate.A > 0.02f;
-        _mPantyMat.SetShaderParameter("jj_on", on ? 1f : 0f);
+        // 雞雞（露在入口以下的部分）蓋在內褲「和衣服」上面：雞雞圖層本來排在衣服／內褲下面，
+        // 所以內褲和衣服都要用雞雞的輪廓裁掉，雞雞才看得到。入口以上（插進去的部分）不裁，內褲／衣服照常蓋住。
+        bool onJ = MPantyJijiClip && _mLegOpen
+                   && Layers.TryGetValue("雞雞", out var jj) && jj != null && jj.IsVisibleInTree() && jj.Modulate.A > 0.02f;
+        _mPantyMat.SetShaderParameter("jj_on", (onJ && !_pantyGone) ? 1f : 0f);
+        if (_clothMat != null) _clothMat.SetShaderParameter("jc_on", (onJ && ClothOnTop) ? 1f : 0f);
+        bool on = onJ;
         if (!on) { if (_mpJjVP != null) _mpJjVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; return; }
         if (_mpJjVP == null)
         {
@@ -161,5 +172,52 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("jj_y", T.Y);
         _mPantyMat.SetShaderParameter("jj_o", T.Origin);
         _mPantyMat.SetShaderParameter("jj_size", panty.Size);
+        if (_clothMat != null && ClothOnTop && Layers.TryGetValue("衣服", out var clL) && clL is TextureRect cr)
+        {
+            Transform2D Tc = cr.GetTransform();
+            _clothMat.SetShaderParameter("jc_tex", (Texture2D)_mpJjVP.GetTexture());
+            _clothMat.SetShaderParameter("jc_x", Tc.X);
+            _clothMat.SetShaderParameter("jc_y", Tc.Y);
+            _clothMat.SetShaderParameter("jc_o", Tc.Origin);
+            _clothMat.SetShaderParameter("jc_from_y", MPantyJijiClipFromY);
+        }
+    }
+
+    // ── 內褲在衣服下面：衣服（含變形、被拉起的衣擺）離屏渲染成輪廓遮罩，內褲被衣服蓋住的地方裁掉 ──
+    // 內褲圖層本身排在衣服上面（為了 M 腿／雞雞的順序不亂），所以不能直接把它放到衣服下面，
+    // 改用「衣服變形後的實際輪廓」去裁內褲：效果等同內褲在衣服下面，衣服被拉開／腿裁切掉的地方才看得到內褲。
+    [Export] public bool MPantyClothCut = true;
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyClothCutK = 1f;   // 衣服蓋住內褲的程度（1＝完全蓋住）
+    SubViewport _mpClVP; Node2D _mpClRoot; TextureRect _mpClDup;
+
+    void UpdateMPantyClothCut(TextureRect panty)
+    {
+        bool on = MPantyClothCut && ClothOnTop && _mLegOpen && !_pantyGone
+                  && Layers.TryGetValue("衣服", out var clL) && clL is TextureRect cr && cr.Texture != null && cr.IsVisibleInTree();
+        _mPantyMat.SetShaderParameter("cc_on", on ? 1f : 0f);
+        if (!on) { if (_mpClVP != null) _mpClVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled; return; }
+        var cloth = (TextureRect)Layers["衣服"];
+        if (_mpClVP == null)
+        {
+            _mpClVP = new SubViewport { TransparentBg = true, Size = new Vector2I(1000, 1600), RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+            AddChild(_mpClVP);
+            _mpClRoot = new Node2D { Scale = new Vector2(0.5f, 0.5f) };
+            _mpClVP.AddChild(_mpClRoot);
+        }
+        _mpClVP.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+        if (_mpClDup == null || !IsInstanceValid(_mpClDup))
+        {
+            _mpClDup = new TextureRect { MouseFilter = Control.MouseFilterEnum.Ignore };
+            _mpClRoot.AddChild(_mpClDup);
+        }
+        var d = _mpClDup;
+        d.ExpandMode = cloth.ExpandMode; d.StretchMode = cloth.StretchMode;
+        d.Texture = cloth.Texture; d.Size = cloth.Size; d.Position = cloth.Position;
+        d.PivotOffset = cloth.PivotOffset; d.Scale = cloth.Scale; d.Rotation = cloth.Rotation;
+        d.Material = cloth.Material;   // 共用衣服的 shader（變形、被腿／雞雞裁切後的實際輪廓）
+        d.Modulate = new Color(1f, 1f, 1f, cloth.Modulate.A); d.SelfModulate = cloth.SelfModulate;
+        d.Visible = cloth.Visible;
+        _mPantyMat.SetShaderParameter("cc_tex", (Texture2D)_mpClVP.GetTexture());
+        _mPantyMat.SetShaderParameter("cc_k", MPantyClothCutK);
     }
 }
