@@ -25,6 +25,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.2f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideCornerTint = 0.6f;   // 撥開後上面轉折處（右上角白色尖角）加深成淡紫灰的程度（0＝不加深）
     [Export] public float MPantyAsideFoldFreq  = 0.10f; // 褶皺間距（越大越密）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyAsideInsertFrac = 0.65f;   // 內褲撥開到最大的幾成以上才能插入（0.65＝撥開 65%，剛好露出小穴中間）
     /// <summary>M 腿內褲還穿著、而且沒撥開到足夠的寬度：不能插入。</summary>
@@ -115,6 +116,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
+        _mPantyMat.SetShaderParameter("corner_tint", MPantyAsideCornerTint);
         _mPantyMat.SetShaderParameter("jj_from_y", MPantyJijiClipFromY);
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);

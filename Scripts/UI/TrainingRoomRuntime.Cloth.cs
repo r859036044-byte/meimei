@@ -1248,7 +1248,8 @@ uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.5;                   // 褶皺濃度（黑線少一點）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
-uniform float edge_pad = 5.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的邊線切掉
+uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
+uniform float corner_tint = 0.6;              // 上轉折帶的白色加深程度（0＝不加深）
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
 uniform float sag_k = 0.2;                    // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
@@ -1280,17 +1281,18 @@ void fragment() {
     float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
     float sag = sag_k * aside * (b1 * b1 * (3.0 - 2.0 * b1)) * sin(3.14159 * b2);   // 下轉折帶中間布往下垂，讓上下接得平順
     vec4 c = texture(TEXTURE, vec2(xs / 2000.0, (px.y - sag) / 3200.0));
-    float hb = xl + d - edge_pad * smoothstep(0.0, 8.0, d);   // 開口左緣
-    if (px.x < hb) c.a = 0.0;
+    // 開口：只有「真的被推動」的地方才切；沒推動的地方（最底下的尾巴、上面）完全不切，
+    // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
+    float hb = xl + d - edge_pad;
+    if (d > 1.0 && px.x < hb) c.a = 0.0;
     c.a = smoothstep(0.0, 0.6, c.a);   // 圖本身有大片半透明（霧），會透出底下的皮膚：alpha 拉高到實心，只保留最外緣的柔邊
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.7, 0.0, 0.7) * smoothstep(0.30, 0.65, dark_));
-    // 開口左緣補一條細邊線（內褲原本的邊線被裁到的地方，左下角才不會缺一塊）
-    float lumL_ = dot(c.rgb, vec3(0.3333));
-    float lineL = (1.0 - smoothstep(0.6, 2.0, abs(px.x - hb))) * smoothstep(1.0, 8.0, d) * smoothstep(0.40, 0.70, lumL_);
-    c.rgb = mix(c.rgb, vec3(0.42, 0.18, 0.18), lineL * 0.75);
-    c.a = max(c.a, lineL * 0.75);
+    // 上轉折帶（腰帶那段和被壓窄的部分接起來的地方）：原本是全白的布，右邊會露出一個白色尖角，
+    // 很突兀；這裡用跟內褲下半部一樣的淡紫灰色加深（像折起來的陰影），白色就不會那麼明顯
+    float env_t = sin(3.14159 * b1) * smoothstep(1.0, 20.0, aside);
+    c.rgb = mix(c.rgb, vec3(0.78, 0.76, 0.87), env_t * corner_tint);
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
