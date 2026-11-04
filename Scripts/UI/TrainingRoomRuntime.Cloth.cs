@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1625.0, 1690.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1610.0, 1665.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
@@ -1264,7 +1264,7 @@ uniform sampler2D an_tex : filter_linear;   // 肛門圖層的貼圖：撥開時
 uniform vec2 an_off = vec2(0.0);            // 肛門圖層相對內褲圖層的位移（畫布 px）
 uniform float an_on = 0.0;
 uniform vec2 leg_rot = vec2(0.0);           // 右腿／左腿目前的旋轉（弧度）：內褲和腳交接的地方跟著腳的旋轉做一點變形，才貼得緊
-uniform float low_str = 0.7;                // 肛門那一帶（y≳1540）的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
+uniform float low_str = 0.9;                // 肛門那一帶（y≳1540）的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
 uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
 uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
@@ -1368,15 +1368,22 @@ void fragment() {
         float dkc_ = 1.0 - dot(c.rgb, vec3(0.3333));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k);
     }
-    {   // 描邊補償：布被壓縮後，邊緣的線稿跟著變細（橫向被壓到 1/comp），在邊緣外側補一圈深色描邊，粗細才跟沒拉時差不多
-        float rr_ = 3.4;
-        float ea_ = max(texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
-        // 近乎水平的邊（上緣那條斜線）只看左右鄰居偵測不到，再看上下鄰居
-        ea_ = max(ea_, max(texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a));
-        float eo_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, ea_) * holeA * smoothstep(1.05, 1.5, comp) * min(1.0, outline_k * 1.3);
+    {   // 邊緣補黑線：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
+        // 剪切剛開始的那條斜邊（壓縮還很小）也要有黑線。邊的外側和內側都補，線才夠明顯、連續。
+        float rr_ = 3.0;
+        float aL_ = texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a;
+        float aR_ = texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a;
+        float aU_ = texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a;
+        float aD_ = texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a;
+        float amax_ = max(max(aL_, aR_), max(aU_, aD_));
+        float amin_ = min(min(aL_, aR_), min(aU_, aD_));
+        float edgeK_ = smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
+        float outE_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, amax_);   // 邊的外側
+        float inE_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, amin_));   // 邊的內側
+        float eo_ = max(outE_, inE_ * 0.85) * holeA * edgeK_;
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
-    }   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
+    }
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
