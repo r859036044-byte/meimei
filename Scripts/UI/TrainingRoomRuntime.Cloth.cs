@@ -509,7 +509,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - texture(jc_tex, jq3_).a * smoothstep(jc_from_y, jc_from_y + 40.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.05, 0.40, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 8.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1610.0, 1665.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1580.0, 1675.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
@@ -1277,7 +1277,7 @@ uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲�
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
-uniform float sag_k = 0.12;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
+uniform float sag_k = 0.18;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
 // ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
 uniform sampler2D jj_tex : filter_linear;
@@ -1371,16 +1371,19 @@ void fragment() {
     {   // 邊緣補黑線：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
         // 剪切剛開始的那條斜邊（壓縮還很小）也要有黑線。邊的外側和內側都補，線才夠明顯、連續。
         float rr_ = 3.0;
-        float aL_ = texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a;
-        float aR_ = texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a;
-        float aU_ = texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a;
-        float aD_ = texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a;
+        float k03_ = 0.3 * smoothstep(0.0, 6.0, d);   // 跟上面實心化用同一條門檻，邊才判得準
+        float aL_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        float aR_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        float aU_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a);
+        float aD_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a);
         float amax_ = max(max(aL_, aR_), max(aU_, aD_));
         float amin_ = min(min(aL_, aR_), min(aU_, aD_));
         float edgeK_ = smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
         float outE_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, amax_);   // 邊的外側
         float inE_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, amin_));   // 邊的內側
-        float eo_ = max(outE_, inE_ * 0.85) * holeA * edgeK_;
+        // 開口切線（hb）本身也補一條黑線：萬一開口邊界落在布的中間，切口也不能是光禿禿一條虛線
+        float cutL_ = (1.0 - smoothstep(0.0, 3.0, abs(px.x - hb - 1.5))) * smoothstep(0.5, 0.9, c.a / max(holeA, 0.001)) * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
+        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
     }
@@ -1427,7 +1430,7 @@ void fragment() {
     if (jj_on > 0.5) {
         vec2 pj2_ = UV * jj_size;
         vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
-        if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) c.a *= 1.0 - texture(jj_tex, jq_).a * smoothstep(jj_from_y, jj_from_y + 40.0, px.y);   // 只有這條線以下的雞雞蓋在內褲上面
+        if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) c.a *= 1.0 - smoothstep(0.05, 0.40, texture(jj_tex, jq_).a) * smoothstep(jj_from_y, jj_from_y + 8.0, px.y);   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
     }
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
