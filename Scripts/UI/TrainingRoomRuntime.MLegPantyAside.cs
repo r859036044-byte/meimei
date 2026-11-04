@@ -18,15 +18,19 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
     [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
-    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1580f, 1675f);  // 下轉折帶：被推的量慢慢回到 0（畫布 px）。肛門那一帶（y≈1580~1630）也跟小穴一樣壓縮靠到最右邊，只擋住一點點；最下面左下角（>1650）固定不動，中間用弧度接起來
+    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1570f, 1680f);  // 下轉折帶：被推的量慢慢回到 0（畫布 px）。肛門那一帶（y≈1580~1630）也跟小穴一樣壓縮靠到最右邊，只擋住一點點；最下面左下角（>1650）固定不動，中間用弧度接起來
     [Export] public float MPantyJijiClipFromY = 1460f;   // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；以上＝插進去的部分，內褲在雞雞上面
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0f;   // 褶皺（陰影／亮面）濃度
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.025f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
-    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.18f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.22f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 0.6f;          // 抽插時內褲往上的幅度減少多少（0.6＝減少 60%）
+    [Export(PropertyHint.Range, "0,6,0.1")] public float MPantyThrustSpread = 2.5f;        // 抽插時，內褲每往上少移 1px 的推擠量，改成「左邊往右」多撐開幾 px
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustRightFollow = 0.3f;  // 抽插推到最大時，右邊也往右多跟著移（相對左邊被推的量）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowStrength = 0.9f;   // 肛門那一帶的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
     [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyLegRotFollow = 1f;          // 內褲和腳交接的地方跟著腳旋轉變形的程度（0＝不變形）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySeamFade = 1f;              // 內褲中間那條黑色縫線，被拉開時淡化的程度（0＝不淡化）
@@ -121,7 +125,13 @@ public partial class TrainingRoomRuntime
         // 用 Cloth.cs 的 M 腿內褲 shader（_mPantyMat，同時負責被腿輪廓裁切），不另外掛材質，避免互相覆蓋
         if (_mPantyMat == null) _mPantyMat = new ShaderMaterial { Shader = new Shader { Code = MPantyShaderCode } };
         if (panty.Material != _mPantyMat) panty.Material = _mPantyMat;
-        _mPantyMat.SetShaderParameter("aside", _mpA);
+        // 抽插時：內褲往上的幅度已經減少 MPantyThrustCut，改成往右撐開——左邊往右（aside 加大）、右邊往右（right_follow 加大）都擴大
+        float thrustUp = MLegThrustOffset.TryGetValue("m腿/小穴", out var tOff) ? Mathf.Max(0f, -tOff.Y) : 0f;
+        float thrust01 = Mathf.Clamp(thrustUp / 30f, 0f, 1f);
+        float asideEff = _mpA > 0.5f ? Mathf.Min(_mpA + MPantyThrustSpread * thrustUp * MPantyThrustCut, MPantyAsideMaxPx * 1.5f) : _mpA;   // 少往上的 60% 幅度，換成多往右撐開的 px
+        _mPantyMat.SetShaderParameter("aside", asideEff);
+        _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow + MPantyThrustRightFollow * thrust01 * (_mpA > 0.5f ? 1f : 0f));
+        _mPantyMat.SetShaderParameter("line_steep", MPantyAsideSteepLine);
         _mPantyMat.SetShaderParameter("shear_v", MPantyAsideShearV);
         _mPantyMat.SetShaderParameter("fix_v", MPantyAsideFixV);   // edge_l／edge_r 用 shader 預設值（內褲_M 實測左右緣）
         // 內褲圖層的座標轉換（雞雞遮罩、衣服輪廓遮罩共用）
@@ -135,7 +145,6 @@ public partial class TrainingRoomRuntime
         UpdateMPantyClothCut(panty);
         UpdateMPantyJijiClip(panty);
         _mPantyMat.SetShaderParameter("fold_k", MPantyAsideFoldK);
-        _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
         _mPantyMat.SetShaderParameter("left_boost", MPantyAsideLeftBoost);
         _mPantyMat.SetShaderParameter("outline_k", MPantyAsideOutline);

@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1580.0, 1675.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1570.0, 1680.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
@@ -1268,6 +1268,7 @@ uniform float low_str = 0.9;                // 肛門那一帶（y≳1540）的�
 uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
 uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
+uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
 uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
@@ -1277,7 +1278,7 @@ uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲�
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
-uniform float sag_k = 0.18;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
+uniform float sag_k = 0.22;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
 // ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
 uniform sampler2D jj_tex : filter_linear;
@@ -1366,7 +1367,7 @@ void fragment() {
     float edgeNear_ = max(1.0 - smoothstep(0.0, 14.0, px.x - (xl + d)), 1.0 - smoothstep(0.0, 14.0, redge0_ - px.x)) * smoothstep(1.0, 8.0, d);   // 左右邊緣 14px 內
     {   // 邊緣的線稿被壓縮後會變細變淡：把邊緣 14px 內的線加深，補回被壓掉的粗細
         float dkc_ = 1.0 - dot(c.rgb, vec3(0.3333));
-        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k);
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k * 0.5);
     }
     {   // 邊緣補黑線：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
         // 剪切剛開始的那條斜邊（壓縮還很小）也要有黑線。邊的外側和內側都補，線才夠明顯、連續。
@@ -1376,11 +1377,14 @@ void fragment() {
         float aR_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
         float aU_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a);
         float aD_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a);
-        float amax_ = max(max(aL_, aR_), max(aU_, aD_));
-        float amin_ = min(min(aL_, aR_), min(aU_, aD_));
         float edgeK_ = smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
-        float outE_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, amax_);   // 邊的外側
-        float inE_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, amin_));   // 邊的內側
+        // 左右鄰居偵測到的邊＝陡的（近垂直）邊：黑線減少；上下鄰居偵測到的邊＝斜的／平的邊：黑線照樣強化
+        float outH_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, max(aL_, aR_));
+        float inH_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, min(aL_, aR_)));
+        float outV_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, max(aU_, aD_));
+        float inV_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, min(aU_, aD_)));
+        float outE_ = max(outH_ * line_steep, outV_);   // 邊的外側
+        float inE_ = max(inH_ * line_steep, inV_);       // 邊的內側
         // 開口切線（hb）本身也補一條黑線：萬一開口邊界落在布的中間，切口也不能是光禿禿一條虛線
         float cutL_ = (1.0 - smoothstep(0.0, 3.0, abs(px.x - hb - 1.5))) * smoothstep(0.5, 0.9, c.a / max(holeA, 0.001)) * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
         float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA));
@@ -1587,7 +1591,7 @@ void fragment() {
         if (!_layerBasePos.TryGetValue("m腿/內褲", out var bp) || !_layerBasePos.TryGetValue("m腿/腿1", out var b1) || !_layerBasePos.TryGetValue("m腿/腿2", out var b2)) return;
         Vector2 delta = ((l1.Position - b1) + (l2.Position - b2)) * 0.5f;
         Vector2 thrust = MLegThrustOffset.TryGetValue("m腿/小穴", out var to) ? to : Vector2.Zero;   // 插入推擠：跟小穴一起往上
-        mp.Position = bp + delta * MPantyLegFollow + thrust;
+        mp.Position = bp + delta * MPantyLegFollow + thrust * (1f - MPantyThrustCut);   // 抽插時內褲往上的幅度減少（改成往右撐開，見 MLegPantyAside.cs）
         float spread = Mathf.Abs(l1.RotationDegrees - l2.RotationDegrees);
         mp.PivotOffset = mp.Size * 0.5f;
         mp.Scale = new Vector2(1f + spread * MPantySpreadScale, 1f);
