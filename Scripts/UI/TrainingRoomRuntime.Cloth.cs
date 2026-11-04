@@ -1268,6 +1268,8 @@ uniform float low_str = 0.9;                // 肛門那一帶（y≳1540）的�
 uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
 uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
+uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
+uniform float ed_on = 0.0;
 uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
 uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
@@ -1369,7 +1371,7 @@ void fragment() {
         float dkc_ = 1.0 - dot(c.rgb, vec3(0.3333));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k * 0.5);
     }
-    {   // 邊緣補黑線：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
+    if (ed_on < 0.5) {   // 邊緣補黑線（沒有邊線貼圖時的備用做法）：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
         // 剪切剛開始的那條斜邊（壓縮還很小）也要有黑線。邊的外側和內側都補，線才夠明顯、連續。
         float rr_ = 3.0;
         float k03_ = 0.3 * smoothstep(0.0, 6.0, d);   // 跟上面實心化用同一條門檻，邊才判得準
@@ -1390,6 +1392,27 @@ void fragment() {
         float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
+    }
+    if (ed_on > 0.5) {   // 用烘好的乾淨邊線貼圖：形狀圓角、沒有雜訊，斜邊／下面的角也有連續的黑線；跟內褲同一套座標，會一起被拉、一起被壓
+        vec4 em_ = vec4(0.0);
+        float cleanA_ = 0.0;
+        for (int k = 0; k < 5; k++) {
+            float eko_ = (float(k) - 2.0) * 0.25 * comp;
+            vec4 ek_ = texture(ed_tex, vec2((xs + eko_) / 2000.0, ys_ / 3200.0));
+            em_ = max(em_, ek_);       // 線用取最大值：壓縮時線不會被平均掉變淡
+            cleanA_ += ek_.b;
+        }
+        cleanA_ /= 5.0;
+        float pushK_ = smoothstep(0.0, 6.0, d);
+        c.a = mix(c.a, smoothstep(0.42, 0.58, cleanA_) * holeA, pushK_);   // 被推動時改用乾淨的圓角形狀（取代帶雜訊的霧邊緣）
+        // 陡／斜要用「畫面上」的方向判斷：內褲被剪切、壓縮之後，原圖裡陡的邊在畫面上可能已經變成斜的
+        float gx_ = dFdx(cleanA_);
+        float gy_ = dFdy(cleanA_);
+        float sh_ = abs(gy_) / (abs(gx_) + abs(gy_) + 0.0001);   // 1＝邊是平的／斜到近水平，0＝邊是垂直的
+        float orient_ = mix(line_steep, 1.0, smoothstep(0.35, 0.65, sh_));
+        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA;
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lineE_);
+        c.a = max(c.a, lineE_);
     }
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
