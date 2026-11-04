@@ -1260,6 +1260,7 @@ uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
+uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
 uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float low_k = 0.35;                   // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
@@ -1296,6 +1297,11 @@ float XRY_(float y) { float t = (y - 1400.0) / 100.0; return edge_r.x + edge_r.y
 float XRE_(float y) {   // 撥開後內褲右緣的實際位置
     float wd_ = max(1.0, XRY_(y) - XLY_(y));
     return XRY_(y) + min(aside * W_(y) * left_boost, wd_ * 0.8) * right_follow;
+}
+float D_(float y) {   // 這一列被推動的距離（跟 fragment 裡算的一樣），拿來看推動量隨高度變化多快
+    float lt_ = smoothstep(1500.0, 1600.0, y);
+    float wd_ = max(1.0, XRY_(y) - XLY_(y));
+    return min(aside * W_(y) * left_boost * (1.0 + low_k * lt_), wd_ * mix(0.8, 1.15, lt_));
 }
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
@@ -1348,6 +1354,14 @@ void fragment() {
         float dist_ = length(px - (pa_ + ab_ * tt_));
         float sl_ = (1.0 - smoothstep(0.8, 2.4, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
+    }
+    {   // 下半部淡出的裁切：拉開越多，下半部（尾巴、肛門那一帶）越淡出，不要留一條被扯長的尾巴
+        float lowFade_ = smoothstep(1520.0, 1640.0, ys_) * smoothstep(20.0, 120.0, aside) * low_fade;
+        c.a *= 1.0 - lowFade_;
+        // 剪切太陡的地方（推動量隨高度變化太快），內褲的邊線會被扯成近乎水平的長細線：這種地方把深色線條拿掉
+        float slope_ = abs(D_(ys_ + 3.0) - D_(ys_ - 3.0)) / 6.0;
+        float dk2_ = smoothstep(0.30, 0.60, 1.0 - dot(c.rgb, vec3(0.3333)));
+        c.a *= 1.0 - smoothstep(1.3, 2.6, slope_) * dk2_;
     }
     {   // 保險：撥開時，超過「原本右緣 + max_reach」的部分一律不顯示
         float xrc_ = edge_r.x + edge_r.y * clamp(t_, -0.5, 2.4) + edge_r.z * clamp(t_, -0.5, 2.4) * clamp(t_, -0.5, 2.4);
