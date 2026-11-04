@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>城市服務員物語</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0b14;color:#fff;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;overscroll-behavior:none}
+  #wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%}
+  canvas{width:min(100vw,960px);aspect-ratio:4/3;image-rendering:pixelated;background:#000;touch-action:none}
+  #pad{display:none;width:min(100vw,960px);justify-content:space-between;padding:8px 16px;box-sizing:border-box;user-select:none}
+  #pad .dp{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px);gap:4px}
+  #pad button{background:#2a3a6a;color:#fff;border:2px solid #8fb0ff;border-radius:10px;font-size:20px;touch-action:none}
+  #pad .ab{display:flex;gap:14px;align-items:center}
+  #pad .ab button{width:70px;height:70px;border-radius:50%}
+  @media (pointer:coarse){#pad{display:flex}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="640" height="480"></canvas>
+  <div id="pad">
+    <div class="dp">
+      <span></span><button data-k="ArrowUp">▲</button><span></span>
+      <button data-k="ArrowLeft">◀</button><span></span><button data-k="ArrowRight">▶</button>
+      <span></span><button data-k="ArrowDown">▼</button><span></span>
+    </div>
+    <div class="ab"><button data-k="Escape">B</button><button data-k="Enter">A</button></div>
+  </div>
+</div>
+<script>
+"use strict";
+// ============================================================
+//  城市服務員物語 — RPG Maker 風格原型
+//  世界觀：這座城市裡「合法持照服務員」是正式職業。
+//  玩家要在各區找到「需要被照顧的人」，徵得同意、配對合適服務，累積績效評分。
+//  （服務過程以黑幕與時間流逝帶過，不描寫露骨內容）
+// ============================================================
+const T=32, MW=40, MH=30, VW=640, VH=480;
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const FONT=s=>`${s}px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+
+// ---------- 隨機 ----------
+let seed=12345;
+const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// ---------- 地圖 ----------
+// tile: 0草地 1馬路 2人行道 3建築 4水 5樹 6自宅
+const map=[...Array(MH)].map(()=>Array(MW).fill(0));
+const bcol=[...Array(MH)].map(()=>Array(MW).fill(0)); // 建築色系 index
+const roadRows=[7,8,15,16,23,24], roadCols=[9,10,19,20,29,30];
+const colsB=[[0,8],[11,18],[21,28],[31,39]], rowsB=[[0,6],[9,14],[17,22],[25,29]];
+const DIST=[
+  ['辦公區','辦公區','商業區','港口區'],
+  ['住宅區','商業區','商業區','港口區'],
+  ['住宅區','公園','商業區','港口區'],
+  ['住宅區','公園','公園','港口區']];
+const DCOL={辦公區:0,商業區:1,港口區:2,住宅區:3,公園:4};
+const ROOF=[['#5b6b8c','#8394b8'],['#b3566b','#d8798f'],['#4f7d7a','#6fa8a3'],['#a67c52','#c9a074'],['#4a8a4a','#6cb06c']];
+const WALL=['#3d4966','#8a3c50','#385c5a','#7a5a3a','#356035'];
+const DISTRICT_NEED={ // 各區常見需求（用權重）
+  辦公區:['stress','stress','tired','lonely'],
+  商業區:['lonely','stress','sad','tired','lonely'],
+  港口區:['tired','tired','lonely','sad'],
+  住宅區:['lonely','lonely','sad','tired'],
+  公園:['sad','sad','lonely','stress']};
+function distAt(tx,ty){
+  const c=tx<=10?0:tx<=20?1:tx<=30?2:3, r=ty<=8?0:ty<=16?1:ty<=24?2:3;
+  return DIST[r][c];
+}
+(function buildMap(){
+  for(const y of roadRows)for(let x=0;x<MW;x++)map[y][x]=1;
+  for(const x of roadCols)for(let y=0;y<MH;y++)map[y][x]=1;
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+    const [x0,x1]=colsB[c],[y0,y1]=rowsB[r],d=DIST[r][c];
+    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)map[y][x]=2;
+    if(d==='公園'){
+      for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){map[y][x]=0;if(rnd()<.2)map[y][x]=5}
+      const cx=(x0+x1)>>1, cy=(y0+y1)>>1;
+      for(let y=cy-1;y<=cy+1;y++)for(let x=cx-2;x<=cx+2;x++)map[y][x]=4;
+      for(let x=x0;x<=x1;x++){map[y0][x]=2;map[y1][x]=2}
+      for(let y=y0;y<=y1;y++){map[y][x0]=2;map[y][x1]=2}
+      continue;
+    }
+    const ix0=x0+1, ix1=x1-1, iy0=y0+1, iy1=y1-1;
+    for(let y=iy0;y<=iy1;y++)for(let x=ix0;x<=ix1;x++){
+      map[y][x]=3;bcol[y][x]=DCOL[d];
+      if(ix1-ix0>5&&(x-ix0)%5===4)map[y][x]=2; // 小巷
+    }
+    if(d==='港口區'){
+      for(let y=y0;y<=y1;y++)for(let x=36;x<=x1;x++)map[y][x]=4;
+      for(let y=y0;y<=y1;y++)map[y][35]=2;
+    }
+  }
+  // 自宅
+  map[13][4]=6;
+})();
+const walkable=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&map[y][x]<=2;
+
+// 預先繪製地圖
+const mapCv=document.createElement('canvas');mapCv.width=MW*T;mapCv.height=MH*T;
+(function renderMap(){
+  const g=mapCv.getContext('2d');
+  const isB=(x,y)=>y>=0&&y<MH&&x>=0&&x<MW&&map[y][x]===3;
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const t=map[y][x],px=x*T,py=y*T;
+    if(t===1){ // 馬路
+      g.fillStyle='#4a4d57';g.fillRect(px,py,T,T);
+      g.fillStyle='#3f424b';for(let i=0;i<5;i++)g.fillRect(px+((x*7+y*13+i*9)%28),py+((x*11+y*5+i*13)%28),2,2);
+      const hor=roadRows.includes(y), ver=roadCols.includes(x);
+      g.fillStyle='#e8d98a';
+      if(hor&&!ver&&(y===7||y===15||y===23)&&x%2===0){} // 中線在兩道之間
+      if(hor&&!ver){ if(y===8||y===16||y===24){ g.fillStyle='#d9d9d9';g.fillRect(px+4,py,10,2);} }
+      if(ver&&!hor){ if(x===10||x===20||x===30){ g.fillStyle='#d9d9d9';g.fillRect(px,py+4,2,10);} }
+      if(hor&&ver){ g.fillStyle='#5a5d68';g.fillRect(px,py,T,T);
+        g.fillStyle='#ddd';for(let i=0;i<4;i++)g.fillRect(px+4+i*7,py+2,4,5)}
+    } else if(t===2||t===6){
+      g.fillStyle='#bdb6a8';g.fillRect(px,py,T,T);
+      g.fillStyle='#a8a193';g.fillRect(px,py+T-1,T,1);g.fillRect(px+T-1,py,1,T);
+    } else if(t===0||t===5){
+      g.fillStyle=(x+y)%2?'#5fa35a':'#68ac62';g.fillRect(px,py,T,T);
+      g.fillStyle='#4d8f49';for(let i=0;i<3;i++)g.fillRect(px+((x*5+i*11)%28)+2,py+((y*9+i*7)%26)+3,2,4);
+      if(((x*31+y*17)%11)===0){g.fillStyle='#f6e36a';g.fillRect(px+10,py+14,3,3);g.fillStyle='#fff';g.fillRect(px+20,py+8,3,3)}
+      if(t===5){
+        g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(px+16,py+28,11,4,0,0,7);g.fill();
+        g.fillStyle='#6b4a2b';g.fillRect(px+13,py+18,6,11);
+        g.fillStyle='#2f7a3a';g.beginPath();g.arc(px+16,py+12,13,0,7);g.fill();
+        g.fillStyle='#3e9a4a';g.beginPath();g.arc(px+12,py+9,7,0,7);g.fill();
+      }
+    } else if(t===4){
+      g.fillStyle=(x+y)%2?'#3b77c9':'#4283d4';g.fillRect(px,py,T,T);
+      g.fillStyle='rgba(255,255,255,.3)';g.fillRect(px+4+((x*3)%10),py+8,10,2);g.fillRect(px+14,py+22,8,2);
+    } else if(t===3){
+      const c=bcol[y][x], roof=!isB(x,y+1)?false:true; // 下方還有建築＝屋頂
+      if(roof){ g.fillStyle=ROOF[c][0];g.fillRect(px,py,T,T);
+        g.fillStyle=ROOF[c][1];g.fillRect(px+2,py+2,T-4,T-4);
+        g.fillStyle='rgba(0,0,0,.12)';g.fillRect(px+8,py+8,6,6);g.fillRect(px+20,py+18,5,5);
+      } else { g.fillStyle=WALL[c];g.fillRect(px,py,T,T);
+        g.fillStyle=ROOF[c][0];g.fillRect(px,py,T,4);
+        g.fillStyle='#ffe9a8';
+        if((x*3+y)%3!==0){g.fillRect(px+6,py+10,8,9);g.fillRect(px+18,py+10,8,9);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(px+10,py+10,1,9);g.fillRect(px+22,py+10,1,9)}
+        else {g.fillStyle='#6a4a30';g.fillRect(px+10,py+8,12,24);g.fillStyle='#e8c060';g.fillRect(px+19,py+20,2,2)}
+      }
+      g.fillStyle='rgba(0,0,0,.15)';g.fillRect(px,py,1,T);
+    }
+    if(t===6){ // 自宅
+      g.fillStyle='#e8d0b0';g.fillRect(px,py,T,T);
+      g.fillStyle='#c0504d';g.beginPath();g.moveTo(px,py+14);g.lineTo(px+16,py);g.lineTo(px+32,py+14);g.fill();
+      g.fillStyle='#8a5a3a';g.fillRect(px+12,py+16,9,16);g.fillStyle='#ffe9a8';g.fillRect(px+3,py+17,6,6);g.fillRect(px+24,py+17,6,6);
+    }
+  }
+})();
+
+// ---------- 角色繪製（RM 風小人，程式生成） ----------
+function drawChar(x,y,dir,fr,p,female,scale){
+  // x,y: 腳底中心
+  const c=ctx; c.save(); c.translate(Math.round(x),Math.round(y)); if(scale)c.scale(scale,scale);
+  c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(0,0,9,3.5,0,0,7);c.fill();
+  const lift=fr===1?2:0, lift2=fr===2?2:0;
+  const R=(a,b,w,h,col)=>{c.fillStyle=col;c.fillRect(a,b,w,h)};
+  // 腿
+  R(-6,-9,5,9-lift,p.pants);R(1,-9,5,9-lift2,p.pants);
+  R(-6,-2-lift,5,2,'#3a2a2a');R(1,-2-lift2,5,2,'#3a2a2a');
+  const side=dir===1||dir===2; // 1左 2右
+  // 手臂（身體後）
+  const sw=fr===1?-1:fr===2?1:0;
+  // 身體
+  R(-7,-22,14,14,p.cloth);
+  if(female){ R(-9,-12,18,6,p.cloth); R(-9,-7,18,1,'rgba(0,0,0,.2)'); R(-3,-22,6,3,p.skin); }
+  else { R(-7,-22,14,2,'rgba(255,255,255,.25)'); }
+  if(!side){ R(-10,-21+sw,3,11,p.cloth);R(7,-21-sw,3,11,p.cloth);R(-10,-10+sw,3,3,p.skin);R(7,-10-sw,3,3,p.skin); }
+  else { const ax=dir===1?-2:-1; R(ax,-21,3,11,p.cloth);R(ax,-10,3,3,p.skin); }
+  // 頭
+  R(-7,-35,14,13,p.skin);
+  const hr=p.hair;
+  if(dir===0){ // 下（正面）
+    R(-8,-38,16,7,hr);R(-8,-38,3,15,hr);R(5,-38,3,15,hr);
+    if(female){R(-8,-24,3,10,hr);R(5,-24,3,10,hr)}
+    R(-4,-28,2,3,'#222');R(2,-28,2,3,'#222');R(-4,-28,1,1,'#fff');R(2,-28,1,1,'#fff');
+    R(-1,-24,2,1,'#c0605a');
+    if(female){R(-6,-26,2,1,'rgba(255,120,120,.5)');R(4,-26,2,1,'rgba(255,120,120,.5)')}
+  } else if(dir===3){ // 上（背面）
+    R(-8,-38,16,16,hr);if(female)R(-9,-26,18,13,hr);
+  } else { // 側面
+    const s=dir===1?-1:1;
+    R(-8,-38,16,7,hr);
+    R(s>0?-8:2,-38,6,17,hr);
+    if(female)R(s>0?-9:1,-26,8,12,hr);
+    R(s>0?3:-5,-28,2,3,'#222');
+    R(s>0?4:-6,-24,2,1,'#c0605a');
+  }
+  if(p.acc==='glasses'&&dir!==3){R(-5,-29,10,1,'#222')}
+  if(p.acc==='ribbon'){R(-2,-40,5,3,'#ff5f8f');R(-5,-39,3,3,'#ff5f8f');R(3,-39,3,3,'#ff5f8f')}
+  c.restore();
+}
+const PLAYER_PAL={skin:'#ffe0cc',hair:'#e87aa0',cloth:'#fff0f5',pants:'#ffd6e4',acc:'ribbon'};
+const HAIRS=['#2b2b2b','#5a3a22','#8a5a2a','#3a3a52','#a0a0a8','#1a1a1a'];
+const CLOTHS=['#4a6fa5','#5a8f5a','#a55a4a','#6a5aa5','#8a8a8a','#c08a3a','#3a7a8a'];
+const SKINS=['#ffe0cc','#f3c9a5','#e0a982'];
+const NAMES=['阿宏','小凱','老陳','志明','大偉','阿杰','林先生','王先生','小宇','建國','阿龍','家豪','俊傑','文德','子豪','明哲'];
+const NEED_INFO={
+  tired:{name:'疲憊',hint:['最近連續加班好幾週…肩膀僵得像石頭。','腰好痛…好想好好躺一下。','碼頭搬了一整天貨，全身都在叫。']},
+  lonely:{name:'孤單',hint:['回到家只有一盞燈…有時候真希望有人聊聊天。','週末一個人吃飯，已經習慣了…但還是會想。','好久沒有人問我「今天過得好嗎」了。']},
+  stress:{name:'壓力',hint:['專案、報告、主管…腦袋一直停不下來。','三天沒睡好了，真的快撐不住。','每天都像在跟時間賽跑，喘不過氣。']},
+  sad:{name:'低落',hint:['我被分手了…其實也不想多說什麼。','今天發生的事情，真的讓我很難過。','明明沒做錯什麼，為什麼總是這樣…']},
+};
+const NEED_COL={tired:'#7ab8ff',lonely:'#c59bff',stress:'#ff8a5a',sad:'#6adbc0'};
+const SERVICES=[
+  {id:'listen', name:'傾聽陪伴', desc:'泡杯茶，靜靜聽你說。',   fx:'心情變得輕盈了。'},
+  {id:'massage',name:'舒緩按摩', desc:'專業手法，放鬆緊繃的身體。', fx:'全身的痠痛都散開了。'},
+  {id:'date',   name:'浪漫約會', desc:'一起散步、看夜景、聊聊天。', fx:'今晚的城市特別溫柔。'},
+  {id:'comfort',name:'溫柔安慰', desc:'給你一個擁抱和一句「辛苦了」。', fx:'心裡的結鬆開了一些。'},
+];
+const MATCH={ // 需求 × 服務 契合度
+  tired :{massage:1,comfort:.5,listen:.4,date:.3},
+  lonely:{listen:1,date:.8,comfort:.5,massage:.3},
+  stress:{massage:1,date:.6,listen:.5,comfort:.4},
+  sad   :{comfort:1,listen:.8,date:.4,massage:.3},
+};
+
+// ---------- 遊戲狀態 ----------
+const TOTAL_DAYS=7;
+const G={day:1,min:480,stamina:100,money:200,rep:0,skill:0,
+  dn:0,dtot:0,dinc:0, n:0,tot:0, state:'title', best:0};
+const P={tx:4,ty:14,px:4*T,py:14*T,dir:3,moving:false,dx:0,dy:0,prog:0,fr:0,step:0};
+const NPCS=[];
+function clockStr(){const m=Math.min(G.min,1440);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
+function rankTitle(){return G.rep<30?'見習服務員':G.rep<80?'新星服務員':G.rep<150?'人氣服務員':'傳說級服務員'}
+function grade(s){return s>=90?'S':s>=75?'A':s>=55?'B':'C'}
+function avg(){return G.n?Math.round(G.tot/G.n):0}
+
+function spawnNPCs(){
+  NPCS.length=0;
+  const used=new Set();
+  const spots=[];
+  for(let i=0;i<18;i++){
+    // 隨機區域（依區塊權重平均）
+    let tx,ty,tries=0;
+    do{tx=ri(1,MW-2);ty=ri(1,MH-2);tries++}while((!walkable(tx,ty)||used.has(tx+','+ty)||(Math.abs(tx-4)<4&&Math.abs(ty-14)<4))&&tries<200);
+    used.add(tx+','+ty);
+    NPCS.push({tx,ty,px:tx*T,py:ty*T,dir:ri(0,3),fr:0,moving:false,dx:0,dy:0,prog:0,wait:ri(30,200),
+      name:NAMES[i%NAMES.length]+(i>=NAMES.length?'二':''),
+      pal:{skin:pick(SKINS),hair:pick(HAIRS),cloth:pick(CLOTHS),pants:'#3a3f55',acc:Math.random()<.25?'glasses':''},
+      budget:ri(80,200),need:'tired',level:0,served:false,pref:null});
+  }
+  rollNeeds(true);
+}
+function rollNeeds(all){
+  for(const n of NPCS){
+    if(!all&&(n.served||Math.random()>.2))continue;
+    const d=distAt(n.tx,n.ty);
+    n.need=pick(DISTRICT_NEED[d]);
+    n.level=Math.random()<.65?ri(40,95):ri(0,30);
+    n.hintIdx=ri(0,2);
+    if(all)n.served=false;
+  }
+}
+
+// ---------- 輸入 ----------
+const keys={}, pressed=[];
+addEventListener('keydown',e=>{
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+  if(!keys[e.key])pressed.push(e.key);
+  keys[e.key]=true;
+});
+addEventListener('keyup',e=>{keys[e.key]=false});
+document.querySelectorAll('#pad button').forEach(b=>{
+  const k=b.dataset.k;
+  const dn=ev=>{ev.preventDefault();if(!keys[k])pressed.push(k);keys[k]=true};
+  const up=ev=>{ev.preventDefault();keys[k]=false};
+  b.addEventListener('touchstart',dn);b.addEventListener('touchend',up);b.addEventListener('touchcancel',up);
+  b.addEventListener('mousedown',dn);b.addEventListener('mouseup',up);b.addEventListener('mouseleave',up);
+});
+cv.addEventListener('pointerdown',()=>{if(!pressed.includes('Enter'))pressed.push('Enter')});
+const isOK=k=>k==='z'||k==='Z'||k==='Enter'||k===' ';
+const isNO=k=>k==='x'||k==='X'||k==='Escape';
+
+// ---------- UI：對話 / 選單 / 結果 ----------
+let dlg=null, menu=null, svc=null, result=null, dayEnd=null, toast=null;
+function say(lines,cb){dlg={lines,i:0,shown:0,cb};G.state='dialog'}
+function choose(title,opts,cb,cancelable){menu={title,opts,cur:0,cb,cancelable};G.state='menu'}
+function showToast(t){toast={t,life:150}}
+function advanceTime(m){
+  const before=G.min;G.min+=m;
+  for(const h of [840,1140]) if(before<h&&G.min>=h){rollNeeds(false);showToast('街上似乎又有人需要幫助了…')}
+}
+
+function interact(){
+  const dxy=[[0,1],[-1,0],[1,0],[0,-1]][P.dir];
+  const fx=P.tx+dxy[0], fy=P.ty+dxy[1];
+  if(map[fy]&&map[fy][fx]===6){
+    choose('自宅',[{label:'睡覺（結束今天）',v:'sleep'},{label:'休息一小時（體力 +25）',v:'rest'},{label:'取消',v:'no'}],o=>{
+      if(o.v==='sleep'){endDay()}
+      else if(o.v==='rest'){ if(G.min+60>=1440){say(['太晚了，直接睡覺吧。'],endDay)} else {G.stamina=clamp(G.stamina+25,0,100);advanceTime(60);say(['小睡了一會兒，精神好多了。'])}}
+      else G.state='map';
+    },true);
+    return;
+  }
+  const n=NPCS.find(n=>Math.abs(n.px-fx*T)<20&&Math.abs(n.py-fy*T)<20);
+  if(!n)return;
+  n.dir=[3,2,1,0][P.dir];
+  if(n.served){say([{n:n.name,t:'今天多虧了你，我已經很滿足了。謝謝！'}]);return}
+  if(n.level<35){
+    say([{n:n.name,t:pick(['今天心情不錯，不用麻煩啦。','我還好～謝謝關心。','嗯？我沒事，你去照顧更需要的人吧。'])}],()=>{});
+    return;
+  }
+  if(G.stamina<=10){say(['（體力不足了…先回家休息吧。）']);return}
+  const info=NEED_INFO[n.need];
+  say([{n:n.name,t:'……啊，妳是持照服務員吧。'},{n:n.name,t:info.hint[n.hintIdx]}],()=>{
+    choose(`向 ${n.name} 提出服務？`,[{label:'「需要我的服務嗎？」（徵求同意）',v:'ask'},{label:'默默離開',v:'no'}],o=>{
+      if(o.v==='no'){G.state='map';return}
+      say([{n:'我',t:'依照法規，我會先確認：您是自願接受服務的嗎？'},{n:n.name,t:'嗯…是的，我願意。'}],()=>{
+        choose('選擇服務項目',SERVICES.map(s=>({label:s.name,desc:s.desc,v:s})),o2=>startService(n,o2.v),true);
+      });
+    },true);
+  });
+}
+
+function startService(n,s){
+  svc={t:0,n,s};G.state='service';
+}
+function finishService(){
+  const {n,s}=svc;
+  const m=MATCH[n.need][s.id];
+  const sk=Math.min(G.skill,10);
+  let score=m*62 + (G.stamina/100)*12 + (n.level/100)*10 + sk*1.2 + Math.random()*8 + (G.rep>50?2:0);
+  score=Math.round(clamp(score,5,100));
+  const income=Math.round(n.budget*(0.4+score/100)*(0.8+n.level/200));
+  const repGain=Math.round((score-50)/5);
+  G.money+=income;G.rep=Math.max(0,G.rep+repGain);G.skill+=1;
+  G.n++;G.tot+=score;G.dn++;G.dtot+=score;G.dinc+=income;
+  G.stamina=clamp(G.stamina-18,0,100);
+  n.served=true;n.level=Math.max(0,n.level-60);
+  advanceTime(60);
+  const g=grade(score);
+  const cm={S:'「完全被療癒了…妳是我遇過最棒的服務員！」',A:'「謝謝，真的輕鬆多了。」',B:'「還不錯，謝謝妳。」',C:'「嗯…好像不太是我需要的。」'}[g];
+  result={n,s,score,g,income,repGain,m,comment:cm,fx:m>=.8?s.fx:'雖然努力了，但似乎不是最對症的服務…'};
+  G.state='result';
+}
+
+function endDay(){
+  const last=G.day>=TOTAL_DAYS;
+  const rent=60;G.money-=rent;
+  dayEnd={day:G.day,n:G.dn,avg:G.dn?Math.round(G.dtot/G.dn):0,inc:G.dinc,rent,last};
+  G.state='dayend';
+}
+function nextDay(){
+  G.day++;G.min=480;G.stamina=100;G.dn=0;G.dtot=0;G.dinc=0;
+  P.tx=4;P.ty=14;P.px=4*T;P.py=14*T;P.dir=3;P.moving=false;
+  spawnNPCs();G.state='map';
+  showToast(`第 ${G.day} 天開始！`);
+}
+function newGame(){
+  Object.assign(G,{day:1,min:480,stamina:100,money:200,rep:0,skill:0,dn:0,dtot:0,dinc:0,n:0,tot:0});
+  P.tx=4;P.ty=14;P.px=4*T;P.py=14*T;P.dir=3;P.moving=false;
+  seed=12345;spawnNPCs();G.state='map';
+  say(['這座城市裡，持照服務員是受人尊敬的正式職業。','在街上找到「需要被照顧的人」，先徵得同意，再選擇最適合的服務。','頭上有「！」的人，就是需要幫助的人。靠近、面對他，按 Z 或 Enter 搭話。','七天後，看看妳能成為怎樣的服務員吧！']);
+}
+
+// ---------- 更新 ----------
+function npcOccupied(x,y,self){
+  if(P.tx===x&&P.ty===y)return true;
+  if(P.moving&&P.tx+P.dx===x&&P.ty+P.dy===y)return true;
+  return NPCS.some(n=>n!==self&&((n.tx===x&&n.ty===y)||(n.moving&&n.tx+n.dx===x&&n.ty+n.dy===y)));
+}
+function updatePlayer(){
+  if(P.moving){
+    P.prog+=2;P.px+=P.dx*2;P.py+=P.dy*2;
+    P.fr=((P.prog>>3)&1)?(P.step%2?1:2):0;
+    if(P.prog>=T){P.moving=false;P.tx+=P.dx;P.ty+=P.dy;P.px=P.tx*T;P.py=P.ty*T;P.prog=0;P.step++;
+      advanceTime(2);G.stamina=clamp(G.stamina-0.12,0,100);
+      if(G.min>=1440){say(['已經深夜了…今天到此為止吧。'],endDay)}}
+    return;
+  }
+  P.fr=0;
+  let d=-1;
+  if(keys.ArrowDown||keys.s||keys.S)d=0;else if(keys.ArrowLeft||keys.a||keys.A)d=1;
+  else if(keys.ArrowRight||keys.d||keys.D)d=2;else if(keys.ArrowUp||keys.w||keys.W)d=3;
+  if(d<0)return;
+  P.dir=d;
+  const [dx,dy]=[[0,1],[-1,0],[1,0],[0,-1]][d];
+  const nx=P.tx+dx,ny=P.ty+dy;
+  if(walkable(nx,ny)&&!npcOccupied(nx,ny,null)){P.moving=true;P.dx=dx;P.dy=dy;P.prog=0}
+}
+function updateNPCs(){
+  for(const n of NPCS){
+    if(n.moving){
+      n.prog+=1;n.px+=n.dx;n.py+=n.dy;n.fr=((n.prog>>3)&1)?1:2;
+      if(n.prog>=T){n.moving=false;n.tx+=n.dx;n.ty+=n.dy;n.px=n.tx*T;n.py=n.ty*T;n.prog=0;n.fr=0;n.wait=ri(40,240)}
+    } else if(--n.wait<=0){
+      const d=ri(0,3),[dx,dy]=[[0,1],[-1,0],[1,0],[0,-1]][d];
+      n.dir=d;n.wait=20;
+      const nx=n.tx+dx,ny=n.ty+dy;
+      if(walkable(nx,ny)&&!npcOccupied(nx,ny,n)&&distAt(nx,ny)===distAt(n.tx,n.ty)){n.moving=true;n.dx=dx;n.dy=dy;n.prog=0}
+    }
+  }
+}
+function update(){
+  const k=pressed.splice(0);
+  const ok=k.some(isOK), no=k.some(isNO);
+  const up=k.includes('ArrowUp')||k.includes('w'), dn=k.includes('ArrowDown')||k.includes('s');
+  if(toast&&--toast.life<=0)toast=null;
+  switch(G.state){
+    case 'title': if(ok)newGame(); break;
+    case 'map':
+      updatePlayer();updateNPCs();
+      if(ok&&!P.moving)interact();
+      else if(no&&!P.moving)G.state='status';
+      break;
+    case 'status': if(ok||no)G.state='map'; break;
+    case 'dialog':{
+      updateNPCs();
+      const L=dlg.lines[dlg.i],txt=typeof L==='string'?L:L.t;
+      if(dlg.shown<txt.length)dlg.shown+=0.7;
+      if(ok){
+        if(dlg.shown<txt.length)dlg.shown=txt.length;
+        else{dlg.i++;dlg.shown=0;if(dlg.i>=dlg.lines.length){const cb=dlg.cb;dlg=null;G.state='map';if(cb)cb()}}
+      }
+      break;}
+    case 'menu':
+      if(up)menu.cur=(menu.cur+menu.opts.length-1)%menu.opts.length;
+      if(dn)menu.cur=(menu.cur+1)%menu.opts.length;
+      if(ok){const o=menu.opts[menu.cur],cb=menu.cb;menu=null;G.state='map';cb(o)}
+      else if(no&&menu.cancelable){menu=null;G.state='map'}
+      break;
+    case 'service': svc.t++; if(svc.t>200)finishService(); break;
+    case 'result': if(ok){result=null;G.state='map';if(G.min>=1440)endDay()} break;
+    case 'dayend': if(ok){ if(dayEnd.last)G.state='ending'; else nextDay(); } break;
+    case 'ending': if(ok)G.state='title'; break;
+  }
+}
+
+// ---------- 繪製 ----------
+function box(x,y,w,h){
+  const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(30,50,120,.92)');g.addColorStop(1,'rgba(10,20,70,.92)');
+  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,w-2,h-2);
+  ctx.strokeStyle='#7f9fff';ctx.lineWidth=1;ctx.strokeRect(x+4,y+4,w-8,h-8);
+}
+function txt(s,x,y,size=16,col='#fff',align='left'){
+  ctx.font=FONT(size);ctx.textAlign=align;ctx.textBaseline='top';
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillText(s,x+1,y+1);
+  ctx.fillStyle=col;ctx.fillText(s,x,y);
+}
+function wrap(s,x,y,w,size,lh,col){
+  ctx.font=FONT(size);let line='',yy=y;
+  for(const ch of s){
+    if(ctx.measureText(line+ch).width>w){txt(line,x,yy,size,col);yy+=lh;line=ch}else line+=ch;
+  }
+  txt(line,x,yy,size,col);
+}
+function draw(){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,VW,VH);
+  if(G.state==='title'){drawTitle();return}
+  const camX=clamp(Math.round(P.px+16-VW/2),0,MW*T-VW), camY=clamp(Math.round(P.py+16-VH/2),0,MH*T-VH);
+  ctx.drawImage(mapCv,camX,camY,VW,VH,0,0,VW,VH);
+  // 角色（依 y 排序）
+  const list=[{y:P.py,f:()=>drawChar(P.px+16-camX,P.py+31-camY,P.dir,P.fr,PLAYER_PAL,true)}];
+  for(const n of NPCS)list.push({y:n.py,f:()=>{
+    drawChar(n.px+16-camX,n.py+31-camY,n.dir,n.fr,n.pal,false);
+    if(n.level>=35&&!n.served){
+      const b=Math.sin(performance.now()/180+n.px)*2, lv=n.level;
+      const col=lv>=75?'#ff4a4a':lv>=55?'#ffa63a':'#ffe34a';
+      const bx=n.px+16-camX, by=n.py-30-camY+b;
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bx,by,9,0,7);ctx.fill();
+      ctx.beginPath();ctx.moveTo(bx-3,by+8);ctx.lineTo(bx,by+13);ctx.lineTo(bx+3,by+8);ctx.fill();
+      ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,9,0,7);ctx.stroke();
+      txt('!',bx,by-8,15,col,'center');
+    } else if(n.served){
+      txt('♥',n.px+16-camX,n.py-26-camY,16,'#ff7fa8','center');
+    }
+  }});
+  list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+  // 自宅標示
+  txt('自宅',4*T+16-camX,12*T-4-camY,12,'#fff','center');
+  // 夜色
+  const dark=clamp((G.min-1020)/420,0,.5);
+  if(dark>0){ctx.fillStyle=`rgba(10,10,60,${dark})`;ctx.fillRect(0,0,VW,VH)}
+  drawHUD();
+  if(toast){ctx.globalAlpha=Math.min(1,toast.life/30);box(120,60,400,34);txt(toast.t,320,69,15,'#fff','center');ctx.globalAlpha=1}
+  if(G.state==='dialog')drawDialog();
+  if(G.state==='menu')drawMenu();
+  if(G.state==='status')drawStatus();
+  if(G.state==='service')drawService();
+  if(G.state==='result')drawResult();
+  if(G.state==='dayend')drawDayEnd();
+  if(G.state==='ending')drawEnding();
+}
+function drawHUD(){
+  box(6,6,200,66);
+  txt(`第 ${G.day}/${TOTAL_DAYS} 天  ${clockStr()}`,16,12,15);
+  txt(`📍${distAt(P.tx,P.ty)}   $${G.money}`,16,32,14,'#ffe9a8');
+  // 體力條
+  txt('體力',16,52,12,'#9fd');
+  ctx.fillStyle='#222';ctx.fillRect(52,55,140,8);
+  ctx.fillStyle=G.stamina>40?'#5fe28a':'#ff6a5a';ctx.fillRect(52,55,140*G.stamina/100,8);
+  // 右上：評價
+  box(VW-170,6,164,48);
+  txt(`${rankTitle()}`,VW-160,10,14,'#ffd0e4');
+  txt(`評價 ${avg()}  人氣 ${G.rep}`,VW-160,30,13);
+}
+function drawDialog(){
+  const L=dlg.lines[dlg.i],t=typeof L==='string'?L:L.t,nm=typeof L==='string'?null:L.n;
+  box(10,VH-130,VW-20,120);
+  if(nm){box(24,VH-152,120,32);txt(nm,84,VH-146,16,'#ffd','center')}
+  wrap(t.slice(0,Math.floor(dlg.shown)),30,VH-110,VW-60,18,28,'#fff');
+  if(dlg.shown>=t.length&&Math.floor(performance.now()/400)%2)txt('▼',VW-40,VH-34,14);
+}
+function drawMenu(){
+  const w=330,h=60+menu.opts.length*34,x=VW/2-w/2,y=VH/2-h/2-20;
+  box(x,y,w,h);txt(menu.title,x+w/2,y+12,15,'#ffd','center');
+  menu.opts.forEach((o,i)=>{
+    const yy=y+44+i*34;
+    if(i===menu.cur){ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(x+10,yy-2,w-20,30);txt('▶',x+16,yy+3,14,'#ffd')}
+    txt(o.label,x+38,yy+3,16);
+  });
+  const d=menu.opts[menu.cur].desc;
+  if(d){box(x,y+h+6,w,34);txt(d,x+w/2,y+h+14,14,'#cfe','center')}
+}
+function drawStatus(){
+  box(120,80,400,300);
+  txt('— 狀態 —',320,94,18,'#ffd','center');
+  const rows=[['稱號',rankTitle()],['第幾天',`${G.day} / ${TOTAL_DAYS}`],['金錢','$'+G.money],['人氣',G.rep],['技巧 Lv',G.skill],['總服務數',G.n],['平均評價',avg()+' ('+(G.n?grade(avg()):'-')+')'],['今日服務',G.dn]];
+  rows.forEach((r,i)=>{txt(r[0],150,130+i*28,16,'#9fd');txt(String(r[1]),490,130+i*28,16,'#fff','right')});
+  txt('小提示：需求類型要對症，按摩治疲憊/壓力，傾聽治孤單，安慰治低落。',320,350,12,'#cfe','center');
+}
+function drawService(){
+  const t=svc.t, a=clamp(t/30,0,1)*(t>170?clamp((200-t)/30,0,1):1);
+  ctx.fillStyle=`rgba(0,0,0,${a*.96})`;ctx.fillRect(0,0,VW,VH);
+  if(t>30){
+    const aa=clamp((t-30)/30,0,1);ctx.globalAlpha=aa;
+    txt(`── ${svc.s.name} ──`,320,190,26,'#ffd0e4','center');
+    txt(`${svc.n.name} 露出了安心的表情……`,320,240,16,'#fff','center');
+    txt('（一小時過去了）',320,272,14,'#9aa','center');
+    for(let i=0;i<6;i++){
+      const yy=420-((t*1.2+i*50)%260), xx=200+i*48+Math.sin(t/20+i)*10;
+      txt('♥',xx,yy,18+i%3*4,'#ff7fa8');
+    }
+    ctx.globalAlpha=1;
+  }
+}
+function drawResult(){
+  const r=result;
+  box(100,50,440,380);
+  txt('服務完成',320,64,20,'#ffd','center');
+  txt(`${r.n.name} ／ 需求：${NEED_INFO[r.n.need].name} ／ 服務：${r.s.name}`,320,98,14,'#cfe','center');
+  const gc={S:'#ffd84a',A:'#ff9ac0',B:'#8fd0ff',C:'#aaa'}[r.g];
+  txt(r.g,320,120,80,gc,'center');
+  txt(`績效評分 ${r.score}`,320,215,22,'#fff','center');
+  ctx.fillStyle='#222';ctx.fillRect(160,250,320,12);ctx.fillStyle=gc;ctx.fillRect(160,250,320*r.score/100,12);
+  txt(`契合度：${r.m>=1?'完美':r.m>=.8?'很合適':r.m>=.5?'普通':'不太對'}`,320,274,15,'#cfe','center');
+  wrap(r.comment,130,306,380,16,24,'#fff');
+  txt(r.fx,320,340,13,'#aab','center');
+  txt(`報酬 +$${r.income}    人氣 ${r.repGain>=0?'+':''}${r.repGain}    技巧 +1`,320,372,15,'#ffe9a8','center');
+  if(Math.floor(performance.now()/400)%2)txt('▼ 按 Z / Enter 繼續',320,402,13,'#9ab','center');
+}
+function drawDayEnd(){
+  ctx.fillStyle='rgba(0,0,20,.85)';ctx.fillRect(0,0,VW,VH);
+  box(120,60,400,340);
+  const d=dayEnd;
+  txt(`第 ${d.day} 天 結算`,320,76,22,'#ffd','center');
+  const rows=[['今日服務人數',d.n+' 人'],['今日平均評價',d.n?d.avg+' ('+grade(d.avg)+')':'—'],['今日收入','$'+d.inc],['房租','-$'+d.rent],['目前資金','$'+G.money],['累計人氣',G.rep],['稱號',rankTitle()]];
+  rows.forEach((r,i)=>{txt(r[0],160,128+i*32,17,'#9fd');txt(String(r[1]),480,128+i*32,17,'#fff','right')});
+  txt(d.n===0?'今天沒有服務任何人…明天加油！':d.avg>=80?'今天的表現非常出色！':'再接再厲，找出對症的服務吧。',320,358,14,'#cfe','center');
+  if(Math.floor(performance.now()/400)%2)txt(d.last?'▼ 查看結局':'▼ 迎接新的一天',320,380,13,'#9ab','center');
+}
+function drawEnding(){
+  ctx.fillStyle='#0a0620';ctx.fillRect(0,0,VW,VH);
+  box(80,60,480,360);
+  const a=avg();
+  let title,msg;
+  if(a>=80&&G.rep>=100){title='傳說級服務員';msg='整座城市都知道妳的名字。人們說，只要看到那個粉色蝴蝶結，心就會安定下來。'}
+  else if(a>=65&&G.rep>=50){title='人氣服務員';msg='妳成為了大家信賴的存在。再多累積一些，傳說就在眼前。'}
+  else if(a>=50){title='新星服務員';msg='還有成長空間，多留意每個人的真正需求，會有更好的成績。'}
+  else{title='見習服務員';msg='七天過去了，妳還在學習中。下一次，一定能找到對的服務。'}
+  txt('— 七日結算 —',320,76,20,'#ffd','center');
+  txt(title,320,120,36,'#ffd0e4','center');
+  txt(`平均評價 ${a}（${grade(a)}）／ 人氣 ${G.rep} ／ 服務 ${G.n} 人 ／ 資金 $${G.money}`,320,180,15,'#cfe','center');
+  wrap(msg,120,230,400,18,28,'#fff');
+  if(Math.floor(performance.now()/400)%2)txt('▼ 回到標題',320,380,13,'#9ab','center');
+}
+function drawTitle(){
+  const g=ctx.createLinearGradient(0,0,0,VH);g.addColorStop(0,'#2a1250');g.addColorStop(1,'#d36a9a');
+  ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
+  // 城市剪影
+  ctx.fillStyle='#1a0e33';
+  for(let i=0;i<16;i++){const h=60+((i*37)%110);ctx.fillRect(i*42,VH-h,38,h);
+    ctx.fillStyle='#ffe9a8';for(let j=0;j<h/20;j++)if((i+j)%2)ctx.fillRect(i*42+8,VH-h+8+j*18,6,8);ctx.fillStyle='#1a0e33'}
+  txt('城市服務員物語',320,90,44,'#fff','center');
+  txt('— 找到需要的人，成為傳說級持照服務員 —',320,150,16,'#ffd0e4','center');
+  drawChar(320,330,0,Math.floor(performance.now()/300)%3,PLAYER_PAL,true,3);
+  if(Math.floor(performance.now()/500)%2)txt('按 Z / Enter / 點擊 開始',320,380,18,'#fff','center');
+  txt('方向鍵/WASD 移動　Z/Enter 決定・搭話　X/Esc 狀態',320,430,13,'#dcd','center');
+  txt('※ 成人向世界觀・內容為非露骨表現',320,452,11,'#c9a','center');
+}
+
+// ---------- 主迴圈 ----------
+let last=0,acc=0;
+function loop(t){
+  acc+=Math.min(100,t-last);last=t;
+  while(acc>=1000/60){update();acc-=1000/60}
+  draw();requestAnimationFrame(loop);
+}
+spawnNPCs();
+requestAnimationFrame(loop);
+window.__G=G; window.__P=P; window.__NPCS=NPCS; // 除錯用
+</script>
+</body>
+</html>
