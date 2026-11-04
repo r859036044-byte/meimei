@@ -1260,6 +1260,9 @@ uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
+uniform sampler2D an_tex : filter_linear;   // 肛門圖層的貼圖：撥開時，內褲只在肛門的位置挖一個洞（下半部其他地方完整保留）
+uniform vec2 an_off = vec2(0.0);            // 肛門圖層相對內褲圖層的位移（畫布 px）
+uniform float an_on = 0.0;
 uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
 uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
@@ -1346,6 +1349,8 @@ void fragment() {
     {   // 描邊補償：布被壓縮後，邊緣的線稿跟著變細（橫向被壓到 1/comp），在邊緣外側補一圈深色描邊，粗細才跟沒拉時差不多
         float rr_ = 2.4;
         float ea_ = max(texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        // 近乎水平的邊（上緣那條斜線）只看左右鄰居偵測不到，再看上下鄰居
+        ea_ = max(ea_, max(texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a));
         float eo_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, ea_) * holeA * smoothstep(1.05, 1.5, comp) * outline_k;
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
@@ -1381,6 +1386,11 @@ void fragment() {
         float dk2_ = smoothstep(0.30, 0.60, 1.0 - dot(c.rgb, vec3(0.3333)));
         c.a *= 1.0 - smoothstep(1.3, 2.6, slope_) * dk2_;
     }
+    if (an_on > 0.5) {   // 肛門：撥開時只在肛門的位置挖洞，露出底下的肛門（下半部其他地方的內褲完整保留）
+        vec2 auv_ = (px - an_off) / vec2(2000.0, 3200.0);
+        if (auv_.x >= 0.0 && auv_.x <= 1.0 && auv_.y >= 0.0 && auv_.y <= 1.0)
+            c.a *= 1.0 - smoothstep(0.05, 0.5, texture(an_tex, auv_).a) * smoothstep(40.0, 110.0, aside);
+    }
     {   // 保險：撥開時，超過「原本右緣 + max_reach」的部分一律不顯示
         float xrc_ = edge_r.x + edge_r.y * clamp(t_, -0.5, 2.4) + edge_r.z * clamp(t_, -0.5, 2.4) * clamp(t_, -0.5, 2.4);
         c.a *= 1.0 - smoothstep(xrc_ + max_reach, xrc_ + max_reach + 6.0, px.x) * smoothstep(0.0, 6.0, d);
@@ -1396,6 +1406,7 @@ void fragment() {
         if (cq_.x >= 0.0 && cq_.x <= 1.0 && cq_.y >= 0.0 && cq_.y <= 1.0) {
             const vec2 oc_ = vec2(0.0007, 0.0004);
             float ca_ = 0.25 * (texture(cc_tex, cq_ + oc_).a + texture(cc_tex, cq_ - oc_).a + texture(cc_tex, cq_ + vec2(oc_.x, -oc_.y)).a + texture(cc_tex, cq_ + vec2(-oc_.x, oc_.y)).a);
+            ca_ = mix(ca_, smoothstep(0.30, 0.65, ca_), smoothstep(1.0, 10.0, aside));   // 撥開時衣服的切口也要乾淨
             c.a *= 1.0 - ca_ * cc_k;   // 衣服蓋到的地方，內褲被裁掉（內褲在衣服下面）
         }
     }
@@ -1425,7 +1436,7 @@ void fragment() {
             vec2 lqr_ = lq_ + vec2(leg_relax * relaxK_, 0.0);
             float la_ = 0.25 * (texture(leg_tex, lqr_ + o_).a + texture(leg_tex, lqr_ - o_).a + texture(leg_tex, lqr_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lqr_ + vec2(-o_.x, o_.y)).a);
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
-            la_ = mix(la_, smoothstep(0.04, 0.35, la_), smoothstep(0.0, 6.0, d));   // 被推動時裁切邊緣收陡一點，沿著大腿邊緣不留一圈淡淡的殘影
+            la_ = mix(la_, smoothstep(0.30, 0.65, la_), smoothstep(1.0, 10.0, aside));   // 撥開時大腿的切口要乾淨（不要淡化）
             c.a *= 1.0 - la_ * lw_;   // 順著 M 腿的輪廓裁切
         }
     }
