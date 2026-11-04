@@ -1320,12 +1320,29 @@ void fragment() {
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
     float env = clamp((comp - 1.0) / 1.5, 0.0, 1.0);
     float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
-    vec4 c = texture(TEXTURE, vec2(xs / 2000.0, ys_ / 3200.0));
+    // 壓縮時一個輸出像素涵蓋 comp 個來源像素：橫向多點平均（預乘），線稿才會變成連續的線，不會變成一格一格的紅黑條紋
+    vec4 c;
+    {
+        vec4 acc_ = vec4(0.0);
+        for (int k = 0; k < 5; k++) {
+            float ko_ = (float(k) - 2.0) * 0.25 * comp;
+            vec4 tk_ = texture(TEXTURE, vec2((xs + ko_) / 2000.0, ys_ / 3200.0));
+            acc_ += vec4(tk_.rgb * tk_.a, tk_.a);
+        }
+        acc_ /= 5.0;
+        c = vec4(acc_.a > 0.001 ? acc_.rgb / acc_.a : vec3(0.0), acc_.a);
+    }
     // 開口：只有「真的被推動」的地方才切；沒推動的地方（最底下的尾巴、上面）完全不切，
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
     float hb = xl + d - edge_pad;
     float holeA = (d > 1.0) ? smoothstep(hb - 1.0, hb + 1.5, px.x) : 1.0;   // 開口邊緣柔邊（不要一格一格的鋸齒）
     c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;
+    float redge0_ = xr + dr;
+    float edgeNear_ = max(1.0 - smoothstep(0.0, 14.0, px.x - (xl + d)), 1.0 - smoothstep(0.0, 14.0, redge0_ - px.x)) * smoothstep(1.0, 8.0, d);   // 左右邊緣 14px 內
+    {   // 邊緣的線稿被壓縮後會變細變淡：把邊緣 14px 內的線加深，補回被壓掉的粗細
+        float dkc_ = 1.0 - dot(c.rgb, vec3(0.3333));
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k);
+    }
     {   // 描邊補償：布被壓縮後，邊緣的線稿跟著變細（橫向被壓到 1/comp），在邊緣外側補一圈深色描邊，粗細才跟沒拉時差不多
         float rr_ = 2.4;
         float ea_ = max(texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
@@ -1335,9 +1352,8 @@ void fragment() {
     }   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
-    float redge0_ = xr + dr;
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
-    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點
+    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_) * (1.0 - edgeNear_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點（邊緣的線不淡化）
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1351,8 +1367,15 @@ void fragment() {
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
     }
     {   // 下半部淡出的裁切：拉開越多，下半部（尾巴、肛門那一帶）越淡出，不要留一條被扯長的尾巴
-        float lowFade_ = smoothstep(1500.0, 1590.0, ys_) * smoothstep(20.0, 120.0, aside) * low_fade;
-        c.a *= 1.0 - lowFade_;
+        // 乾淨的切斷（不要半透明漸層）：拉開越多，切斷線從內褲最底下往上移，到最大時停在肛門上面（y≈1575），
+        // 切斷處補一條細的深色邊線，看起來像內褲的下緣；肛門就露出來
+        float pull_ = smoothstep(20.0, 120.0, aside) * low_fade;
+        float yc_ = mix(1700.0, 1575.0, pull_);
+        float aPre_ = c.a;
+        c.a *= 1.0 - smoothstep(yc_, yc_ + 6.0, ys_);
+        float hem_ = (1.0 - smoothstep(0.0, 2.5, abs(ys_ - yc_ - 1.0))) * step(0.3, aPre_) * pull_;
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), hem_ * 0.8);
+        c.a = max(c.a, hem_ * aPre_);
         // 剪切太陡的地方（推動量隨高度變化太快），內褲的邊線會被扯成近乎水平的長細線：這種地方把深色線條拿掉（保留當保險）
         float slope_ = abs(D_(ys_ + 3.0) - D_(ys_ - 3.0)) / 6.0;
         float dk2_ = smoothstep(0.30, 0.60, 1.0 - dot(c.rgb, vec3(0.3333)));
