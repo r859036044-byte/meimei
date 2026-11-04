@@ -1260,7 +1260,8 @@ uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
-uniform float low_k = 0.6;                    // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
+uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
+uniform float low_k = 0.35;                   // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.005;             // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
@@ -1308,7 +1309,7 @@ void fragment() {
     float wd = max(1.0, xr - xl);
     // 越靠下面拉開越多：下半部（肛門那一帶）右邊也跟著一起滑，整塊往右滑到大腿下面去（不再壓縮），肛門才會露出來
     float lowT = smoothstep(1500.0, 1600.0, ys_);
-    float capf = mix(0.8, 3.0, lowT);
+    float capf = mix(0.8, 1.15, lowT);
     float d = min(aside * w * left_boost * (1.0 + low_k * lowT), wd * capf);          // 左邊被推過去的距離（上面最多推掉寬度 8 成，下面可以整塊滑走）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
     float dr = d * mix(right_follow, 1.0, lowT);   // 右邊跟著往右移的量：上面只一點點，下面整塊跟著滑
@@ -1322,7 +1323,14 @@ void fragment() {
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
     float hb = xl + d - mix(edge_pad, 28.0, lowT);   // 下半部（尾巴）的左緣估算比實際偏右，多留一些，不然尾巴左下角又會被切掉
     float holeA = (d > 1.0) ? smoothstep(hb - 1.0, hb + 1.5, px.x) : 1.0;   // 開口邊緣柔邊（不要一格一格的鋸齒）
-    c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
+    c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;
+    {   // 描邊補償：布被壓縮後，邊緣的線稿跟著變細（橫向被壓到 1/comp），在邊緣外側補一圈深色描邊，粗細才跟沒拉時差不多
+        float rr_ = 2.4;
+        float ea_ = max(texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        float eo_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, ea_) * holeA * smoothstep(1.05, 1.5, comp) * outline_k;
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
+        c.a = max(c.a, eo_);
+    }   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     float redge0_ = xr + dr;
@@ -1481,10 +1489,11 @@ void fragment() {
             && Layers.TryGetValue("衣服", out var cth) && cth != null && cth.GetParent() == _charRoot && _duvet.GetIndex() < cth.GetIndex())
             _clothTopInit = false;   // 被子後來才建立／被移動，重新排一次
         ApplyClothOnTop();
+        UpdateMPantyFollow();   // 內褲先移到這一幀跟著抽插／呼吸的最終位置，下面的遮罩和撥開才不會差一步（抽插時裁切才會跟著動）
         UpdateClothLegMask();
         UpdateClothThrust();
         UpdateBellyOnCloth();
-        UpdateMPantyFollow();
+        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開／裁切（MLegPantyAside.cs）：要在內褲位置定案之後
         UpdateBowLayers();
     }
 
@@ -1650,7 +1659,6 @@ void fragment() {
         // M 腿專用內褲：M 腿打開、而且內褲還沒脫才出現；脫了就不出現
         if (Layers.TryGetValue("m腿/內褲", out var mp_) && mp_ != null) mp_.Visible = _mLegOpen && !_pantyGone;
         UpdateMLegPantyThighCut(_mLegOpen && !_pantyGone);
-        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開（MLegPantyAside.cs）
         if (_clothMat == null) return;
         _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
         BumpOne("肚子", 1, ClothBumpBelly);

@@ -25,7 +25,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
-    [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyAsideLowBoost = 0.6f;   // 下半部（肛門那一帶）比上面多拉開的倍率
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 0.9f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
+    [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyAsideLowBoost = 0.35f;   // 下半部（肛門那一帶）比上面多拉開的倍率
     [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0.005f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
@@ -133,6 +134,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("sag_k", MPantyAsideSag);
         _mPantyMat.SetShaderParameter("left_boost", MPantyAsideLeftBoost);
         _mPantyMat.SetShaderParameter("low_k", MPantyAsideLowBoost);
+        _mPantyMat.SetShaderParameter("outline_k", MPantyAsideOutline);
         _mPantyMat.SetShaderParameter("leg_grow", MPantyAsideLegGrow);
         _mPantyMat.SetShaderParameter("leg_relax", MPantyAsideLegRelax);
         _mPantyMat.SetShaderParameter("slash_y", MPantySlashY);
