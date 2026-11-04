@@ -25,7 +25,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.05f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 1f;   // 下半部淡出的程度（拉開越多，尾巴／肛門那一帶越淡出；0＝不淡出）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
     [Export(PropertyHint.Range, "40,400,1")] public float MPantyAsideMaxReach = 140f;   // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 0.9f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
     [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
@@ -137,6 +137,14 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("outline_k", MPantyAsideOutline);
         _mPantyMat.SetShaderParameter("max_reach", MPantyAsideMaxReach);
         _mPantyMat.SetShaderParameter("low_fade", MPantyAsideLowFade);
+        // 肛門：只在肛門圖層的位置把內褲挖一個洞（肛門圖層在內褲下面，洞挖開就看得到）
+        if (Layers.TryGetValue("m腿/肛門", out var anL) && anL is TextureRect anT && anT.Texture != null && anT.Visible)
+        {
+            _mPantyMat.SetShaderParameter("an_tex", anT.Texture);
+            _mPantyMat.SetShaderParameter("an_off", anT.Position - panty.Position);
+            _mPantyMat.SetShaderParameter("an_on", 1f);
+        }
+        else _mPantyMat.SetShaderParameter("an_on", 0f);
         _mPantyMat.SetShaderParameter("leg_grow", MPantyAsideLegGrow);
         _mPantyMat.SetShaderParameter("leg_relax", MPantyAsideLegRelax);
         _mPantyMat.SetShaderParameter("slash_y", MPantySlashY);
