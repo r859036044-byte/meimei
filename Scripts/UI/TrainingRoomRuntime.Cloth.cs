@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1710.0, 1790.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
@@ -1262,6 +1262,7 @@ uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
 uniform float low_k = 0.6;                    // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
+uniform float leg_relax = 0.005;             // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
 uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」起訖高度（畫布 px）
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
@@ -1375,7 +1376,10 @@ void fragment() {
         lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_ * (1.0 - lowT);
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
             const vec2 o_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，邊緣才不會一格一格
-            float la_ = 0.25 * (texture(leg_tex, lq_ + o_).a + texture(leg_tex, lq_ - o_).a + texture(leg_tex, lq_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lq_ + vec2(-o_.x, o_.y)).a);
+            // 右上角（內褲上半部、右邊）大腿切進內褲的邊界往右退一點，白色布多留一點、黑線才能再往上連到左邊那條的高度
+            float relaxK_ = smoothstep(0.0, 6.0, d) * (1.0 - smoothstep(0.30, 0.55, ry_)) * smoothstep(979.0, 1020.0, pj_.x);
+            vec2 lqr_ = lq_ + vec2(leg_relax * relaxK_, 0.0);
+            float la_ = 0.25 * (texture(leg_tex, lqr_ + o_).a + texture(leg_tex, lqr_ - o_).a + texture(leg_tex, lqr_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lqr_ + vec2(-o_.x, o_.y)).a);
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
             c.a *= 1.0 - la_ * lw_;   // 順著 M 腿的輪廓裁切
         }
