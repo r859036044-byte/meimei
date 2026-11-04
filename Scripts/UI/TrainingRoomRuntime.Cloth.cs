@@ -1260,6 +1260,7 @@ uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
+uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
 uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float low_k = 0.35;                   // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
@@ -1348,6 +1349,10 @@ void fragment() {
         float sl_ = (1.0 - smoothstep(0.8, 2.4, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
     }
+    {   // 保險：撥開時，超過「原本右緣 + max_reach」的部分一律不顯示
+        float xrc_ = edge_r.x + edge_r.y * clamp(t_, -0.5, 2.4) + edge_r.z * clamp(t_, -0.5, 2.4) * clamp(t_, -0.5, 2.4);
+        c.a *= 1.0 - smoothstep(xrc_ + max_reach, xrc_ + max_reach + 6.0, px.x) * smoothstep(0.0, 6.0, d);
+    }
     if (jj_on > 0.5) {
         vec2 pj2_ = UV * jj_size;
         vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
@@ -1389,6 +1394,7 @@ void fragment() {
             vec2 lqr_ = lq_ + vec2(leg_relax * relaxK_, 0.0);
             float la_ = 0.25 * (texture(leg_tex, lqr_ + o_).a + texture(leg_tex, lqr_ - o_).a + texture(leg_tex, lqr_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lqr_ + vec2(-o_.x, o_.y)).a);
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
+            la_ = mix(la_, smoothstep(0.04, 0.35, la_), smoothstep(0.0, 6.0, d));   // 被推動時裁切邊緣收陡一點，沿著大腿邊緣不留一圈淡淡的殘影
             c.a *= 1.0 - la_ * lw_;   // 順著 M 腿的輪廓裁切
         }
     }
