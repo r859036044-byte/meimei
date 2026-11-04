@@ -27,8 +27,11 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowStrength = 0.7f;   // 肛門那一帶的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
+    [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyLegRotFollow = 1f;          // 內褲和腳交接的地方跟著腳旋轉變形的程度（0＝不變形）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySeamFade = 1f;              // 內褲中間那條黑色縫線，被拉開時淡化的程度（0＝不淡化）
     [Export(PropertyHint.Range, "40,400,1")] public float MPantyAsideMaxReach = 140f;   // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 0.9f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 1f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
     [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
@@ -138,6 +141,13 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("outline_k", MPantyAsideOutline);
         _mPantyMat.SetShaderParameter("max_reach", MPantyAsideMaxReach);
         _mPantyMat.SetShaderParameter("low_fade", MPantyAsideLowFade);
+        _mPantyMat.SetShaderParameter("low_str", MPantyAsideLowStrength);
+        _mPantyMat.SetShaderParameter("seam_fade", MPantySeamFade);
+        {   // 腳的旋轉（右腿＝腿1、左腿＝腿2）：交接處的內褲跟著轉
+            float rotR = Layers.TryGetValue("m腿/腿1", out var lg1) && lg1 != null ? Mathf.DegToRad(lg1.RotationDegrees) : 0f;
+            float rotL = Layers.TryGetValue("m腿/腿2", out var lg2) && lg2 != null ? Mathf.DegToRad(lg2.RotationDegrees) : 0f;
+            _mPantyMat.SetShaderParameter("leg_rot", new Vector2(rotR, rotL) * MPantyLegRotFollow);
+        }
         // 肛門：只在肛門圖層的位置把內褲挖一個洞（肛門圖層在內褲下面，洞挖開就看得到）
         if (MPantyAsideAnusHole && Layers.TryGetValue("m腿/肛門", out var anL) && anL is TextureRect anT && anT.Texture != null && anT.Visible)
         {

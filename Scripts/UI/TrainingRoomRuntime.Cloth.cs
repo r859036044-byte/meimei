@@ -1263,9 +1263,12 @@ uniform float right_follow = 0.05;            // 右邊也會跟著往右移一�
 uniform sampler2D an_tex : filter_linear;   // 肛門圖層的貼圖：撥開時，內褲只在肛門的位置挖一個洞（下半部其他地方完整保留）
 uniform vec2 an_off = vec2(0.0);            // 肛門圖層相對內褲圖層的位移（畫布 px）
 uniform float an_on = 0.0;
+uniform vec2 leg_rot = vec2(0.0);           // 右腿／左腿目前的旋轉（弧度）：內褲和腳交接的地方跟著腳的旋轉做一點變形，才貼得緊
+uniform float low_str = 0.7;                // 肛門那一帶（y≳1540）的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
+uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
 uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
-uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
+uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
@@ -1302,10 +1305,20 @@ float XRE_(float y) {   // 撥開後內褲右緣的實際位置
 }
 float D_(float y) {   // 這一列被推動的距離（跟 fragment 裡算的一樣），拿來看推動量隨高度變化多快
     float wd_ = max(1.0, XRY_(y) - XLY_(y));
-    return min(aside * W_(y) * left_boost, wd_ * 0.8);
+    float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, y));
+    return min(aside * W_(y) * left_boost * lf_, wd_ * 0.8 * lf_);
 }
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
+    {   // 內褲和腳交接的地方跟著腳的旋轉做一點變形：靠近右緣的跟右腿轉、靠近左緣的跟左腿轉（離邊緣越遠越不動）
+        float wr_ = smoothstep(XRY_(px.y) - 70.0, XRY_(px.y) + 10.0, px.x);
+        float wl_ = 1.0 - smoothstep(XLY_(px.y) - 10.0, XLY_(px.y) + 70.0, px.x);
+        vec2 vr_ = px - vec2(1060.0, 1500.0);
+        vec2 dr2_ = vec2(cos(leg_rot.x) * vr_.x - sin(leg_rot.x) * vr_.y, sin(leg_rot.x) * vr_.x + cos(leg_rot.x) * vr_.y) - vr_;
+        vec2 vl_ = px - vec2(940.0, 1500.0);
+        vec2 dl2_ = vec2(cos(leg_rot.y) * vl_.x - sin(leg_rot.y) * vl_.y, sin(leg_rot.y) * vl_.x + cos(leg_rot.y) * vl_.y) - vl_;
+        px -= dr2_ * wr_ + dl2_ * wl_;
+    }
     float b1 = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
     float b2 = clamp((px.y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);
     float w = (b1 * b1 * (3.0 - 2.0 * b1)) * (1.0 - b2 * b2 * (3.0 - 2.0 * b2));
@@ -1315,7 +1328,8 @@ void fragment() {
     float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
     float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
     float wd = max(1.0, xr - xl);
-    float d = min(aside * w * left_boost, wd * 0.8);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成）
+    float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
+    float d = min(aside * w * left_boost * lf_, wd * 0.8 * lf_);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
     float dr = d * right_follow;                 // 右邊跟著往右移的量（一點點）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
@@ -1335,6 +1349,14 @@ void fragment() {
         acc_ /= 5.0;
         c = vec4(acc_.a > 0.001 ? acc_.rgb / acc_.a : vec3(0.0), acc_.a);
     }
+    {   // 內褲中間那條黑色縫線（約 x 958~1000、y 1438~1600）當成獨立的東西：內褲被拉開時淡化，脫離內褲就消失
+        float sx_ = smoothstep(954.0, 964.0, xs) * (1.0 - smoothstep(994.0, 1004.0, xs));
+        float sy_ = smoothstep(1434.0, 1446.0, ys_) * (1.0 - smoothstep(1594.0, 1606.0, ys_));
+        float seamK_ = sx_ * sy_ * smoothstep(15.0, 70.0, aside) * seam_fade;
+        vec3 fill_ = 0.5 * (texture(TEXTURE, vec2((xs - 24.0) / 2000.0, ys_ / 3200.0)).rgb + texture(TEXTURE, vec2((xs + 24.0) / 2000.0, ys_ / 3200.0)).rgb);
+        float dkS_ = smoothstep(0.18, 0.50, 1.0 - dot(c.rgb, vec3(0.3333)));
+        c.rgb = mix(c.rgb, fill_, seamK_ * dkS_);
+    }
     // 開口：只有「真的被推動」的地方才切；沒推動的地方（最底下的尾巴、上面）完全不切，
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
     float hb = xl + d - edge_pad;
@@ -1347,11 +1369,11 @@ void fragment() {
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k);
     }
     {   // 描邊補償：布被壓縮後，邊緣的線稿跟著變細（橫向被壓到 1/comp），在邊緣外側補一圈深色描邊，粗細才跟沒拉時差不多
-        float rr_ = 2.4;
+        float rr_ = 3.4;
         float ea_ = max(texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
         // 近乎水平的邊（上緣那條斜線）只看左右鄰居偵測不到，再看上下鄰居
         ea_ = max(ea_, max(texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a));
-        float eo_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, ea_) * holeA * smoothstep(1.05, 1.5, comp) * outline_k;
+        float eo_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, ea_) * holeA * smoothstep(1.05, 1.5, comp) * min(1.0, outline_k * 1.3);
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
     }   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
