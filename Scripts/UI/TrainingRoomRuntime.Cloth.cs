@@ -1254,7 +1254,7 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1625.0, 1690.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
@@ -1267,7 +1267,7 @@ uniform float low_fade = 1.0;                // 下半部淡出的程度（拉�
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
 uniform float outline_k = 0.9;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
-uniform float leg_relax = 0.005;             // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
+uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
 uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」起訖高度（畫布 px）
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
@@ -1427,7 +1427,7 @@ void fragment() {
             vec4 ts_ = texture(TEXTURE, vec2((xs + float(i) * 8.0) / 2000.0, ys_ / 3200.0));
             rd_ = max(rd_, ts_.a * smoothstep(0.30, 0.60, 1.0 - dot(ts_.rgb, vec3(0.3333))));
         }
-        float rin_ = rd_;
+        float rin_ = rd_ * smoothstep(960.0, 1000.0, pj_.x);   // 只有右半邊的黑線才保留；左邊腰帶尖端那條線要被大腿裁掉（不然會殘留在腳上）
         lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_;
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
             const vec2 o_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，邊緣才不會一格一格

@@ -11,13 +11,14 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("M 腿內褲撥開")]
     [Export] public bool MPantyAsideEnabled = true;
+    [Export] public bool MPantyAsideAnusHole = false;   // 在肛門位置把內褲挖洞（預設關：改成像小穴一樣把下半部壓縮靠到最右邊）
     [Export] public bool MPantyAsideDebugLog = true;   // 按下左鍵時在 Output 印出能不能撥、不能的原因
     [Export] public float MPantyAsideMaxPx   = 150f;   // 內褲左邊最多被推到右邊多遠（畫布 px；右邊固定，布被壓扁）
     [Export] public float MPantyAsideGrabHalfW = 150f; // 按下的判定：小穴中間左右各多寬（畫布 px）
     [Export] public float MPantyAsideCenterX = 979f;   // 小穴中間（畫布 px，跟 小穴_M 內容中心一致）
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
     [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
-    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1480f, 1640f);  // 下轉折帶：被推的量慢慢回到 0，最底下那一截固定不動（畫布 px）。昨晚為了露出肛門把它往下移，結果尾巴被拉一半扯變形，已還原；肛門改用下半部淡出
+    [Export] public Vector2 MPantyAsideFixV   = new Vector2(1625f, 1690f);  // 下轉折帶：被推的量慢慢回到 0（畫布 px）。肛門那一帶（y≈1580~1630）也跟小穴一樣壓縮靠到最右邊，只擋住一點點；最下面左下角（>1650）固定不動，中間用弧度接起來
     [Export] public float MPantyJijiClipFromY = 1500f;   // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；以上＝插進去的部分，內褲在雞雞上面
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
@@ -29,7 +30,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "40,400,1")] public float MPantyAsideMaxReach = 140f;   // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 0.9f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
     [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.25f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
-    [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0.005f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
+    [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
     [Export] public Vector2 MPantySlashY  = new Vector2(1400f, 1470f);   // 右上歪進來的黑線：起訖高度（畫布 px）
     [Export] public Vector2 MPantySlashIn = new Vector2(4f, 50f);        // 黑線起點／終點離內褲右緣往內多遠（終點更多＝往左下歪進來）
@@ -138,7 +139,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("max_reach", MPantyAsideMaxReach);
         _mPantyMat.SetShaderParameter("low_fade", MPantyAsideLowFade);
         // 肛門：只在肛門圖層的位置把內褲挖一個洞（肛門圖層在內褲下面，洞挖開就看得到）
-        if (Layers.TryGetValue("m腿/肛門", out var anL) && anL is TextureRect anT && anT.Texture != null && anT.Visible)
+        if (MPantyAsideAnusHole && Layers.TryGetValue("m腿/肛門", out var anL) && anL is TextureRect anT && anT.Texture != null && anT.Visible)
         {
             _mPantyMat.SetShaderParameter("an_tex", anT.Texture);
             _mPantyMat.SetShaderParameter("an_off", anT.Position - panty.Position);
