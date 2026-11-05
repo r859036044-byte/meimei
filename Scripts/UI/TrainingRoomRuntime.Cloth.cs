@@ -1358,7 +1358,7 @@ void fragment() {
     float ys0_ = px.y - sag;
     float stA_ = smoothstep(stretch_anchor + 8.0, stretch_anchor - 40.0, ys0_);   // 1＝固定點上方、0＝下方（下方完全不動）
     float sb_ = (ys0_ - stretch_center) / stretch_width;
-    float ts_loc_ = thrust_stretch * exp(-sb_ * sb_);   // 變形集中在雞雞和插入銜接處的內褲
+    float ts_loc_ = thrust_stretch;   // 變形集中在雞雞和插入銜接處的內褲
     float ys_ = mix(ys0_, stretch_anchor + (ys0_ - stretch_anchor) / (1.0 + ts_loc_), stA_);   // 小穴底部固定，往上的部分被拉長（不是整塊往上移，也不是單純擴張）
     // 取圖用的來源列：內褲左右緣要用這一列的位置算，開口邊界才會剛好貼在內褲自己的邊線上
     float t_ = (ys_ - 1400.0) / 100.0;
