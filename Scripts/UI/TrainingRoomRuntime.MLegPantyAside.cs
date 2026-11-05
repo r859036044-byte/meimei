@@ -32,7 +32,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyStretchWidth = 90f;       // 變形範圍（高度方向）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyInsertHideLow = 1f;   // 插入時小穴底部以下多出來的一節內褲隱藏程度（0＝不藏）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 1f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
-    [Export] public Vector2 MPantyJunctionRise = new Vector2(1447f, 1497f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
+    [Export] public Vector2 MPantyJunctionRise = new Vector2(1444f, 1494f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
     [Export] public Vector2 MPantyJunctionFall = new Vector2(1532f, 1592f);   // 銜接處漸淡消失的高度範圍（畫布 px）
     [Export] public bool MPantyKeepShapeAfterPull = false;   // 拔出後，內褲還撥在旁邊時維持插入時的形狀（關掉＝拔出後變回一般撥開的樣子）
     [Export] public Vector2 MPantyJunctionFadeY = new Vector2(1440f, 1525f);   // 插入時銜接處那條細內褲：從哪裡開始變透明→到哪裡完全消失（畫布 px，＝碰到插入／雞雞下面的線）
@@ -41,8 +41,8 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyAnusCenter = new Vector2(1003f, 1600f);   // 肛門中心（內褲圖座標 px）
     [Export] public float MPantyAnusBulgeR = 70f;   // 凸起範圍半徑（px）
     [Export] public float MPantyCutCurvePx = 90f;   // 銜接處細帶下端的弧形裁切：左邊比右邊低多少 px（越大越彎）
-    [Export] public float MPantyJijiClipArchPx = 140f;   // 插入後雞雞和插入銜接處，內褲裁切起點的弧度（兩側比中間低多少 px，0＝橫線）
-    [Export] public float MPantyJunctionArchPx = 140f;   // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
+    [Export] public float MPantyJijiClipArchPx = 250f;   // 插入後雞雞和插入銜接處，內褲裁切起點的弧度（兩側比中間低多少 px，0＝橫線）
+    [Export] public float MPantyJunctionArchPx = 250f;   // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
