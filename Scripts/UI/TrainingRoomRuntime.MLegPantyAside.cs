@@ -250,6 +250,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("slash_in", MPantySlashIn);
         _mPantyMat.SetShaderParameter("slash_k", MPantySlashK);
         _mPantyMat.SetShaderParameter("jj_arch", MPantyJijiClipArchPx);
+        _mPantyMat.SetShaderParameter("dbg_lines", PantyDebugLines ? 1f : 0f);
         _mPantyMat.SetShaderParameter("jj_from_y", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyJijiClipFromY : 0f);   // 還沒插入：整個雞雞都裁內褲；插入後只有銜接處以下裁
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);

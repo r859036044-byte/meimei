@@ -1312,6 +1312,7 @@ uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」�
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
+uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
 uniform float jj_arch = 28.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
 uniform float sag_k = 0.22;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
@@ -1581,6 +1582,17 @@ void fragment() {
             c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), fillA_ * (1.0 - c.a));
             c.a = max(c.a, fillA_ * 0.97);
         }
+    }
+    if (dbg_lines > 0.5 && px.x > 780.0 && px.x < 1200.0 && px.y > 1320.0 && px.y < 1700.0) {   // 除錯：畫出內褲各條裁切／推擠線（按 Delete 開關）
+        float jfyD_ = jj_from_y + jj_arch * pow(clamp(abs(px.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jj_from_y);
+        float lnR_ = 1.0 - smoothstep(0.0, 2.0, abs(px.y - jfyD_));                         // 紅：雞雞裁內褲的起點（弧形）
+        float lnY_ = max(max(1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_rise.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_rise.y))),
+                         max(1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_fall.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_fall.y))));   // 黃：銜接處推擠範圍
+        float lnM_ = 1.0 - smoothstep(0.0, 1.5, abs(px.y - jf_y.y));                         // 紫：黑線（細帶裁切）高度
+        c.rgb = mix(c.rgb, vec3(1.0, 0.0, 0.0), lnR_);
+        c.rgb = mix(c.rgb, vec3(1.0, 0.9, 0.0), lnY_ * 0.8);
+        c.rgb = mix(c.rgb, vec3(0.8, 0.0, 1.0), lnM_);
+        c.a = max(c.a, max(lnR_, max(lnY_ * 0.8, lnM_)));
     }
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
