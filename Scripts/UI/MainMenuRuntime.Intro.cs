@@ -145,6 +145,7 @@ public partial class MainMenuRuntime : Control
 
         // 播放主選單 BGM
         var opClip = LoadBgm("Audio/bgm/meimei_op");
+        SetupOpBgm(opClip);   // 循環＋後半音量補償（OpBgm.cs）
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
@@ -654,6 +655,7 @@ public partial class MainMenuRuntime : Control
 
         // 開場曲（與按下 SKIP 後的狀態一致）
         var opClip = LoadBgm("Audio/bgm/meimei_op");
+        SetupOpBgm(opClip);   // 循環＋後半音量補償（OpBgm.cs）
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
