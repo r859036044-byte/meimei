@@ -34,6 +34,7 @@ public partial class TrainingRoomRuntime
     /// <summary>Phase 2：點 B 衝到的位置微調，單位是「螢幕 px」（正＝往下）。
     /// 之前是用角色畫布 px（角色整體縮小到 31.5%），使用者說往下 10px 實際畫面上只動了 3px 左右，
     /// 看起來像沒動；改成螢幕 px，執行時自動換算成畫布 px。使用者累計要求 10+15+20 ＝ 45。</summary>
+    [Export] public float JijiInsertOverlapPx = 6f;   // 抽插時雞雞裁切線再往上讓幾 px（螢幕 px），雞雞多伸進插入層底下，避免兩者之間露出縫（0＝不補）
     [Export] public float JijiInsertOffsetX = -1f;   // 插入時雞雞＋精液額外左右微調（畫布 px，負＝向左）
     [Export] public float JijiBellyOffsetX = -1f;   // 男人肚子（雞雞的肚子）單獨左右微調（畫布 px，負＝向左）
     [Export] public Vector2 JijiPhase2Offset     = new Vector2(7f, 51f);   // X：男人肚子＋雞雞往右 3 → 5；Y：45 → 47 → 49 → 51
@@ -615,6 +616,8 @@ void fragment() {
             // 肛門：裁切線直接放在肛門圖層（變形後）的上緣，雞雞一進到肛門上面就被裁掉
             if (_jijiAnus && _jijiPhase >= 2 && _anusBoxSet && _anusBox.Size.X > 0f && Layers.TryGetValue("m腿/肛門", out var anL) && anL != null)
                 clipLocalY = _anusBox.Position.Y - (AnusRisePx + AnusArchPx) * aw + anL.Position.Y - jj.Position.Y + AnusClipOffsetPx / CharScreenScale();
+            // 抽插時插入和雞雞之間可能露出縫：雞雞的裁切線再往上讓一點點，讓雞雞多伸進插入層底下（插入層蓋在雞雞上面，所以看不到多出來的部分）
+            if (_jijiPhase == 3 && _jijiStage >= 1 && !_jijiAnus) clipLocalY -= JijiInsertOverlapPx / CharScreenScale();
             // 紅暈／血的定位線：不跟雞雞走，只跟「插入」層走（入口線＋插入層此刻實際的位移）
             _junctionSmooth = (_jijiPhase == 3 && _jijiStage >= 1) ? clipBaseY + _insShownY : clipBaseY;
             _jijiClipMat.SetShaderParameter("junction_px", _junctionSmooth);
