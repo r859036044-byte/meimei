@@ -43,7 +43,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyCutCurvePx = 90f;   // 銜接處細帶下端的弧形裁切：左邊比右邊低多少 px（越大越彎）
     [Export] public float MPantyJijiClipArchPx = 105f;   // 插入後雞雞和插入銜接處，內褲裁切起點的弧度（兩側比中間低多少 px，0＝橫線）
     [Export] public float MPantyJunctionArchPx = 105f;   // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
-    [Export] public float MPantyJunctionMidPx = 30f;   // 插入時，在撥開位移之上額外向右疊加的最高值（px）。曲線：y1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0
+    [Export] public float MPantyJunctionMidPx = 25f;   // 插入時，在撥開位移之上額外向右疊加的最高值（px）。曲線：y1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -196,7 +196,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
         {   // 除錯：插入狀態改變時印一行，確認新的位移曲線有沒有生效（build 標記 jz-add-1500-1650）
             bool hugNow_ = _mpHug > 0.5f && _mpA > 0.5f;
-            if (MPantyAsideDebugLog && hugNow_ != _mpHugLogged) { _mpHugLogged = hugNow_; GD.Print($"[MPantyDbg] build=jz-add-1500-1580-30-nodelay 插入位移曲線 {(hugNow_ ? "生效中" : "未作用")}（hug={_mpHug:F2} aside={_mpA:F0} jz_mid={MPantyJunctionMidPx:F0}）"); }
+            if (MPantyAsideDebugLog && hugNow_ != _mpHugLogged) { _mpHugLogged = hugNow_; GD.Print($"[MPantyDbg] build=jz-add-1500-1580-25-nodelay 插入位移曲線 {(hugNow_ ? "生效中" : "未作用")}（hug={_mpHug:F2} aside={_mpA:F0} jz_mid={MPantyJunctionMidPx:F0}）"); }
         }
         _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
         _mPantyMat.SetShaderParameter("ins_rot", -Mathf.DegToRad(MPantyInsertRotDeg) * _mpHug);   // 逆時針 = 負；跟著插入狀態平滑漸入

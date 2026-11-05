@@ -10,15 +10,18 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("眼淚圈")]
     [Export] public bool TearRingEnabled = true;
-    [Export] public float TearRingRadius = 11f;          // 圓圈半徑（畫布 px）
-    [Export] public float TearRingWidth = 3f;            // 圓圈線寬
+    [Export] public float TearRingRadius = 9f;           // 水滴圓底的半徑（畫布 px）
+    [Export] public float TearRingTipRatio = 2.3f;       // 水滴尖端高度 ＝ 半徑 × 這個值
+    [Export] public float TearRingWidth = 2.5f;          // 外框線寬
     [Export] public float TearRingAlpha = 0.9f;          // 白色不透明度
-    [Export] public float TearRingFall = 55f;            // 起始下落速度（畫布 px/秒）
-    [Export] public float TearRingAccel = 35f;           // 往下越來越快（px/秒²）
-    [Export] public float TearRingSway = 9f;             // 左右擺動幅度（畫布 px）
-    [Export] public float TearRingSwayHz = 1.4f;         // 左右擺動頻率（次/秒）
-    [Export] public Vector2 TearRingInterval = new Vector2(0.45f, 0.9f);   // 每個眼淚圖層隔多久冒一個（秒，隨機）
-    [Export] public int TearRingMax = 10;                // 同時最多幾個
+    [Export] public float TearRingFall = 24f;            // 起始下落速度（畫布 px/秒）：慢慢流
+    [Export] public float TearRingAccel = 7f;            // 往下越來越快（px/秒²）
+    [Export] public float TearRingSway = 5f;             // 左右擺動幅度（畫布 px）
+    [Export] public float TearRingSwayHz = 0.9f;         // 左右擺動頻率（次/秒）
+    [Export] public float TearRingIntervalCalm = 5f;     // 不痛時，每隔多久冒一個（秒）
+    [Export] public float TearRingIntervalPain = 3f;     // 痛苦值滿時，最快每隔多久冒一個（秒）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TearRingPainSlow = 0.5f;   // 痛苦值滿時，流動速度變成幾倍的減少量（0.5＝變成一半）
+    [Export] public int TearRingMax = 3;                 // 同時最多幾個
     [Export] public float TearRingFadeOut = 0.12f;       // 離開臉之後淡掉的秒數
 
     // 眼淚圖層實際畫出內容的範圍（2000x3200 畫布 px，量 alpha bbox）：從這個範圍的下緣冒出來
@@ -30,12 +33,28 @@ public partial class TrainingRoomRuntime
         ("表情/眼淚4", new Rect2(1105f, 669f, 20f, 24f)),
     };
 
+    /// <summary>水滴外框（只有線、中間透明）：尖端在上、圓底在下；上半部的線完全透明，只有下半部的外框看得到。</summary>
     sealed partial class TearRing : Control
     {
-        public float Radius, Width, Alpha;
+        public float Radius = 9f, TipRatio = 2.3f, Width = 2.5f;
         public override void _Draw()
         {
-            DrawArc(Vector2.Zero, Radius, 0f, Mathf.Tau, 40, new Color(1f, 1f, 1f, 1f), Width, true);
+            float r = Radius, h = r * Mathf.Max(1.2f, TipRatio);
+            float phi = Mathf.Acos(r / h);                      // 尖端到圓的切線角
+            var pts = new List<Vector2>(); var cols = new List<Color>();
+            void Add(Vector2 p)
+            {
+                pts.Add(p);
+                // 以整個水滴高度（-h ~ +r）的中線為界：上半部 alpha=0，往下漸入到完全不透明
+                float u = (p.Y - (-h + (h + r) * 0.5f)) / (r * 0.9f);
+                cols.Add(new Color(1f, 1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.Clamp(u, 0f, 1f))));
+            }
+            Add(new Vector2(0f, -h));
+            float a0 = -Mathf.Pi * 0.5f + phi, a1 = Mathf.Pi * 1.5f - phi;
+            const int N = 36;
+            for (int i = 0; i <= N; i++) { float a = Mathf.Lerp(a0, a1, i / (float)N); Add(new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r); }
+            Add(new Vector2(0f, -h));
+            DrawPolylineColors(pts.ToArray(), cols.ToArray(), Width, true);
         }
     }
 
@@ -45,7 +64,7 @@ public partial class TrainingRoomRuntime
     }
 
     readonly List<TearRingState> _tearRings = new();
-    readonly float[] _tearTimer = new float[4];
+    float _tearTimer;
     Image _tearFaceImg; bool _tearFaceTried;
 
     bool TearFaceInside(Vector2 canvasPos)
@@ -71,24 +90,28 @@ public partial class TrainingRoomRuntime
     {
         if (!TearRingEnabled) { ClearTearRings(); return; }
 
-        // 1) 生成：對應的眼淚圖層看得到才冒
+        // 1) 生成：整個臉共用一個計時；不痛 5 秒一個，痛苦值越高越快（最快 3 秒一個）
+        var visible = new List<int>();
         for (int i = 0; i < _tearSrc.Length; i++)
+            if (Layers.TryGetValue(_tearSrc[i].layer, out var tl0) && tl0 != null && tl0.GetParent() != null
+                && tl0.IsVisibleInTree() && tl0.Modulate.A > 0.05f && tl0.SelfModulate.A > 0.05f) visible.Add(i);
+        if (visible.Count == 0) { _tearTimer = 0f; }
+        else
         {
-            var (name, rc) = _tearSrc[i];
-            if (!Layers.TryGetValue(name, out var tl) || tl == null || tl.GetParent() == null) continue;
-            bool on = tl.IsVisibleInTree() && tl.Modulate.A > 0.05f && tl.SelfModulate.A > 0.05f;
-            if (!on) { _tearTimer[i] = 0f; continue; }
-            _tearTimer[i] -= dt;
-            if (_tearTimer[i] > 0f || _tearRings.Count >= TearRingMax) continue;
-            _tearTimer[i] = (float)GD.RandRange(TearRingInterval.X, TearRingInterval.Y);
-
-            var parent = tl.GetParent();
-            var node = new TearRing { Radius = TearRingRadius, Width = TearRingWidth, Alpha = TearRingAlpha, MouseFilter = Control.MouseFilterEnum.Ignore, Modulate = new Color(1f, 1f, 1f, TearRingAlpha) };
-            parent.AddChild(node);
-            parent.MoveChild(node, tl.GetIndex() + 1);   // 疊在眼淚圖層上面、前髮下面
-            var origin = tl.Position + new Vector2(rc.Position.X + (float)GD.RandRange(0.15, 0.85) * rc.Size.X, rc.End.Y);
-            node.Position = origin;
-            _tearRings.Add(new TearRingState { Node = node, Origin = origin, Phase = (float)GD.RandRange(0.0, Mathf.Tau) });
+            _tearTimer -= dt;
+            if (_tearTimer <= 0f && _tearRings.Count < TearRingMax)
+            {
+                float pain = Mathf.Clamp(_pain, 0f, 1f);
+                _tearTimer = Mathf.Lerp(TearRingIntervalCalm, TearRingIntervalPain, pain) * (float)GD.RandRange(0.9, 1.1);
+                var (name, rc) = _tearSrc[visible[(int)(GD.Randi() % (uint)visible.Count)]];
+                var tl = Layers[name]; var parent = tl.GetParent();
+                var node = new TearRing { Radius = TearRingRadius, TipRatio = TearRingTipRatio, Width = TearRingWidth, MouseFilter = Control.MouseFilterEnum.Ignore, Modulate = new Color(1f, 1f, 1f, TearRingAlpha) };
+                parent.AddChild(node);
+                parent.MoveChild(node, tl.GetIndex() + 1);   // 疊在眼淚圖層上面、前髮下面
+                var origin = tl.Position + new Vector2(rc.Position.X + (float)GD.RandRange(0.15, 0.85) * rc.Size.X, rc.End.Y);
+                node.Position = origin;
+                _tearRings.Add(new TearRingState { Node = node, Origin = origin, Phase = (float)GD.RandRange(0.0, Mathf.Tau) });
+            }
         }
 
         // 2) 更新：往下＋左右擺動；離開臉就淡掉消失
@@ -96,7 +119,7 @@ public partial class TrainingRoomRuntime
         {
             var r = _tearRings[i];
             if (r.Node == null || !IsInstanceValid(r.Node)) { _tearRings.RemoveAt(i); continue; }
-            r.T += dt;
+            r.T += dt * Mathf.Lerp(1f, 1f - TearRingPainSlow, Mathf.Clamp(_pain, 0f, 1f));   // 痛苦值越高流得越慢
             float y = r.Origin.Y + TearRingFall * r.T + 0.5f * TearRingAccel * r.T * r.T;
             float x = r.Origin.X + TearRingSway * Mathf.Sin(r.T * TearRingSwayHz * Mathf.Tau + r.Phase);
             var pos = new Vector2(x, y);
@@ -105,7 +128,7 @@ public partial class TrainingRoomRuntime
             if (r.Dead < 0f)
             {
                 // 圓圈最下緣離開臉就開始淡出
-                if (!TearFaceInside(pos + new Vector2(0f, TearRingRadius))) r.Dead = 0f;
+                if (!TearFaceInside(pos + new Vector2(0f, TearRingRadius))) r.Dead = 0f;   // 水滴圓底最下緣
             }
             if (r.Dead >= 0f)
             {
