@@ -12,6 +12,7 @@ public partial class TrainingRoomRuntime
     Label _pdLabel;
     float _pdSavedLeg = 1f, _pdSavedCorner = 1f;
     bool _pdLegOff, _pdCornerOff;
+    public bool PantyDebugLines;   // Delete：畫出內褲裁切／推擠線（紅＝雞雞裁內褲起點、黃＝銜接處推擠範圍、紫＝細帶裁切黑線）
 
     bool PantyDebugKeys(InputEvent e)
     {
@@ -27,6 +28,7 @@ public partial class TrainingRoomRuntime
             if (_pdCornerOff) { _pdSavedCorner = MPantyCornerPush; MPantyCornerPush = 0f; } else MPantyCornerPush = _pdSavedCorner;
         }
         else if (k.Keycode == Key.End) MPantyJijiClip = !MPantyJijiClip;
+        else if (k.Keycode == Key.Delete) PantyDebugLines = !PantyDebugLines;
         else return false;
         PdShow();
         return true;
@@ -42,7 +44,7 @@ public partial class TrainingRoomRuntime
             _pdLabel.AddThemeFontSizeOverride("font_size", 18);
             parent.AddChild(_pdLabel);
         }
-        _pdLabel.Text = $"Insert 跟腿平移：{(_pdLegOff ? "關" : "開")}   Home 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   End 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}";
+        _pdLabel.Text = $"Insert 跟腿平移：{(_pdLegOff ? "關" : "開")}   Home 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   End 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}   Delete 畫裁切線：{(PantyDebugLines ? "開" : "關")}";
         var tw = CreateTween();
         _pdLabel.Modulate = Colors.White;
         tw.TweenInterval(4f);
