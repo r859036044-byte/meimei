@@ -1308,9 +1308,12 @@ uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變�
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
+uniform vec2 rline = vec2(2040.22, -0.6682);   // 右邊黑線補畫：大腿輪廓直線 x＝rline.x＋rline.y×y（畫布 px，從 腿1_M_cut 的左緣量出來）
+uniform vec2 rline_y = vec2(1331.0, 1400.0);   // 補畫的起訖高度（畫布 px）：上緣到夾角
+uniform float rline_k = 1.0;                  // 補畫的濃度（0＝不補）
 uniform vec2 ext_a = vec2(1081.0, 1374.0);   // 中間黑線往上補畫：起點（弧線原本的上端，畫布 px）
 uniform vec2 ext_b = vec2(1072.0, 1363.0);   // 補畫的終點（內褲上緣）
-uniform float ext_k = 1.0;                    // 補畫的濃度（0＝不補）
+uniform float ext_k = 0.0;                    // 補畫的濃度（0＝不補）
 uniform float rl_k = 0.0;                      // 夾角上端讓最右邊的黑線透出腿外的程度（0＝不透：大腿上不會出現內褲的線；>0 會把內褲右緣的線畫到大腿上）
 uniform float rin_top = 1.0;                  // 1＝內褲上緣（y<1400）不放過大腿輪廓（大腿上不會有橫的內褲黑線）；0＝跟以前一樣放過
 uniform float cover_top = 1.0;               // 夾角（上端 y<1425）只讓「黑線」透出腿外、不補白色：夾角完整、黑線連續，又不會多出一塊白色（0＝上端也補白色）
@@ -1692,6 +1695,13 @@ void fragment() {
         float dist5_ = length(pj5_ - (ext_a + ab5_ * tt5_));
         float k5_ = (1.0 - smoothstep(0.9, 2.2, dist5_)) * (1.0 - 0.5 * tt5_) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * ext_k;
         c.rgb = mix(c.rgb, vec3(0.50, 0.36, 0.38), k5_);
+    }
+    {   // 右邊那條黑線（窄帶右緣的線）原本只畫到夾角就停了：順著大腿的輪廓往上補畫，一直畫到內褲上緣，長度跟左邊那條弧線差不多
+        vec2 pj6_ = UV * vec2(2000.0, 3200.0);
+        float xe6_ = rline.x + rline.y * pj6_.y - 1.6;   // 大腿輪廓（x＝a＋b×y）往內褲這一側偏 1.6px
+        float yk6_ = smoothstep(rline_y.x - 3.0, rline_y.x + 6.0, pj6_.y) * (1.0 - smoothstep(rline_y.y - 4.0, rline_y.y, pj6_.y));
+        float k6_ = (1.0 - smoothstep(0.8, 2.2, abs(pj6_.x - xe6_))) * yk6_ * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * rline_k;
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), k6_ * 0.9);
     }
     COLOR = c * vc;
 }
