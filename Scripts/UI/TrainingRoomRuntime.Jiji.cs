@@ -1530,7 +1530,7 @@ void fragment() {
         float gn_ = 0.75 + 0.25 * bnoise(vec2(gp_.x, gd_) * 0.04 + 21.0);
         float gm_ = (1.0 - smoothstep(0.0, gw_len, gd_)) * smoothstep(-10.0, 8.0, gd_) * gn_;
         gm_ *= 1.0 - smoothstep(70.0, 150.0, abs(gp_.x - 998.0)) * 0.6;
-        c.rgb = mix(c.rgb, vec3(0.99, 0.98, 0.95), clamp(gm_ * gw_amt, 0.0, 0.92));
+        c.rgb = mix(c.rgb, vec3(0.99, 0.98, 0.95) * vcol.rgb, clamp(gm_ * gw_amt, 0.0, 0.92));   // 白色也要乘上環境色（夜晚濾鏡），不然會比周圍亮
     }
     if (sem_on > 0.5) {   // 內射後雞雞上的精液圖層：從尖端到根部慢慢出現（只改這張圖自己的透明度，不會超出圖的範圍）
         vec2 sq_ = UV / TEXTURE_PIXEL_SIZE;
