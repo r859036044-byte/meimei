@@ -54,7 +54,7 @@ public partial class EyeCloseController : Node
         /// 用來微調眼淚圖層的基準高度，跟 OffsetY（張嘴/流淚動畫用的動態位移）分開，
         /// 不影響原本的擴張/位移動畫邏輯。</summary>
         [Export] public float   ExtraOffsetY = 0f;
-        /// <summary>固定向左擴張的量（px）：左緣往左 ExtraLeft，右緣不動（寬度同步加上）。</summary>
+        /// <summary>固定向左平移的量（px）：整個眼淚圖往左 ExtraLeft。</summary>
         [Export] public float   ExtraLeft = 0f;
     }
 
@@ -585,7 +585,7 @@ public partial class EyeCloseController : Node
             float et   = GetEffectiveT(t, p.EyeGroup);
             float tearT = Mathf.InverseLerp(HalfCloseAmount, 1f, et);
             var sz = p.RT.Size;
-            sz.X = p.OpenWidth + p.ExpandX * tearT + p.ExtraLeft;
+            sz.X = p.OpenWidth + p.ExpandX * tearT;
             p.RT.Size = sz;
             var pos = p.RT.Position;
             pos.X = p.OpenPos.X - p.ExtraLeft;
