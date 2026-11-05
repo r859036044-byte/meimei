@@ -1321,7 +1321,7 @@ float W_(float y) {
     float uU_ = clamp((y - arc_v.x) / max(1.0, arc_peak - arc_v.x), 0.0, 1.0);
     float wU_ = pow(max(0.0, sin(1.5708 * uU_)), 0.85);                       // 上半：圓滑往右凸（指數越小越圓）
     float uD_ = clamp((y - arc_peak) / max(1.0, arc_v.y - arc_peak), 0.0, 1.0);
-    float wD_ = 1.0 - pow(uD_, 1.6);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
+    float wD_ = 1.0 - pow(uD_, 1.2);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
     float wArc_ = y < arc_peak ? wU_ : wD_;
     return mix(wOld_, wArc_, arc_mix);
 }
@@ -1381,7 +1381,7 @@ void fragment() {
     }
     float kc_ = hug_k * corner_push * smoothstep(1432.0, 1512.0, ys_) * (1.0 - smoothstep(1547.0, 1622.0, ys_));
     d = mix(d, max(d, wd * 0.97), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
-    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_)) + 6.0 * kc_;   // 銜接處右邊不再跟著外擴（會把內褲撐大），只往右多一點點   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_));   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
