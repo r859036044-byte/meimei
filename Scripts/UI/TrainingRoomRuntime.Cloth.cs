@@ -1390,8 +1390,8 @@ void fragment() {
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
     float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
-    d = mix(d, max(d, wd * 0.97), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
-    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 10.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    d = mix(d, max(d, wd * 0.985), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
+    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 16.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
@@ -1530,7 +1530,14 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
-    c.a *= 1.0 - hug_k * jf_str * smoothstep(jf_y.x, jf_y.y, px.y) * (1.0 - smoothstep(jf_y.y, jf_y.y + 60.0, px.y));   // 插入時：銜接處那條細內褲越往下越透明，碰到插入／雞雞下面的線就消失
+    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉（乾淨的切口＋一條細黑線），不是淡化
+        float cutJ_ = hug_k * jf_str * smoothstep(jf_y.y - 1.5, jf_y.y + 1.5, px.y) * (1.0 - smoothstep(jf_y.y + 60.0, jf_y.y + 95.0, px.y));
+        float aPJ_ = c.a;
+        c.a *= 1.0 - cutJ_;
+        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - jf_y.y - 1.0))) * hug_k * jf_str * step(0.3, aPJ_);
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.9);
+        c.a = max(c.a, lnJ_ * 0.9 * aPJ_);
+    }
     c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
