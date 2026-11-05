@@ -1531,15 +1531,15 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
-    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉（乾淨的切口＋一條細黑線），不是淡化
-        float cutJ_ = hug_k * jf_str * smoothstep(jf_y.y - 1.5, jf_y.y + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);   // 黑線以下、右側那條細帶全部裁掉（左下角不動）
+    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
+        float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
+        float cutJ_ = hug_k * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
         float aPJ_ = c.a;
         c.a *= 1.0 - cutJ_;
-        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - jf_y.y - 1.0))) * hug_k * jf_str * step(0.3, aPJ_);
-        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6 * smoothstep(1000.0, 1040.0, px.x));
-        c.a = max(c.a, lnJ_ * 0.6 * aPJ_ * smoothstep(1000.0, 1040.0, px.x));
+        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * hug_k * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6);
+        c.a = max(c.a, lnJ_ * 0.6 * aPJ_);
     }
-    c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
         vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);
