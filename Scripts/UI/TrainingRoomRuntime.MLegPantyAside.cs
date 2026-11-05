@@ -27,7 +27,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
-    [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0.9f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
+    [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
     [Export] public float MPantyStretchCenterY = 1432f;   // （已停用）   // 抽插變形最大的高度（畫布 px）＝雞雞和插入銜接處
     [Export] public float MPantyStretchWidth = 90f;       // 變形範圍（高度方向）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyInsertHideLow = 1f;   // 插入時小穴底部以下多出來的一節內褲隱藏程度（0＝不藏）
@@ -143,9 +143,11 @@ public partial class TrainingRoomRuntime
         // 抽插時：內褲往上的幅度已經減少 MPantyThrustCut，改成往右撐開——左邊往右（aside 加大）、右邊往右（right_follow 加大）都擴大
         float thrustUp = MLegThrustOffset.TryGetValue("m腿/小穴", out var tOff) ? Mathf.Max(0f, -tOff.Y) : 0f;
         float thrust01 = Mathf.Clamp(thrustUp / 30f, 0f, 1f);
-        float asideEff = _mpA > 0.5f ? Mathf.Min(_mpA + MPantyThrustSpread * thrustUp * MPantyThrustCut, MPantyAsideMaxPx * 1.2f) : _mpA;   // 少往上的 60% 幅度，換成多往右撐開的 px
+        float asideEff = _mpA;   // 抽插的撐開改成只在銜接處（thrust_j），折角不跟著動   // 少往上的 60% 幅度，換成多往右撐開的 px
         _mPantyMat.SetShaderParameter("aside", asideEff);
-        _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow + MPantyThrustRightFollow * thrust01 * (_mpA > 0.5f ? 1f : 0f));
+        _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
+        _mPantyMat.SetShaderParameter("thrust_j", _mpA > 0.5f ? MPantyThrustSpread * thrustUp * MPantyThrustCut : 0f);
+        _mPantyMat.SetShaderParameter("thrust_r", _mpA > 0.5f ? MPantyThrustRightFollow * thrust01 : 0f);
         _mPantyMat.SetShaderParameter("line_steep", MPantyAsideSteepLine);
         _mPantyMat.SetShaderParameter("arc_v", MPantyAsideArcV);
         _mPantyMat.SetShaderParameter("arc_mix", MPantyAsideArcMix);
