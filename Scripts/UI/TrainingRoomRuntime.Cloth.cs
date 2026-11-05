@@ -106,7 +106,7 @@ uniform vec2 jc_y = vec2(0.0, 1.0);
 uniform vec2 jc_o = vec2(0.0);
 uniform float jc_on = 0.0;
 uniform float jc_from_y = 1500.0;
-uniform float jc_arch = 28.0;   // 雞雞裁衣服的起點弧度：兩側比中間低多少 px
+uniform float jc_arch = 55.0;   // 雞雞裁衣服的起點弧度：兩側比中間低多少 px
 uniform float expand_amount = 0.0;
 uniform float center_u = 0.5225;
 uniform float taper_start_v = 0.3716;
@@ -510,7 +510,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y), jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y) + 2.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y + jc_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(pj3_.x - 1000.0) / 150.0, 0.0, 1.0), 2.0)))) * step(1.0, jc_from_y), jc_from_y + jc_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(pj3_.x - 1000.0) / 150.0, 0.0, 1.0), 2.0)))) * step(1.0, jc_from_y) + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1312,8 +1312,9 @@ uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」�
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
+uniform float jz_arch = 45.0;                  // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
 uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
-uniform float jj_arch = 28.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
+uniform float jj_arch = 55.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
 uniform float sag_k = 0.22;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
@@ -1398,7 +1399,8 @@ void fragment() {
     float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
     // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
     float hug_ = hug_k * smoothstep(1500.0, 1550.0, ys_) * (1.0 - smoothstep(1540.0, 1575.0, ys_));   // 銜接處下面就淡掉（下面不跟著被推），左下角不離開
-    float zj_ = smoothstep(jz_rise.x, jz_rise.y, ys_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
+    float zd_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 1020.0) / 170.0, 0.0, 1.0), 2.0))));   // 銜接處上緣是球形的凸起（中間高、兩側低）
+    float zj_ = smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
     float dA_ = (aside * w * left_boost * lf_ + thrust_j * zj_) * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
     float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
@@ -1408,7 +1410,7 @@ void fragment() {
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
+    float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
     float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 0.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
@@ -1542,7 +1544,7 @@ void fragment() {
             const vec2 oj_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，切口的線才不會變成一個一個的點
             float jraw_ = 0.25 * (texture(jj_tex, jq_ + oj_).a + texture(jj_tex, jq_ - oj_).a + texture(jj_tex, jq_ + vec2(oj_.x, -oj_.y)).a + texture(jj_tex, jq_ + vec2(-oj_.x, oj_.y)).a);
             float js_ = smoothstep(0.38, 0.52, jraw_);   // 裁切邊緣要俐落，不要淡出
-            float jfy_ = jj_from_y + jj_arch * pow(clamp(abs(px.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jj_from_y);   // 裁切起點是一條弧形，不是橫線
+            float jfy_ = jj_from_y + jj_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 1000.0) / 150.0, 0.0, 1.0), 2.0)))) * step(1.0, jj_from_y);   // 裁切起點是一條弧形，不是橫線
             float jw_ = smoothstep(jfy_, jfy_ + 2.0, px.y);
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
@@ -1584,10 +1586,10 @@ void fragment() {
         }
     }
     if (dbg_lines > 0.5 && px.x > 780.0 && px.x < 1200.0 && px.y > 1320.0 && px.y < 1700.0) {   // 除錯：畫出內褲各條裁切／推擠線（按 Delete 開關）
-        float jfyD_ = jj_from_y + jj_arch * pow(clamp(abs(px.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jj_from_y);
+        float jfyD_ = jj_from_y + jj_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 1000.0) / 150.0, 0.0, 1.0), 2.0)))) * step(1.0, jj_from_y);
         float lnR_ = 1.0 - smoothstep(0.0, 2.0, abs(px.y - jfyD_));                         // 紅：雞雞裁內褲的起點（弧形）
-        float lnY_ = max(max(1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_rise.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_rise.y))),
-                         max(1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_fall.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - jz_fall.y))));   // 黃：銜接處推擠範圍
+        float zdD_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 1020.0) / 170.0, 0.0, 1.0), 2.0))));
+        float lnY_ = max(1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.y)));   // 黃：銜接處推擠範圍上緣（球形凸起）
         float lnM_ = 1.0 - smoothstep(0.0, 1.5, abs(px.y - jf_y.y));                         // 紫：黑線（細帶裁切）高度
         c.rgb = mix(c.rgb, vec3(1.0, 0.0, 0.0), lnR_);
         c.rgb = mix(c.rgb, vec3(1.0, 0.9, 0.0), lnY_ * 0.8);
