@@ -1412,7 +1412,7 @@ void fragment() {
     }
     float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
-    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 0.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    float dr = d * (right_follow + 0.04 * hug_ + thrust_r * zj_);   // 右緣只跟一點點：之前貼雞雞那一帶跟 0.5×d（上百 px），銜接處下面的最外側折角就被拉出去一大段，露出皮膚色   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
