@@ -1272,7 +1272,7 @@ uniform float low_fade = 1.0;                // 下半部淡出的程度（拉�
 uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
 uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
 uniform float ed_on = 0.0;
-uniform vec2 jz_rise = vec2(1423.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
+uniform vec2 jz_rise = vec2(1395.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
 uniform vec2 jz_fall = vec2(1535.0, 1595.0);   // 從哪個高度開始漸淡→消失
 uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
 uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
