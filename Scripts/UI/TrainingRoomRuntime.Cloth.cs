@@ -1265,6 +1265,8 @@ uniform float right_follow = 0.05;            // 右邊也會跟著往右移一�
 uniform sampler2D an_tex : filter_linear;   // 肛門圖層的貼圖：撥開時，內褲只在肛門的位置挖一個洞（下半部其他地方完整保留）
 uniform vec2 an_off = vec2(0.0);            // 肛門圖層相對內褲圖層的位移（畫布 px）
 uniform float an_on = 0.0;
+uniform vec2 leg_offr = vec2(0.0);           // 右腿相對內褲的平移（px）：呼吸／擺動時邊緣跟著腿走，不露縫
+uniform vec2 leg_offl = vec2(0.0);           // 左腿相對內褲的平移（px）
 uniform vec2 leg_rot = vec2(0.0);           // 右腿／左腿目前的旋轉（弧度）：內褲和腳交接的地方跟著腳的旋轉做一點變形，才貼得緊
 uniform float low_str = 0.9;                // 肛門那一帶（y≳1540）的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
 uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
@@ -1355,6 +1357,7 @@ void fragment() {
         vec2 vl_ = px - vec2(940.0, 1500.0);
         vec2 dl2_ = vec2(cos(leg_rot.y) * vl_.x - sin(leg_rot.y) * vl_.y, sin(leg_rot.y) * vl_.x + cos(leg_rot.y) * vl_.y) - vl_;
         px -= dr2_ * wr_ + dl2_ * wl_;
+        px -= leg_offr * wr_ + leg_offl * wl_;   // 腿的平移也要跟（之前只跟旋轉，腿呼吸上下動時右上角就露縫）
     }
     {   // 插入時彎曲的部分（斜邊轉成垂直的那個肘）逆時針旋轉：以彎曲處為中心、離中心越遠影響越小
         vec2 pv_ = px - ins_pivot;
@@ -1481,7 +1484,7 @@ void fragment() {
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
     c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_) * (1.0 - edgeNear_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點（邊緣的線不淡化）
-    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(kc_, 0.0, 1.0) * smoothstep(0.15, 0.5, dark_) * (1.0 - edgeNear_) * 0.95);   // 被擠成一條的地方，擠在一起的黑線一律淡掉，不要變成一堆像程式畫的黑線
+    c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), clamp(kc_, 0.0, 1.0) * (1.0 - edgeNear_) * 0.9);   // 被擠成細帶的地方整條用平的布色，不要出現一格一格的橫紋   // 被擠成一條的地方，擠在一起的黑線一律淡掉，不要變成一堆像程式畫的黑線
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1526,7 +1529,7 @@ void fragment() {
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
             // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
-            float jedge_ = (1.0 - smoothstep(0.0, 0.62, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_);
+            float jedge_ = (1.0 - smoothstep(0.0, 0.62, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_) * smoothstep(0.2, 0.8, hug_k);   // 黑線只在插入後才畫，還沒插入時不要把內褲染暗
             c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), jedge_ * 0.9);
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
