@@ -148,6 +148,7 @@ public partial class TrainingRoomRuntime
 
     static readonly string[] _jijiLayers = { "雞雞", "男人肚子", "精液" };
     ShaderMaterial _jijiSemMat;
+    string[] _jijiUniformNames;
     float _glansLen, _glansRamp;   // 龜頭白色暈染：長度（貼圖 px）、淡入進度
     [Export] public float GlansWhiteOuterPx = 130f;   // 外射後：白色暈染從龜頭往下多長（貼圖 px）
     [Export] public float GlansWhiteInnerPx = 270f;   // 內射後：白色暈染的長度（約半個雞雞）
@@ -670,19 +671,25 @@ void fragment() {
             _jijiClipMat.SetShaderParameter("gw_amt", _glansRamp * _semAlpha * 0.85f);
             _jijiClipMat.SetShaderParameter("gw_len", Mathf.Max(_glansLen, 1f));
             _jijiClipMat.SetShaderParameter("gw_from", (_jijiPhase == 3 && _jijiStage >= 1) ? clipLocalY : 1585f);
+            _jijiClipMat.SetShaderParameter("sem_reveal", 1f);
+            _jijiClipMat.SetShaderParameter("sem_pool", _semPool);
+            _jijiClipMat.SetShaderParameter("sem_spread", _semSpread);
+            _jijiClipMat.SetShaderParameter("sem_flow", _semFlow);
             if (_jijiSemMat != null)
             {
-                foreach (var u in _jijiClipMat.Shader.GetShaderUniformList())
-                {
-                    string un = (string)((Godot.Collections.Dictionary)u)["name"];
-                    if (un.StartsWith("sem_")) continue;
-                    _jijiSemMat.SetShaderParameter(un, _jijiClipMat.GetShaderParameter(un));
+                if (_jijiUniformNames == null)
+                {   // 只在第一次列出參數名稱，之後每幀不再配置記憶體（之前每幀重新列表造成很卡）
+                    var names = new System.Collections.Generic.List<string>();
+                    foreach (var u in _jijiClipMat.Shader.GetShaderUniformList())
+                    {
+                        string un = (string)((Godot.Collections.Dictionary)u)["name"];
+                        if (!un.StartsWith("sem_") && !un.StartsWith("gw_")) names.Add(un);
+                    }
+                    _jijiUniformNames = names.ToArray();
                 }
+                foreach (var un in _jijiUniformNames) _jijiSemMat.SetShaderParameter(un, _jijiClipMat.GetShaderParameter(un));
                 _jijiSemMat.SetShaderParameter("sem_on", 1f);
                 _jijiSemMat.SetShaderParameter("sem_reveal", _semReveal);
-                _jijiSemMat.SetShaderParameter("sem_pool", _semPool);
-                _jijiSemMat.SetShaderParameter("sem_spread", _semSpread);
-                _jijiSemMat.SetShaderParameter("sem_flow", _semFlow);
             }
             if (ClipDebug) UpdateClipDebugOverlay(jj, clipLocalY, s2c);
             else if (_clipDebugOverlay != null) _clipDebugOverlay.Visible = false;
@@ -1522,21 +1529,23 @@ void fragment() {
         gm_ *= 1.0 - smoothstep(70.0, 150.0, abs(gp_.x - 998.0)) * 0.6;
         c.rgb = mix(c.rgb, vec3(0.99, 0.98, 0.95), clamp(gm_ * gw_amt, 0.0, 0.92));
     }
-    if (sem_on > 0.5) {   // 內射後雞雞上的精液：從尖端到根部慢慢出現，銜接處先聚集白色，再慢慢暈開、往下流開
+    if (sem_on > 0.5) {   // 內射後雞雞上的精液圖層：從尖端到根部慢慢出現（只改這張圖自己的透明度，不會超出圖的範圍）
         vec2 sq_ = UV / TEXTURE_PIXEL_SIZE;
         float dj_ = sq_.y - junction_px - arch_v * dx * dx / TEXTURE_PIXEL_SIZE.y;   // 銜接線往下的距離
         float rvEnd_ = sem_reveal * (sem_len + 60.0);
         float rv_ = 1.0 - smoothstep(rvEnd_ - 60.0, rvEnd_, dj_ + 30.0);
         c.a *= mix(rv_, 1.0, step(0.999, sem_reveal));
+    } else if (sem_pool > 0.001) {   // 銜接處聚集的白色：只染在雞雞本體已有的像素上（不改透明度），所以不會跑到雞雞外面
+        vec2 sq_ = UV / TEXTURE_PIXEL_SIZE;
+        float dj_ = sq_.y - junction_px - arch_v * dx * dx / TEXTURE_PIXEL_SIZE.y;
         float xw_ = abs(sq_.x - 998.0);
         float wide_ = 1.0 - smoothstep(40.0 + 80.0 * sem_spread, 95.0 + 130.0 * sem_spread, xw_);
         float yc_ = 10.0 + sem_flow * 110.0;
         float sig_ = 16.0 + 70.0 * sem_spread;
         float band_ = exp(-((dj_ - yc_) * (dj_ - yc_)) / (sig_ * sig_)) * smoothstep(-4.0, 3.0, dj_);
         float nz_ = 0.6 + 0.4 * bnoise(vec2(sq_.x, dj_) * (0.05 - 0.03 * sem_spread) + 11.0);
-        float pm_ = clamp(band_ * wide_ * nz_ * sem_pool, 0.0, 1.0);
+        float pm_ = clamp(band_ * wide_ * nz_ * sem_pool, 0.0, 0.9);
         c.rgb = mix(c.rgb, vec3(0.98, 0.97, 0.93), pm_);
-        c.a = max(c.a, pm_ * 0.92);
     }
     if (debug_on > 0.5) {
         // F1「查看裁切範圍」：被裁掉的部分不隱藏，改成半透明紅色顯示
