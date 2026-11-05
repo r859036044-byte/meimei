@@ -140,6 +140,7 @@ public partial class TrainingRoomRuntime
     }
 
     /// <summary>每幀（Cloth.cs UpdateClothBump）：平滑跟隨、把參數推進 shader；不能撥時復原。</summary>
+    bool _mpHugLogged;
     void UpdateMLegPantyAside(float dt)
     {
         if (MPantyLayer is not TextureRect panty) return;
@@ -193,6 +194,10 @@ public partial class TrainingRoomRuntime
         bool hugOn_ = inserted_ || (MPantyKeepShapeAfterPull && _mpKeepShape && _mpA > 0.5f);   // 拔出後內褲還在旁邊時，維持插入時那個形狀
         _mpHug = Mathf.Lerp(_mpHug, hugOn_ ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
+        {   // 除錯：插入狀態改變時印一行，確認新的位移曲線有沒有生效（build 標記 jz-add-1500-1650）
+            bool hugNow_ = _mpHug > 0.5f && _mpA > 0.5f;
+            if (MPantyAsideDebugLog && hugNow_ != _mpHugLogged) { _mpHugLogged = hugNow_; GD.Print($"[MPantyDbg] build=jz-add-1500-1650 插入位移曲線 {(hugNow_ ? "生效中" : "未作用")}（hug={_mpHug:F2} aside={_mpA:F0} jz_mid={MPantyJunctionMidPx:F0}）"); }
+        }
         _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
         _mPantyMat.SetShaderParameter("ins_rot", -Mathf.DegToRad(MPantyInsertRotDeg) * _mpHug);   // 逆時針 = 負；跟著插入狀態平滑漸入
         _mPantyMat.SetShaderParameter("ins_pivot", MPantyInsertRotPivot);
