@@ -34,6 +34,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 1f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
     [Export] public Vector2 MPantyJunctionRise = new Vector2(1423f, 1503f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
     [Export] public Vector2 MPantyJunctionFall = new Vector2(1535f, 1570f);   // 銜接處漸淡消失的高度範圍（畫布 px）
+    [Export] public bool MPantyKeepShapeAfterPull = true;   // 拔出後，內褲還撥在旁邊時維持插入時的形狀（關掉＝拔出後變回一般撥開的樣子）
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -65,7 +66,7 @@ public partial class TrainingRoomRuntime
         MPantyAsideEnabled && _mLegOpen && !_pantyGone && MPantyLayer is TextureRect { Visible: true }
         && _mpA < MPantyAsideMaxPx * MPantyAsideInsertFrac;
 
-    Texture2D _mpEdgeTex; bool _mpEdgeTried; float _mpHug;
+    Texture2D _mpEdgeTex; bool _mpEdgeTried; float _mpHug; bool _mpKeepShape;
     bool _mpDrag, _mpMoved;
     float _mpT, _mpA, _mpStartT, _mpStartLX;
     Vector2 _mpDownScreen;
@@ -162,7 +163,11 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("stretch_center", MPantyStretchCenterY);
         _mPantyMat.SetShaderParameter("stretch_width", MPantyStretchWidth);
         _mPantyMat.SetShaderParameter("thrust_stretch", Mathf.Clamp(thrustUp * MPantyThrustStretch / 250f, 0f, 0.25f));
-        _mpHug = Mathf.Lerp(_mpHug, (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
+        bool inserted_ = _jijiPhase == 3 && _jijiStage >= 1;
+        if (inserted_) _mpKeepShape = true;
+        else if (_mpA < 0.5f) _mpKeepShape = false;   // 內褲被放回去了才恢復成一般撥開的樣子
+        bool hugOn_ = inserted_ || (MPantyKeepShapeAfterPull && _mpKeepShape && _mpA > 0.5f);   // 拔出後內褲還在旁邊時，維持插入時那個形狀
+        _mpHug = Mathf.Lerp(_mpHug, hugOn_ ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
         _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
         _mPantyMat.SetShaderParameter("ins_rot", -Mathf.DegToRad(MPantyInsertRotDeg) * _mpHug);   // 逆時針 = 負；跟著插入狀態平滑漸入
