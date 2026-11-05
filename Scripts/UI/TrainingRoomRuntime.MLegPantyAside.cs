@@ -50,7 +50,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 1f;          // 抽插時內褲整塊往上移的幅度減少多少（1＝不整塊上移；改成以小穴底部為固定點、往上的部分被拉長）
     [Export(PropertyHint.Range, "0,6,0.1")] public float MPantyThrustSpread = 0.4f;        // 抽插時，內褲每往上少移 1px 的推擠量，改成「左邊往右」多撐開幾 px
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustRightFollow = 0.1f;  // 抽插推到最大時，右邊也往右多跟著移（相對左邊被推的量）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowStrength = 0.9f;   // 肛門那一帶的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowStrength = 0.8f;   // 肛門那一帶的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
     [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyLegRotFollow = 1f;          // 內褲和腳交接的地方跟著腳旋轉變形的程度（0＝不變形）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySeamFade = 1f;              // 內褲中間那條黑色縫線，被拉開時淡化的程度（0＝不淡化）
     [Export(PropertyHint.Range, "40,400,1")] public float MPantyAsideMaxReach = 140f;   // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏
