@@ -132,6 +132,12 @@ public partial class TrainingRoomRuntime : Node
     {
         yield return "Backgrounds/bg_LinaiBed_night_room";
         yield return "Backgrounds/bg_LinaiBed_night_bed";
+        // 進房間後才同步載入、之前沒列進預載的貼圖（被子、M 腿內褲邊線／裁切腿、各種游標與小圖示）：一併預載，避免黑屏／進場瞬間卡頓
+        foreach (var extra in new[] {
+            "Backgrounds/bg_LinaiBed_night_duvet_covered", "Backgrounds/bg_LinaiBed_night_duvet_kicked",
+            "Sprites/內褲_M_edge", "Sprites/腿1_M_cut", "Sprites/腿2_M_cut",
+            "Sprites/游標", "Sprites/手圖標", "Sprites/蝴蝶結", "Sprites/pinch_hand", "Sprites/舌頭游標", "Sprites/舌頭2" })
+            yield return extra;
 
         foreach (var layerName in LayerOrder)
         {
