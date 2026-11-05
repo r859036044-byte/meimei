@@ -218,8 +218,14 @@ public partial class TrainingRoomRuntime
                 if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) target = Mathf.Max(target, l.GetIndex());
             if (target >= 0 && an.GetIndex() < target) _charRoot.MoveChild(an, target);
         }
-        else if (Layers.TryGetValue("前髮", out var hair) && hair != null && hair.GetParent() == _charRoot && an.GetIndex() > hair.GetIndex())
-            _charRoot.MoveChild(an, hair.GetIndex());
+        else
+        {   // 不是肛門目標：肛門要放回「雞雞／洞／開1／插入…這一組的最下面」，不能留在雞雞上面。
+            // （以前放回的是「前髮前面」＝雞雞上面，而且只在肛門排在前髮後面時才會動，所以肛門插過一次之後，肛門會一直跑到雞雞上面）
+            int min = int.MaxValue;
+            foreach (var n in new[] { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" })
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot) min = Mathf.Min(min, l.GetIndex());
+            if (min != int.MaxValue && an.GetIndex() > min) _charRoot.MoveChild(an, min);
+        }
     }
 
     void UpdateAnusDeform(float dt)

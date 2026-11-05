@@ -56,8 +56,8 @@ public partial class TrainingRoomRuntime
 
     // ── 拔出後的表情：抖動嘴 2 秒 → 小嘴巴 → 越來越平淡 ──
     [ExportGroup("拔出後表情")]
-    [Export] public string[] PullOutExprSeq  = { "插入1", "插入2", "做愛(半閉)", "舒服" };   // 插入1＝抖動嘴、插入2＝小嘴巴，後面逐漸平淡
-    [Export] public float[]  PullOutExprSecs = { 2f, 3f, 4f };                               // 每個表情維持幾秒（最後一個維持到被別的表情取代）
+    [Export] public string[] PullOutExprSeq  = { "插入1", "插入2" };   // 插入1＝抖動嘴、插入2＝小嘴巴，後面逐漸平淡
+    [Export] public float[]  PullOutExprSecs = { 2f };                               // 每個表情維持幾秒（最後一個維持到被別的表情取代）
     int _pullExprGen;
 
     async System.Threading.Tasks.Task PullOutExprSeqAsync()
