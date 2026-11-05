@@ -69,6 +69,10 @@ public partial class MainMenuRuntime : Control
 
     async Task LogoIntro(CancellationToken ct = default)
     {
+        // Logo 出現的這段本來就要等：先在背景把調教室的貼圖／場景預載，之後進調教室的黑屏就短很多
+        foreach (var relPath in TrainingRoomRuntime.GetPreloadSpritePaths())
+            ResourceHelper.PreloadTexAny(relPath);
+        ResourceLoader.LoadThreadedRequest("res://Scenes/TrainingRoom.tscn");
         SetActive(_logoPanel, true);
         SetActive(_mainPanel, false);
 
