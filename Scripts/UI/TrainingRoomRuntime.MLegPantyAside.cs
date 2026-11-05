@@ -27,10 +27,12 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.22f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
+    [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0.9f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
+    [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 14f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 0.8f;          // 抽插時內褲往上的幅度減少多少（0.8＝減少 80%；原本 60%，再少一半只剩 20%）
-    [Export(PropertyHint.Range, "0,6,0.1")] public float MPantyThrustSpread = 2.5f;        // 抽插時，內褲每往上少移 1px 的推擠量，改成「左邊往右」多撐開幾 px
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustRightFollow = 0.3f;  // 抽插推到最大時，右邊也往右多跟著移（相對左邊被推的量）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 1f;          // 抽插時內褲整塊往上移的幅度減少多少（1＝不整塊上移；改成以小穴底部為固定點、往上的部分被拉長）
+    [Export(PropertyHint.Range, "0,6,0.1")] public float MPantyThrustSpread = 0.9f;        // 抽插時，內褲每往上少移 1px 的推擠量，改成「左邊往右」多撐開幾 px
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustRightFollow = 0.1f;  // 抽插推到最大時，右邊也往右多跟著移（相對左邊被推的量）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowStrength = 0.9f;   // 肛門那一帶的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
     [Export(PropertyHint.Range, "0,2,0.05")] public float MPantyLegRotFollow = 1f;          // 內褲和腳交接的地方跟著腳旋轉變形的程度（0＝不變形）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySeamFade = 1f;              // 內褲中間那條黑色縫線，被拉開時淡化的程度（0＝不淡化）
@@ -129,10 +131,12 @@ public partial class TrainingRoomRuntime
         // 抽插時：內褲往上的幅度已經減少 MPantyThrustCut，改成往右撐開——左邊往右（aside 加大）、右邊往右（right_follow 加大）都擴大
         float thrustUp = MLegThrustOffset.TryGetValue("m腿/小穴", out var tOff) ? Mathf.Max(0f, -tOff.Y) : 0f;
         float thrust01 = Mathf.Clamp(thrustUp / 30f, 0f, 1f);
-        float asideEff = _mpA > 0.5f ? Mathf.Min(_mpA + MPantyThrustSpread * thrustUp * MPantyThrustCut, MPantyAsideMaxPx * 1.5f) : _mpA;   // 少往上的 60% 幅度，換成多往右撐開的 px
+        float asideEff = _mpA > 0.5f ? Mathf.Min(_mpA + MPantyThrustSpread * thrustUp * MPantyThrustCut, MPantyAsideMaxPx * 1.2f) : _mpA;   // 少往上的 60% 幅度，換成多往右撐開的 px
         _mPantyMat.SetShaderParameter("aside", asideEff);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow + MPantyThrustRightFollow * thrust01 * (_mpA > 0.5f ? 1f : 0f));
         _mPantyMat.SetShaderParameter("line_steep", MPantyAsideSteepLine);
+        _mPantyMat.SetShaderParameter("thrust_stretch", Mathf.Clamp(thrustUp * MPantyThrustStretch / 250f, 0f, 0.25f));
+        _mPantyMat.SetShaderParameter("hook_px", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHookPx : 0f);
         if (!_mpEdgeTried) { _mpEdgeTried = true; _mpEdgeTex = ResourceHelper.LoadTexAny("Sprites/內褲_M_edge"); }   // 邊線貼圖（載不到就用備用的即時偵測）
         _mPantyMat.SetShaderParameter("ed_tex", _mpEdgeTex);
         _mPantyMat.SetShaderParameter("ed_on", _mpEdgeTex != null ? 1f : 0f);

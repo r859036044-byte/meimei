@@ -1436,6 +1436,14 @@ void fragment() {
         halo *= 0.6 + 0.4 * bnoise(vec2(hp.x, hd) * 0.03);
         c.rgb = mix(c.rgb, vec3(0.95, 0.25, 0.30), halo * 0.22 * flush_amt);
     }
+    {
+        // 入口的接觸陰影：雞雞從入口往下一小段稍微變暗、漸層消失（像是從裡面冒出來的，不是貼上去的另一張圖）
+        vec2 sp_ = UV / TEXTURE_PIXEL_SIZE;
+        float sd_ = sp_.y - junction_px - arch_v * dx * dx / TEXTURE_PIXEL_SIZE.y;
+        float sh_ = (1.0 - smoothstep(0.0, 80.0, sd_)) * smoothstep(-6.0, 6.0, sd_);
+        sh_ *= 1.0 - smoothstep(70.0, 150.0, abs(sp_.x - 998.0));
+        c.rgb *= 1.0 - 0.16 * sh_ * flush_amt;
+    }
     if (debug_on > 0.5) {
         // F1「查看裁切範圍」：被裁掉的部分不隱藏，改成半透明紅色顯示
         c.rgb = mix(vec3(1.0, 0.15, 0.15), c.rgb, keep);
