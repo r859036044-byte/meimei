@@ -40,6 +40,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float MPantyAnusBulge = 0.3f;   // 插入肛門時，肛門附近的內褲跟著肛門往外凸的程度（0＝不凸）
     [Export] public Vector2 MPantyAnusCenter = new Vector2(1003f, 1600f);   // 肛門中心（內褲圖座標 px）
     [Export] public float MPantyAnusBulgeR = 70f;   // 凸起範圍半徑（px）
+    [Export] public float MPantyCutCurvePx = 90f;   // 銜接處細帶下端的弧形裁切：左邊比右邊低多少 px（越大越彎）
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -167,6 +168,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("anus_c", MPantyAnusCenter);
         _mPantyMat.SetShaderParameter("anus_r", MPantyAnusBulgeR);
         _mPantyMat.SetShaderParameter("jf_y", MPantyJunctionFadeY);
+        _mPantyMat.SetShaderParameter("jf_curve", MPantyCutCurvePx);
         _mPantyMat.SetShaderParameter("jf_str", _jijiAnus ? 0f : MPantyJunctionFadeStr);
         _mPantyMat.SetShaderParameter("corner_push", _jijiAnus ? 0f : MPantyCornerPush);
         _mPantyMat.SetShaderParameter("low_hide", _jijiAnus ? 0f : MPantyInsertHideLow);

@@ -1277,6 +1277,7 @@ uniform float ed_on = 0.0;
 uniform vec2 jz_rise = vec2(1395.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
 uniform vec2 jz_fall = vec2(1535.0, 1595.0);   // 從哪個高度開始漸淡→消失
 uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
+uniform float jf_curve = 90.0;                 // 裁切線的弧度（左邊比右邊低多少 px）
 uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
 uniform float anus_bulge = 0.0;             // 插入肛門時肛門附近內褲往外凸的程度（0～0.5）
 uniform vec2 anus_c = vec2(1003.0, 1600.0);   // 肛門中心（內褲圖座標）
@@ -1537,7 +1538,8 @@ void fragment() {
         }
     }
     {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
-        float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
+        float tl_ = 1.0 - smoothstep(1000.0, 1135.0, px.x);
+        float yl_ = jf_y.y + jf_curve * tl_ * tl_;   // 圓弧形切口：左邊低、往右彎上去收進右緣
         float jk_ = max(hug_k, jj_on * step(0.5, aside));   // 雞雞出現（還沒插入）時也要裁，不只插入後
         float cutJ_ = jk_ * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * (1.0 - smoothstep(yl_ + 110.0, yl_ + 150.0, px.y)) * smoothstep(1000.0, 1040.0, px.x);   // 只裁黑線往下約110px，更下面的內褲不裁
         float aPJ_ = c.a;
