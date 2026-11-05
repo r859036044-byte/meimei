@@ -25,7 +25,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0f;   // 褶皺（陰影／亮面）濃度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideRightFollow = 0.025f;  // 右邊跟著往右移多少（相對左邊被推的量；0＝右邊完全固定，只要一點點）
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideCreaseFrac = 0.22f;  // 右側黑色摺線的位置（從右緣往左，佔壓縮寬度的比例）
-    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.22f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.12f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
     [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0.9f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
     [Export] public float MPantyStretchCenterY = 1432f;   // （已停用）   // 抽插變形最大的高度（畫布 px）＝雞雞和插入銜接處
@@ -38,7 +38,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideArcPeak = 1528.5f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
     [Export(PropertyHint.Range, "0,45,0.5")] public float MPantyInsertRotDeg = 15f;   // 插入時彎曲的部分逆時針旋轉幾度
-    [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1530f);        // 旋轉中心（內褲圖座標 px）
+    [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1522f);        // 旋轉中心（內褲圖座標 px）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 0.6f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
