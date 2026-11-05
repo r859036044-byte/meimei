@@ -1308,9 +1308,13 @@ uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變�
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
+uniform vec2 rv_y = vec2(1396.0, 1436.0);      // 右邊黑線往上延伸：上端（接到腿的深紅輪廓）、下端（接到原本虛線）的高度（畫布 px）
+uniform float rv_in = 15.0;
+uniform float rv_slope = 0.84;                // 往上時向內（往左）折的斜率（px／px；0＝垂直，越大越斜）                    // 這條線離內褲右緣往內多少 px
+uniform float rv_k = 1.0;                     // 濃度（0＝不畫）
 uniform vec2 rline = vec2(2040.22, -0.6682);   // 右邊黑線補畫：大腿輪廓直線 x＝rline.x＋rline.y×y（畫布 px，從 腿1_M_cut 的左緣量出來）
 uniform vec2 rline_y = vec2(1320.0, 1420.0);   // 補畫的起訖高度（畫布 px）：上緣到夾角
-uniform float rline_k = 1.0;                  // 補畫的濃度（0＝不補）
+uniform float rline_k = 0.0;                  // 補畫的濃度（0＝不補）
 uniform vec2 ext_a = vec2(1081.0, 1374.0);   // 中間黑線往上補畫：起點（弧線原本的上端，畫布 px）
 uniform vec2 ext_b = vec2(1072.0, 1363.0);   // 補畫的終點（內褲上緣）
 uniform float ext_k = 0.0;                    // 補畫的濃度（0＝不補）
@@ -1712,6 +1716,14 @@ void fragment() {
         float yk6_ = smoothstep(rline_y.x - 3.0, rline_y.x + 6.0, pj6_.y) * (1.0 - smoothstep(rline_y.y - 4.0, rline_y.y, pj6_.y));
         float k6_ = (1.0 - smoothstep(0.8, 2.2, abs(pj6_.x - xe6_))) * yk6_ * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * 0.0;   // 舊的固定座標版已停用（改用腿遮罩左緣）
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), k6_ * 0.9);
+    }
+    {   // 窄帶右邊那條黑線（下面一段一段的虛線）往上延伸：沿著內褲右緣（redge0_）往上畫，一直接到右上角腿的深紅輪廓線（約 y 1384）；中間原本透出膚色的地方也用這條線連起來
+        float ytop_ = rv_y.x, ybot_ = rv_y.y;
+        float yk8_ = smoothstep(ytop_ - 4.0, ytop_ + 3.0, px.y) * (1.0 - smoothstep(ybot_ - 6.0, ybot_ + 4.0, px.y));
+        float xl8_ = redge0_ - rv_in - rv_slope * (ybot_ - px.y);   // 內褲右緣（往上會往右偏）再扣掉 rv_slope：往上改成往左（向內）折，跟左邊那條弧線一樣
+        float k8_ = (1.0 - smoothstep(0.8, 2.3, abs(px.x - xl8_))) * yk8_ * smoothstep(1.0, 20.0, aside) * rv_k;
+        c.rgb = mix(c.rgb, vec3(0.42, 0.25, 0.27), k8_ * 0.95);
+        c.a = max(c.a, k8_ * 0.95);
     }
     COLOR = c * vc;
 }
