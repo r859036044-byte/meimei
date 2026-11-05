@@ -1,11 +1,11 @@
 using Godot;
 
 /// <summary>
-/// 除錯用：遊戲裡按 F6／F7／F8 逐項關掉／打開最近加的內褲效果，畫面左上會顯示目前狀態，
+/// 除錯用：遊戲裡按 Insert／Home／End 逐項關掉／打開最近加的內褲效果，畫面左上會顯示目前狀態，
 /// 用來找出「右上角被切掉露出皮膚」、「細帶梳子紋」是哪一項造成的（不用進 Inspector 調數字）。
-///   F6：內褲邊緣跟著腿平移（MPantyLegOffFollow）
-///   F7：銜接處往右下角推擠（MPantyCornerPush）
-///   F8：雞雞裁切內褲（MPantyJijiClip）
+///   Insert：內褲邊緣跟著腿平移（MPantyLegOffFollow）
+///   Home：銜接處往右下角推擠（MPantyCornerPush）
+///   End：雞雞裁切內褲（MPantyJijiClip）
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -16,17 +16,17 @@ public partial class TrainingRoomRuntime
     bool PantyDebugKeys(InputEvent e)
     {
         if (e is not InputEventKey k || !k.Pressed || k.Echo) return false;
-        if (k.Keycode == Key.F6)
+        if (k.Keycode == Key.Insert)
         {
             _pdLegOff = !_pdLegOff;
             if (_pdLegOff) { _pdSavedLeg = MPantyLegOffFollow; MPantyLegOffFollow = 0f; } else MPantyLegOffFollow = _pdSavedLeg;
         }
-        else if (k.Keycode == Key.F7)
+        else if (k.Keycode == Key.Home)
         {
             _pdCornerOff = !_pdCornerOff;
             if (_pdCornerOff) { _pdSavedCorner = MPantyCornerPush; MPantyCornerPush = 0f; } else MPantyCornerPush = _pdSavedCorner;
         }
-        else if (k.Keycode == Key.F8) MPantyJijiClip = !MPantyJijiClip;
+        else if (k.Keycode == Key.End) MPantyJijiClip = !MPantyJijiClip;
         else return false;
         PdShow();
         return true;
@@ -42,7 +42,7 @@ public partial class TrainingRoomRuntime
             _pdLabel.AddThemeFontSizeOverride("font_size", 18);
             parent.AddChild(_pdLabel);
         }
-        _pdLabel.Text = $"F6 跟腿平移：{(_pdLegOff ? "關" : "開")}   F7 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   F8 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}";
+        _pdLabel.Text = $"Insert 跟腿平移：{(_pdLegOff ? "關" : "開")}   Home 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   End 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}";
         var tw = CreateTween();
         _pdLabel.Modulate = Colors.White;
         tw.TweenInterval(4f);
