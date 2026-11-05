@@ -1776,14 +1776,18 @@ void fragment() {
         c.rgb = mix(c.rgb, vec3(0.42, 0.25, 0.27), k8_ * 0.95);
         c.a = max(c.a, k8_ * 0.95);
     }
-    {   // 最右邊那條線中間斷掉的一段：腿的深紅輪廓畫到夾角就停，下面窄帶右邊的虛線是分開的——在兩者之間補一小段線連起來（從深紅輪廓的終點，斜往右下接到虛線上端）
-        vec2 sb_ = seg_b;   // 下端：窄帶右邊那條線斷掉的地方（畫布 px）——從這裡把這條線一路往上加長，不另外畫第二條
-        float st_ = clamp((sb_.y - px.y) / max(1.0, seg_len), 0.0, 1.0);          // 0＝下端、1＝上端（內褲上緣）
-        float sxl_ = sb_.x - seg_curve * seg_len * st_ * st_;                     // 彎曲：下端垂直、越往上越往內（左）彎，跟左邊那條弧線一樣
-        float ssl_ = 2.0 * seg_curve * st_;                                       // 目前的斜率，用來把橫向距離換成垂直距離
-        float sd_ = abs(px.x - sxl_) / sqrt(1.0 + ssl_ * ssl_);
-        float syk_ = smoothstep(sb_.y - seg_len - 1.0, sb_.y - seg_len + 1.0, px.y) * (1.0 - smoothstep(sb_.y - 0.5, sb_.y + 1.5, px.y));
-        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(seg_fade, 1.0, st_));   // 上端（末端）逐漸淡化
+    {   // 窄帶右邊那條線往上加長：畫成橢圓弧，位置＝「內褲右緣 redge0_」往內 e(ys_) px，所以會跟內褲的位移（拉開量、插入程度）一起走；再用腿的遮罩裁切（不會畫到大腿上）。
+        // 最後位置（拉開 150、插入）：畫布 (1116,1414) 沿橢圓弧彎到 (1100,1370)。e 是這條弧相對內褲右緣的距離，對應內褲圖來源列 ys_：
+        float u_ = clamp((1416.7 - ys_) / 45.3, 0.0, 1.0);
+        float eS_ = u_ < 0.25 ? mix(4.8, 10.4, u_ / 0.25)
+                  : u_ < 0.50 ? mix(10.4, 18.3, (u_ - 0.25) / 0.25)
+                  : u_ < 0.75 ? mix(18.3, 29.5, (u_ - 0.50) / 0.25)
+                              : mix(29.5, 49.2, (u_ - 0.75) / 0.25);
+        float sd_ = abs(px.x - (redge0_ - eS_)) / 1.3;   // 弧線斜的，換成垂直線距的近似
+        float syk_ = smoothstep(1370.4, 1372.4, ys_) * (1.0 - smoothstep(1415.7, 1417.7, ys_));
+        vec2 lq9_ = (lg_x * (UV.x * cl_size.x) + lg_y * (UV.y * cl_size.y) + lg_o) / vec2(2000.0, 3200.0);
+        float legA_ = (lg_on > 0.5 && lq9_.x >= 0.0 && lq9_.x <= 1.0 && lq9_.y >= 0.0 && lq9_.y <= 1.0) ? texture(leg_tex, lq9_).a : 0.0;
+        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(seg_fade, 1.0, u_)) * (1.0 - smoothstep(0.3, 0.65, legA_));   // 上端淡化＋被腿的遮罩裁切
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
     }
