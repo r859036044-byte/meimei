@@ -415,13 +415,21 @@ public partial class FaceExpressionController : Node
     public void SetBrowForm(BrowForm form, bool instant = false)
     {
         _browForm = form;
-        _browTiltTgt = form switch
+        float tilt = form switch
         {
             BrowForm.Angry or BrowForm.AngryFlip     =>  1f,
             BrowForm.Worried or BrowForm.WorriedFlip => -1f,
             _ => 0f,
         };
-        _browFlipTgt = form is BrowForm.Frown or BrowForm.AngryFlip or BrowForm.WorriedFlip;
+        SetBrowPose(tilt, form is BrowForm.Frown or BrowForm.AngryFlip or BrowForm.WorriedFlip, instant);
+    }
+
+    /// <summary>連續版：tilt＝-1（煩惱 4／6）~ 0（初始 1／2）~ +1（生氣 3／5），flip＝上下反轉（2／5／6 那一邊）。
+    /// 在 1↔4 或 2↔6 之間的任何程度都可以，眉毛會慢慢追過去。</summary>
+    public void SetBrowPose(float tilt, bool flip, bool instant = false)
+    {
+        _browTiltTgt = Mathf.Clamp(tilt, -1f, 1f);
+        _browFlipTgt = flip;
         if (instant)
         {
             _browTiltCur = _browTiltTgt;
