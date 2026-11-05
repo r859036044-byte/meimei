@@ -32,6 +32,7 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
     [Export] public float MPantyAsideArcPeak = 1528.5f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 0.3f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 1f;          // 抽插時內褲整塊往上移的幅度減少多少（1＝不整塊上移；改成以小穴底部為固定點、往上的部分被拉長）
@@ -42,7 +43,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantySeamFade = 1f;              // 內褲中間那條黑色縫線，被拉開時淡化的程度（0＝不淡化）
     [Export(PropertyHint.Range, "40,400,1")] public float MPantyAsideMaxReach = 140f;   // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideOutline = 1f;   // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
-    [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.4f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
+    [Export(PropertyHint.Range, "0.5,2,0.01")] public float MPantyAsideLeftBoost = 1.6f;   // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegRelax = 0f;   // 撥開時右上角被大腿切進內褲的部分往回讓多少（0.005≈10px）
     [Export(PropertyHint.Range, "0,0.02,0.0005")] public float MPantyAsideLegGrow = 0.004f; // 撥開時大腿輪廓再往左多裁一點（0.004≈8px）
     [Export] public Vector2 MPantySlashY  = new Vector2(1400f, 1470f);   // 右上歪進來的黑線：起訖高度（畫布 px）
@@ -145,6 +146,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("thrust_stretch", Mathf.Clamp(thrustUp * MPantyThrustStretch / 250f, 0f, 0.25f));
         _mpHug = Mathf.Lerp(_mpHug, (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
+        _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
         _mPantyMat.SetShaderParameter("hook_px", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHookPx : 0f);
         if (!_mpEdgeTried) { _mpEdgeTried = true; _mpEdgeTex = ResourceHelper.LoadTexAny("Sprites/內褲_M_edge"); }   // 邊線貼圖（載不到就用備用的即時偵測）
         _mPantyMat.SetShaderParameter("ed_tex", _mpEdgeTex);

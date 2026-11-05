@@ -29,10 +29,10 @@ public partial class TrainingRoomRuntime
     [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 15f;   // 勃起度 < 這個就軟掉
-    [Export(PropertyHint.Range, "0,30,0.1")] public float ErectGain = 6f;       // 有任何互動時每秒增加的勃起度（黃條，基礎；再乘上連續動作的加速倍率）
+    [Export(PropertyHint.Range, "0,30,0.1")] public float ErectGain = 3f;       // 有任何互動時每秒增加的勃起度（黃條，基礎；再乘上連續動作的加速倍率）
     [Export(PropertyHint.Range, "0,30,0.1")] public float ErectDecay = 2f;      // 停手超過 ErectHoldSec 之後每秒下降（最低降到「自然上升的底」）
     [Export(PropertyHint.Range, "0,10,0.1")] public float ErectHoldSec = 4f;  // 停手後先撐這麼久才開始下降（操控內褲、動作之間短暫停頓不會掉）
-    [Export(PropertyHint.Range, "0,10,0.1")] public float ErectSeeGain = 1.5f;   // 「看到」的加成：每 1 單位看到的程度（小穴／胸／衣服被拉開、掰腿、內褲撥開…）每秒多增加多少（沒蓋被子時）
+    [Export(PropertyHint.Range, "0,10,0.1")] public float ErectSeeGain = 0.75f;   // 「看到」的加成：每 1 單位看到的程度（小穴／胸／衣服被拉開、掰腿、內褲撥開…）每秒多增加多少（沒蓋被子時）
     [Export(PropertyHint.Range, "0,40,1")] public float ErectSeeCap = 15f;      // 「看到」的程度每多 1，自然上升的底最高再多多少
     [Export(PropertyHint.Range, "0,1,0.05")] public float ErectPrepW = 0.6f;    // 只是準備插入（雞雞出現／靠近／停在入口）時，勃起度上升的權重（它也算在操控，不會軟掉）
     [Export(PropertyHint.Range, "0,2,0.05")] public float ErectWBreast = 0.5f;  // 只在摸胸／乳頭時的上升權重（加成太快就調小）
@@ -41,7 +41,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,2,0.05")] public float ErectWThrust = 1.2f;  // 抽插的上升權重
     [Export(PropertyHint.Range, "0.02,0.3,0.01")] public float ErectSeeHemMax = 0.10f;   // 裙擺拉起到多少（V）算「完全看到」
     [Export(PropertyHint.Range, "0.02,0.5,0.01")] public float ErectSeeStretchMax = 0.15f;   // 上衣往下拉到多少（V）算「完全看到」
-    [Export(PropertyHint.Range, "0,5,0.05")] public float ErectIdleGain = 0.5f; // 沒蓋被子時，不做任何事也會慢慢增加的底（每秒）
+    [Export(PropertyHint.Range, "0,5,0.05")] public float ErectIdleGain = 0.25f; // 沒蓋被子時，不做任何事也會慢慢增加的底（每秒）
     [Export(PropertyHint.Range, "0,100,1")] public float ErectIdleMax = 45f;    // 自然增加的底最多到這
     [Export(PropertyHint.Range, "0,10,0.1")] public float ErectBoostMax = 3f;   // 連續動作的加速倍率上限（每秒增加量 ×(1+倍率)）
     [Export(PropertyHint.Range, "0,5,0.05")] public float ErectBoostRise = 0.6f; // 連續動作時加速倍率每秒增加多少（越做越快）
