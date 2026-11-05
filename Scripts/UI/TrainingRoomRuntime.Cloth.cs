@@ -1418,7 +1418,7 @@ void fragment() {
     float xz_ = 0.0;
     {   // 插入時：在原本（撥開）的位移之上再「疊加」額外向右的位移，最高 jz_mid（px）
         // 曲線（y 為畫布 px）：1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0（上下各用一段 smoothstep，沒有台階，邊緣才不會有凸起）
-        float wz_ = hug_k * smoothstep(1350.0, 1450.0, ys_) * (1.0 - smoothstep(1500.0, 1580.0, ys_)) * step(0.5, aside);
+        float wz_ = hug_k * smoothstep(1300.0, 1450.0, ys_) * (1.0 - smoothstep(1500.0, 1580.0, ys_)) * step(0.5, aside);
         d += jz_mid * wz_;
         xz_ = jz_mid * wz_;   // 右緣也一起平移同樣的量（整條帶子往右滑，不是只推左緣把布壓扁）
     }
