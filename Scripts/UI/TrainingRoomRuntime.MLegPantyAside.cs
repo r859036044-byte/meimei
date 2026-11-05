@@ -31,7 +31,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyStretchCenterY = 1432f;   // （已停用）   // 抽插變形最大的高度（畫布 px）＝雞雞和插入銜接處
     [Export] public float MPantyStretchWidth = 90f;       // 變形範圍（高度方向）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyInsertHideLow = 1f;   // 插入時小穴底部以下多出來的一節內褲隱藏程度（0＝不藏）
-    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 0f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 1f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
     [Export] public Vector2 MPantyJunctionRise = new Vector2(1300f, 1500f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
     [Export] public Vector2 MPantyJunctionFall = new Vector2(1500f, 1550f);   // 銜接處漸淡消失的高度範圍（畫布 px）
     [Export] public bool MPantyKeepShapeAfterPull = false;   // 拔出後，內褲還撥在旁邊時維持插入時的形狀（關掉＝拔出後變回一般撥開的樣子）
