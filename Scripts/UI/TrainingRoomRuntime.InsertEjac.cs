@@ -396,6 +396,8 @@ void fragment() {
     int   _holeBloodDrips;                  // 這次破處洞口已經滲出的血滴數
     [Export] public int HoleBloodDripMax = 8;   // 洞口滲血的總數上限（雞雞上的血會自己淡掉，不設限）
     float _bloodSeed;
+    float _bleedT;                                      // 破處後流血已經過了幾秒
+    [Export] public float BleedStopSec = 60f;           // 破處後流血持續幾秒，超過就不再流血／滲血
 
     /// <summary>突破時呼叫：還是處女 → 破處（PlayerDataManager.TriggerVirginityLoss），開始流血。</summary>
     void OnBreakthroughBleed()
@@ -403,7 +405,7 @@ void fragment() {
         var pdm = PlayerDataManager.Instance;
         if (pdm == null || !pdm.IsVirgin) { _firstTimeBleeding = false; _bleedActive = false; return; }   // 已不是處女：不再觸發
         pdm.TriggerVirginityLoss();
-        _firstTimeBleeding = true; _bleedActive = true;
+        _firstTimeBleeding = true; _bleedActive = true; _bleedT = 0f;
         _bloodSeed = Rf(0f, 100f);   // 每次破處血痕分布都不同
         _jijiBlood = Mathf.Max(_jijiBlood, 0.35f);
         _jijiBloodBlur = 0f;
@@ -551,6 +553,11 @@ void fragment() {
     /// <summary>每幀：破處後抽插時雞雞越來越沾血，偶爾洞口再滲一點血。</summary>
     void UpdateBleeding(float dt)
     {
+        if (_bleedActive)
+        {
+            _bleedT += dt;
+            if (_bleedT >= BleedStopSec) { _bleedActive = false; GD.Print("[Jiji] 流血結束（已滿 " + BleedStopSec + " 秒）"); }
+        }
         if (!_bleedActive || _jijiPhase != 3 || _jijiStage < 1) return;
         bool thrusting = !_s2Paused && !_pullOutAnim;
         if (thrusting) _jijiBlood = Mathf.Min(1f, _jijiBlood + JijiBloodGainPerSec * dt * (0.5f + _s2Sin));
