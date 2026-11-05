@@ -1647,8 +1647,10 @@ void fragment() {
         // 這個像素的右邊 ~90px（取圖來源）內真的有深色黑線，才算「黑線左邊」，才不被大腿裁切；黑線右邊沒有黑線了，留在大腿下面。
         float rd_ = 0.0;
         for (int i = 0; i < 12; i++) {
-            vec4 ts_ = texture(TEXTURE, vec2((xs + float(i) * 8.0) / 2000.0, ys_ / 3200.0));
-            rd_ = max(rd_, ts_.a * smoothstep(0.30, 0.60, 1.0 - dot(ts_.rgb, vec3(0.3333))));
+            for (int j = -2; j <= 2; j++) {   // 上下也各取幾列取最大：被壓扁的內褲上，橫向的線稿每隔幾列才有一條，只取一列會一行有一行沒有，變成橫條紋露出膚色（破圖）
+                vec4 ts_ = texture(TEXTURE, vec2((xs + float(i) * 8.0) / 2000.0, (ys_ + float(j) * 6.0) / 3200.0));
+                rd_ = max(rd_, ts_.a * smoothstep(0.30, 0.60, 1.0 - dot(ts_.rgb, vec3(0.3333))));
+            }
         }
         float rin_ = rd_ * smoothstep(960.0, 1000.0, pj_.x);   // 只有右半邊的黑線才保留；左邊腰帶尖端那條線要被大腿裁掉（不然會殘留在腳上）
         lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_;
@@ -1663,7 +1665,9 @@ void fragment() {
             // 撥開後右腿邊那一段（約 y 1430~1545）：窄帶被腿輪廓裁掉的地方會露出腿的膚色 → 這裡減弱腿的裁切，讓白色布蓋住膚色（右緣黑線 rin_ 照舊保留）
             float cover_ = smoothstep(cover_y0, cover_y0 + 25.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover * (1.0 - smoothstep(redge0_ - cover_in, redge0_ - cover_in + 12.0, px.x));   // 右邊只補到「中間那條黑線」為止（離右緣 cover_in px），線右邊的大腿照常裁切，不要多出白色
             float upK_ = (1.0 - smoothstep(1385.0, 1425.0, pj_.y)) * cover_top;   // 夾角上端：只留黑線
-            float coverA_ = cover_ * mix(1.0, dk_, upK_);
+            // 夾角上端：不要讓內褲左邊那條弧線穿到腿外面（會形成 X 形的角）；只讓最右邊（內褲右緣 redge0_ 附近）那條黑線透出來，往上接到腿的輪廓
+            float rightLine_ = dk_ * smoothstep(redge0_ - 12.0, redge0_ - 6.0, px.x) * smoothstep(1330.0, 1370.0, pj_.y) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * leg_cover;
+            float coverA_ = max(cover_ * (1.0 - upK_), rightLine_ * upK_);
             float aBefore_ = c.a;
             c.a *= 1.0 - la_ * lw_ * (1.0 - coverA_);   // 順著 M 腿的輪廓裁切
             {   // 窄帶範圍內（開口左緣 hb ~ 右緣 redge0_）如果還是透出腿的膚色（沒有布），直接補一層白色布
