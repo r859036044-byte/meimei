@@ -34,6 +34,7 @@ public partial class TrainingRoomRuntime
     /// <summary>Phase 2：點 B 衝到的位置微調，單位是「螢幕 px」（正＝往下）。
     /// 之前是用角色畫布 px（角色整體縮小到 31.5%），使用者說往下 10px 實際畫面上只動了 3px 左右，
     /// 看起來像沒動；改成螢幕 px，執行時自動換算成畫布 px。使用者累計要求 10+15+20 ＝ 45。</summary>
+    [Export] public float JijiBellyOffsetX = -1f;   // 男人肚子（雞雞的肚子）單獨左右微調（畫布 px，負＝向左）
     [Export] public Vector2 JijiPhase2Offset     = new Vector2(7f, 51f);   // X：男人肚子＋雞雞往右 3 → 5；Y：45 → 47 → 49 → 51
     /// <summary>雞雞（連同精液）以底部為錨點的旋轉角度（度，Godot 正＝順時針；-1.5 ＝ 逆時針 1.5 度）。</summary>
     [Export] public float   JijiRotationDeg      = -1.5f;
@@ -580,7 +581,7 @@ void fragment() {
         foreach (var n in _jijiLayers)
         {
             if (!Layers.TryGetValue(n, out var c) || c == null) continue;
-            if (_layerBasePos.TryGetValue(n, out var bp)) c.Position = bp + off;
+            if (_layerBasePos.TryGetValue(n, out var bp)) c.Position = bp + off + (n == "男人肚子" ? new Vector2(JijiBellyOffsetX, 0f) : Vector2.Zero);
             c.Modulate = new Color(1f, 1f, 1f, _jijiAlpha);
             if (n == "精液") c.Visible = _jijiSemenShown;
             // 雞雞／精液：以雞雞底部中央為錨點微旋轉（男人肚子不轉）
