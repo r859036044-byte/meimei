@@ -1283,6 +1283,8 @@ uniform float arc_mix = 1.0;                // 1＝完全用月牙（橢圓）�
 uniform float ins_rot = 0.0;               // 插入時彎曲處（肘）繞 ins_pivot 旋轉的角度（弧度；負＝逆時針）
 uniform vec2 ins_pivot = vec2(1020.0, 1520.0);   // 彎曲處的中心（內褲圖座標 px）
 uniform float ins_left = 0.3;              // 插入後左邊再往右多推的比例（乘上 hug_k 的平滑插入狀態）
+uniform float low_hide = 1.0;               // 插入時小穴底部以下那一節內褲的隱藏程度（0＝不藏）
+uniform float corner_push = 1.0;            // 插入後入口附近的內褲被推到右下角的程度（0＝不推）
 uniform float hug_k = 0.0;                  // 插入後：入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼；平滑漸入）
 uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
 uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
@@ -1376,6 +1378,10 @@ void fragment() {
     {   // 弧形的勾：入口高度（約 y 1555）的推動量多一個平滑的凸起，邊界在那裡往右彎出一個弧形，像勾住雞雞
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
+    }
+    {   // 插入後：雞雞和小穴銜接處（入口附近）多出來的那一塊內褲，整個推擠到右下角（窄窄一條貼在雞雞右緣），不擋在雞雞前面
+        float kc_ = hug_k * corner_push * smoothstep(1420.0, 1500.0, ys_) * (1.0 - smoothstep(1585.0, 1625.0, ys_));
+        d = mix(d, max(d, wd * 0.92), kc_);
     }
     float dr = d * (right_follow + 0.5 * hug_);   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
@@ -1510,6 +1516,7 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
+    c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
         vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);
