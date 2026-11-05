@@ -210,12 +210,20 @@ public partial class TrainingRoomRuntime
         {   // 腳的旋轉（右腿＝腿1、左腿＝腿2）：交接處的內褲跟著轉
             float rotR = Layers.TryGetValue("m腿/腿1", out var lg1) && lg1 != null ? Mathf.DegToRad(lg1.RotationDegrees) : 0f;
             float rotL = Layers.TryGetValue("m腿/腿2", out var lg2) && lg2 != null ? Mathf.DegToRad(lg2.RotationDegrees) : 0f;
-            _mPantyMat.SetShaderParameter("leg_rot", new Vector2(rotR, rotL) * MPantyLegRotFollow);
-            Vector2 pOff = _layerBasePos.TryGetValue("m腿/內褲", out var pbp) ? panty.Position - pbp : Vector2.Zero;
-            Vector2 offR = Layers.TryGetValue("m腿/腿1", out var lgA) && lgA != null && _layerBasePos.TryGetValue("m腿/腿1", out var bpA) ? (lgA.Position - bpA) - pOff : Vector2.Zero;
-            Vector2 offL = Layers.TryGetValue("m腿/腿2", out var lgB) && lgB != null && _layerBasePos.TryGetValue("m腿/腿2", out var bpB) ? (lgB.Position - bpB) - pOff : Vector2.Zero;
-            _mPantyMat.SetShaderParameter("leg_offr", offR * MPantyLegOffFollow);
-            _mPantyMat.SetShaderParameter("leg_offl", offL * MPantyLegOffFollow);
+            _mPantyMat.SetShaderParameter("leg_rot", Vector2.Zero);   // 旋轉已經包含在 leg_offr／leg_offl 裡（用腿實際的變換算），不重複做
+            // 交接處（右上、左上）腿此刻實際的位置（含繞很遠軸心的擺動）減掉內褲自己的位置，再扣掉靜止時本來就有的差：這就是會露出來的縫
+            Vector2 jR_ = new Vector2(1125f, 1380f), jL_ = new Vector2(845f, 1380f);
+            Vector2 GapAt(string leg, Vector2 j)
+            {
+                if (!Layers.TryGetValue(leg, out var lg) || lg == null || !_layerBasePos.TryGetValue(leg, out var lb) || !_layerBasePos.TryGetValue("m腿/內褲", out var pb)) return Vector2.Zero;
+                Vector2 legOff = Vector2.Zero;
+                foreach (var ls in LegLayerSettings) if (ls.LayerName == leg) { legOff = ls.Offset; break; }
+                Vector2 now = lg.GetTransform() * j - panty.GetTransform() * j;
+                Vector2 rest = (lb + legOff) - (pb + new Vector2(0f, PantyOffsetY));
+                return now - rest;
+            }
+            _mPantyMat.SetShaderParameter("leg_offr", GapAt("m腿/腿1", jR_) * MPantyLegOffFollow);
+            _mPantyMat.SetShaderParameter("leg_offl", GapAt("m腿/腿2", jL_) * MPantyLegOffFollow);
         }
         // 肛門：只在肛門圖層的位置把內褲挖一個洞（肛門圖層在內褲下面，洞挖開就看得到）
         if (MPantyAsideAnusHole && Layers.TryGetValue("m腿/肛門", out var anL) && anL is TextureRect anT && anT.Texture != null && anT.Visible)
