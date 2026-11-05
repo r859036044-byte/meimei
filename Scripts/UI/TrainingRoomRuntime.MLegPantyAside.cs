@@ -32,7 +32,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyStretchWidth = 90f;       // 變形範圍（高度方向）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyInsertHideLow = 1f;   // 插入時小穴底部以下多出來的一節內褲隱藏程度（0＝不藏）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 1f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
-    [Export] public Vector2 MPantyJunctionRise = new Vector2(1423f, 1503f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
+    [Export] public Vector2 MPantyJunctionRise = new Vector2(1395f, 1503f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
     [Export] public Vector2 MPantyJunctionFall = new Vector2(1535f, 1595f);   // 銜接處漸淡消失的高度範圍（畫布 px）
     [Export] public bool MPantyKeepShapeAfterPull = true;   // 拔出後，內褲還撥在旁邊時維持插入時的形狀（關掉＝拔出後變回一般撥開的樣子）
     [Export] public Vector2 MPantyJunctionFadeY = new Vector2(1440f, 1525f);   // 插入時銜接處那條細內褲：從哪裡開始變透明→到哪裡完全消失（畫布 px，＝碰到插入／雞雞下面的線）
@@ -47,7 +47,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
     [Export(PropertyHint.Range, "0,45,0.5")] public float MPantyInsertRotDeg = 15f;   // 插入時彎曲的部分逆時針旋轉幾度
     [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1522f);        // 旋轉中心（內褲圖座標 px）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 0.8f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 1.0f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 1f;          // 抽插時內褲整塊往上移的幅度減少多少（1＝不整塊上移；改成以小穴底部為固定點、往上的部分被拉長）
