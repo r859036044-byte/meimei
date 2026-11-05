@@ -1379,11 +1379,9 @@ void fragment() {
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    {   // 插入後：雞雞和小穴銜接處（入口附近）多出來的那一塊內褲，整個推擠到右下角（窄窄一條貼在雞雞右緣），不擋在雞雞前面
-        float kc_ = hug_k * corner_push * smoothstep(1420.0, 1500.0, ys_) * (1.0 - smoothstep(1585.0, 1625.0, ys_));
-        d = mix(d, max(d, wd * 0.92), kc_);
-    }
-    float dr = d * (right_follow + 0.5 * hug_);   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    float kc_ = hug_k * corner_push * smoothstep(1420.0, 1500.0, ys_) * (1.0 - smoothstep(1585.0, 1625.0, ys_));
+    d = mix(d, max(d, wd * 0.97), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
+    float dr = d * (right_follow + 0.5 * hug_) + 14.0 * kc_;   // 右下角再往右多一點   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
@@ -1516,7 +1514,7 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
-    c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y);   // 插入時：小穴底部以下多出來的一節內褲收掉
+    c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
         vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);
