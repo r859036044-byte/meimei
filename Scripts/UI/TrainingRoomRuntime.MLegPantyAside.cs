@@ -169,6 +169,14 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("anus_r", MPantyAnusBulgeR);
         _mPantyMat.SetShaderParameter("jf_y", MPantyJunctionFadeY);
         _mPantyMat.SetShaderParameter("jf_curve", MPantyCutCurvePx);
+        if (Layers.TryGetValue("插入", out var insL_) && insL_ is TextureRect insT_ && insT_.Texture != null && insT_.Visible)
+        {   // 沿插入物件下緣裁切：把插入的貼圖、位置、縮放餵給 shader
+            _mPantyMat.SetShaderParameter("ins_tex", insT_.Texture);
+            _mPantyMat.SetShaderParameter("ins_xf", new Vector4(insT_.Position.X - panty.Position.X, insT_.Position.Y - panty.Position.Y, insT_.Scale.X, insT_.Scale.Y));
+            _mPantyMat.SetShaderParameter("ins_pv", insT_.PivotOffset);
+            _mPantyMat.SetShaderParameter("ins_on", 1f);
+        }
+        else _mPantyMat.SetShaderParameter("ins_on", 0f);
         _mPantyMat.SetShaderParameter("jf_str", _jijiAnus ? 0f : MPantyJunctionFadeStr);
         _mPantyMat.SetShaderParameter("corner_push", _jijiAnus ? 0f : MPantyCornerPush);
         _mPantyMat.SetShaderParameter("low_hide", _jijiAnus ? 0f : MPantyInsertHideLow);
