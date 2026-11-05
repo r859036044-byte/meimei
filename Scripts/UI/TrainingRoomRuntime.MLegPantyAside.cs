@@ -29,7 +29,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
     [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0.9f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 8f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
-    [Export] public Vector2 MPantyAsideArcV = new Vector2(1385f, 1685f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
+    [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
+    [Export] public float MPantyAsideArcPeak = 1530f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
@@ -140,6 +141,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("line_steep", MPantyAsideSteepLine);
         _mPantyMat.SetShaderParameter("arc_v", MPantyAsideArcV);
         _mPantyMat.SetShaderParameter("arc_mix", MPantyAsideArcMix);
+        _mPantyMat.SetShaderParameter("arc_peak", MPantyAsideArcPeak);
         _mPantyMat.SetShaderParameter("thrust_stretch", Mathf.Clamp(thrustUp * MPantyThrustStretch / 250f, 0f, 0.25f));
         _mpHug = Mathf.Lerp(_mpHug, (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
@@ -191,7 +193,7 @@ public partial class TrainingRoomRuntime
     }
 
     // ── 雞雞裁切內褲：把「雞雞／精液」離屏渲染成遮罩，內褲 shader 用它把被雞雞蓋到的地方裁掉 ──
-    static readonly string[] MPantyJijiClipLayers = { "雞雞", "精液" };
+    static readonly string[] MPantyJijiClipLayers = { "雞雞", "精液", "插入", "開1", "洞", "開上" };   // 插入時畫面上的這幾層都排在內褲／衣服下面，要一起用來裁切，才會出現在內褲上面（入口以下）
     SubViewport _mpJjVP; Node2D _mpJjRoot;
     readonly System.Collections.Generic.Dictionary<string, TextureRect> _mpJjDup = new();
 
