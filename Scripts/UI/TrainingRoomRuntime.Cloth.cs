@@ -1308,10 +1308,14 @@ uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變�
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
+uniform vec2 seg_y = vec2(1402.0, 1418.0);     // 補斷線：起點（深紅輪廓終點）、終點（虛線上端）的高度（畫布 px）
+uniform float seg_dx = 5.0;                   // 起點相對大腿遮罩左緣往右多少 px（深紅輪廓線本身在遮罩邊緣內側）
+uniform float seg_in = 4.0;                   // 終點離內褲右緣往內多少 px
+uniform float seg_k = 1.0;                    // 濃度（0＝不補）
 uniform vec2 rv_y = vec2(1396.0, 1436.0);      // 右邊黑線往上延伸：上端（接到腿的深紅輪廓）、下端（接到原本虛線）的高度（畫布 px）
-uniform float rv_in = 15.0;
-uniform float rv_slope = 0.84;                // 往上時向內（往左）折的斜率（px／px；0＝垂直，越大越斜）                    // 這條線離內褲右緣往內多少 px
-uniform float rv_k = 1.0;                     // 濃度（0＝不畫）
+uniform float rv_in = 3.0;
+uniform float rv_slope = 0.7;                // 往上時向內（往左）折的斜率（px／px；0＝垂直，越大越斜）                    // 這條線離內褲右緣往內多少 px
+uniform float rv_k = 0.0;                     // 濃度（0＝不畫）
 uniform vec2 rline = vec2(2040.22, -0.6682);   // 右邊黑線補畫：大腿輪廓直線 x＝rline.x＋rline.y×y（畫布 px，從 腿1_M_cut 的左緣量出來）
 uniform vec2 rline_y = vec2(1320.0, 1420.0);   // 補畫的起訖高度（畫布 px）：上緣到夾角
 uniform float rline_k = 0.0;                  // 補畫的濃度（0＝不補）
@@ -1724,6 +1728,16 @@ void fragment() {
         float k8_ = (1.0 - smoothstep(0.8, 2.3, abs(px.x - xl8_))) * yk8_ * smoothstep(1.0, 20.0, aside) * rv_k;
         c.rgb = mix(c.rgb, vec3(0.42, 0.25, 0.27), k8_ * 0.95);
         c.a = max(c.a, k8_ * 0.95);
+    }
+    {   // 最右邊那條線中間斷掉的一段：腿的深紅輪廓畫到夾角就停，下面窄帶右邊的虛線是分開的——在兩者之間補一小段線連起來（從深紅輪廓的終點，斜往右下接到虛線上端）
+        vec2 sa_ = vec2(rline.x + rline.y * seg_y.x + seg_dx, seg_y.x);          // 起點：大腿輪廓（深紅線）的終點
+        vec2 sb_ = vec2(redge0_ - seg_in, seg_y.y);                      // 終點：窄帶右邊虛線的上端
+        vec2 sab_ = sb_ - sa_;
+        float stt_ = clamp(dot(px - sa_, sab_) / max(1.0, dot(sab_, sab_)), 0.0, 1.0);
+        float sd_ = length(px - (sa_ + sab_ * stt_));
+        float sk_ = (1.0 - smoothstep(0.7, 1.9, sd_)) * smoothstep(1.0, 20.0, aside) * seg_k;
+        c.rgb = mix(c.rgb, vec3(0.38, 0.20, 0.22), sk_);
+        c.a = max(c.a, sk_);
     }
     COLOR = c * vc;
 }
