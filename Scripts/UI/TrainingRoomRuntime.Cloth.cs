@@ -1273,7 +1273,7 @@ uniform float max_reach = 140.0;             // 撥開時內褲最多能離原�
 uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
 uniform float ed_on = 0.0;
 uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
-uniform float stretch_anchor = 1579.0;      // 固定點：小穴底部（畫布 px）
+uniform float stretch_anchor = 1375.0;      // 固定點：上面折角（畫布 px），從這裡往下被拉長
 uniform float hook_px = 0.0;                // 插入後貼著雞雞那一圈：邊界在入口高度往右凸出一個弧形（像勾住雞雞）的量（畫布 px）
 uniform vec2 arc_v = vec2(1385.0, 1685.0);  // 月牙形：推動量沿著高度走一個橢圓輪廓，從這個範圍的上端開始、中間最大、下端回到 0
 uniform float arc_peak = 1528.5;          // 月牙最凸（推動量最大）的高度（畫布 px）：上面從 arc_v.x 圓滑升到這裡，下面用餘弦快速收回到 arc_v.y（左下角固定）
@@ -1354,7 +1354,7 @@ void fragment() {
     float w = W_(px.y);   // 推動量沿高度的輪廓（月牙形）
     float sag = sag_k * aside * (b1 * b1 * (3.0 - 2.0 * b1)) * sin(3.14159 * b2);   // 下轉折帶中間布往下垂，讓上下接得平順
     float ys0_ = px.y - sag;
-    float stA_ = smoothstep(stretch_anchor + 8.0, stretch_anchor - 40.0, ys0_);   // 1＝在固定點上方、0＝在下方（下方完全不動）
+    float stA_ = smoothstep(stretch_anchor - 8.0, stretch_anchor + 40.0, ys0_) * (1.0 - smoothstep(1585.0, 1650.0, ys0_));   // 1＝折角下方、往下漸淡（左下角固定不動）
     float ys_ = mix(ys0_, stretch_anchor + (ys0_ - stretch_anchor) / (1.0 + thrust_stretch), stA_);   // 小穴底部固定，往上的部分被拉長（不是整塊往上移，也不是單純擴張）
     // 取圖用的來源列：內褲左右緣要用這一列的位置算，開口邊界才會剛好貼在內褲自己的邊線上
     float t_ = (ys_ - 1400.0) / 100.0;
