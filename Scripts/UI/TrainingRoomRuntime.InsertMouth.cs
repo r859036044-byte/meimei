@@ -10,10 +10,12 @@ using System.Collections.Generic;
 public partial class TrainingRoomRuntime
 {
     [ExportGroup("插入時嘴巴大小")]
-    [Export(PropertyHint.Range, "1,3,0.01")]   public float InsertMouthBigScale = 1.35f;       // 剛開始插入時嘴巴放大倍率
+    [Export(PropertyHint.Range, "1,3,0.01")]   public float InsertMouthBigScale = 1.5f;        // 剛開始插入時嘴巴放大倍率（相對於脫衣後縮小的嘴巴再放大 50%）
     [Export(PropertyHint.Range, "1,200,1")]    public float InsertMouthComfortFull = 100f;      // 小穴舒服度到這個值時嘴巴縮回正常大小
     [Export(PropertyHint.Range, "0.5,20,0.1")] public float InsertMouthLerpSpeed = 5f;          // 大小變化的跟隨速度
 
+    [Export(PropertyHint.Range, "0.5,1,0.01")] public float MouthUndressScale = 0.85f;   // 被脫（內褲脫掉／撥開、衣服拉開、掰腿…）時嘴巴縮成小嘴巴的縮小版（1＝不縮）
+    [Export(PropertyHint.Range, "0.2,3,0.05")] public float MouthUndressFull = 1f;           // 暴露度累積到這個值時嘴巴縮到最小
     float _imScale = 1f;
     readonly Dictionary<string, (Vector2 pos, Vector2 off)> _imApplied = new();
 
@@ -22,9 +24,10 @@ public partial class TrainingRoomRuntime
     {
         bool inserted = _jijiPhase == 3 && _jijiStage >= 1 && !_pullOutAnim;
         float comfort01 = Mathf.Clamp(ComfortHole / Mathf.Max(1f, InsertMouthComfortFull), 0f, 1f);
-        float target = inserted ? Mathf.Lerp(InsertMouthBigScale, 1f, comfort01) : 1f;
+        float base_ = Mathf.Lerp(1f, MouthUndressScale, Mathf.Clamp(ExposureScore() / Mathf.Max(0.05f, MouthUndressFull), 0f, 1f));   // 被脫得越多嘴巴越小
+        float target = base_ * (inserted ? Mathf.Lerp(InsertMouthBigScale, 1f, comfort01) : 1f);
         _imScale = Mathf.Lerp(_imScale, target, 1f - Mathf.Exp(-InsertMouthLerpSpeed * dt));
-        if (!inserted && Mathf.Abs(_imScale - 1f) < 0.002f) _imScale = 1f;
+        if (!inserted && Mathf.Abs(_imScale - target) < 0.002f) _imScale = target;
 
         foreach (var name in _mouthLayerNames)
         {
@@ -39,7 +42,7 @@ public partial class TrainingRoomRuntime
                 _imApplied.Remove(name);
             }
 
-            if (_imScale == 1f || !c.Visible)
+            if (Mathf.Abs(_imScale - 1f) < 0.0005f || !c.Visible)
             {
                 c.Position = pos;
                 if (had) c.Scale = Vector2.One;
