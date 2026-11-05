@@ -89,6 +89,7 @@ public partial class TrainingRoomRuntime
             await WaitSecAsync(0.3f);
 
             _creampieAmount += Mathf.Max(1, Mathf.RoundToInt(_ejacMul * 1.5f));
+            StartSemenFlow();   // 雞雞上的精液圖層：從尖端慢慢出現，銜接處聚集白色再暈開流開（Jiji.cs）
             _sweat = Mathf.Min(1f, _sweat + SweatOnEjac);
             await MoveInsertAsync(deep, baseY, 0.5f);
             if (IsInstanceValid(this) && _jijiPhase == 3) { _s2Paused = true; _s2SpeedLv = 0f; _pullActive = false; _playForced = false; }   // 內射後停止抽插，回到插入待機

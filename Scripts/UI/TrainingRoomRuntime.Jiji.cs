@@ -147,11 +147,28 @@ public partial class TrainingRoomRuntime
     ShaderMaterial _jijiClipMat;
 
     static readonly string[] _jijiLayers = { "雞雞", "男人肚子", "精液" };
+    ShaderMaterial _jijiSemMat;
+    float _semReveal = 1f, _semPool, _semSpread, _semFlow, _semT = -1f;   // 內射後精液動畫（_semT<0＝沒在播）
+    [Export] public float SemRevealSec = 7f;    // 內射後精液從尖端到根部出現的秒數
+    [Export] public float SemFlowSec   = 16f;   // 銜接處白色聚集→暈開→流開到消失的總秒數
     bool _jijiSemenShown;   // 雞雞上的「精液」圖層：射精後才顯示，收起雞雞或清精液時隱藏
 
     /// <summary>射精時呼叫：雞雞有出現的話，雞雞上的精液圖層跟著出現。</summary>
-    public void ShowJijiSemen() { if (_jijiPhase > 0) _jijiSemenShown = true; }
-    public void HideJijiSemen() { _jijiSemenShown = false; SetLayerQuiet("精液", false); }
+    /// <summary>內射後呼叫：精液從尖端到根部慢慢出現，銜接處聚集白色後暈開、流開。</summary>
+    public void StartSemenFlow() { if (_jijiPhase > 0) { _jijiSemenShown = true; _semT = 0f; _semReveal = 0f; _semPool = 0f; _semSpread = 0f; _semFlow = 0f; } }
+    void UpdateSemenFlow(float dt)
+    {
+        if (_semT < 0f) { _semReveal = 1f; _semPool = 0f; return; }
+        _semT += dt;
+        _semReveal = Mathf.Clamp(_semT / Mathf.Max(0.1f, SemRevealSec), 0f, 1f);
+        float tt = _semT / Mathf.Max(1f, SemFlowSec);            // 0~1
+        _semPool   = Mathf.SmoothStep(0f, 0.12f, tt) * (1f - Mathf.SmoothStep(0.35f, 1f, tt));   // 先聚集變濃，之後慢慢淡掉
+        _semSpread = Mathf.SmoothStep(0.1f, 0.9f, tt);           // 越來越暈開
+        _semFlow   = Mathf.SmoothStep(0.05f, 1f, tt);            // 往下流
+        if (_semT > SemFlowSec) { _semT = -1f; _semReveal = 1f; _semPool = 0f; }
+    }
+    public void ShowJijiSemen() { if (_jijiPhase > 0) { _jijiSemenShown = true; _semT = -1f; _semReveal = 1f; } }
+    public void HideJijiSemen() { _jijiSemenShown = false; _semT = -1f; _semReveal = 1f; _semPool = 0f; SetLayerQuiet("精液", false); }
 
     /// <summary>開1／洞 跟著插入深度的額外位移，由呼吸迴圈疊加在基準位置上（見 Effects.cs 一般圖層迴圈）。</summary>
     public readonly System.Collections.Generic.Dictionary<string, Vector2> JijiLayerExtraOffset = new();
@@ -646,6 +663,21 @@ void fragment() {
             _jijiClipMat.SetShaderParameter("taper_start_px", clipLocalY + AnusTaperStartPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
+            UpdateSemenFlow((float)GetProcessDeltaTime());
+            if (_jijiSemMat != null)
+            {
+                foreach (var u in _jijiClipMat.Shader.GetShaderUniformList())
+                {
+                    string un = (string)((Godot.Collections.Dictionary)u)["name"];
+                    if (un.StartsWith("sem_")) continue;
+                    _jijiSemMat.SetShaderParameter(un, _jijiClipMat.GetShaderParameter(un));
+                }
+                _jijiSemMat.SetShaderParameter("sem_on", 1f);
+                _jijiSemMat.SetShaderParameter("sem_reveal", _semReveal);
+                _jijiSemMat.SetShaderParameter("sem_pool", _semPool);
+                _jijiSemMat.SetShaderParameter("sem_spread", _semSpread);
+                _jijiSemMat.SetShaderParameter("sem_flow", _semFlow);
+            }
             if (ClipDebug) UpdateClipDebugOverlay(jj, clipLocalY, s2c);
             else if (_clipDebugOverlay != null) _clipDebugOverlay.Visible = false;
         }
@@ -1348,6 +1380,12 @@ uniform float circle_rise_px = 0.0;   // 雞雞碰到開1 之後，裁切圓跟�
 uniform float blood_amt = 0.0;        // 第一次（破處）時雞雞上沾的血（0~1）
 uniform float junction_px = 0.0;     // 平滑後的入口線（雞雞本地像素），紅暈／血的定位用
 uniform float flush_amt = 0.0;        // 0~1：插入時入口的淡淡紅暈（不論是不是處），平滑漸入漸出
+uniform float sem_on = 0.0;            // 1＝這是「精液」圖層用的材質（雞雞本體為 0）
+uniform float sem_reveal = 1.0;        // 精液從尖端到根部慢慢出現的進度 0~1
+uniform float sem_len = 520.0;         // 出現範圍的總長度（貼圖 px）
+uniform float sem_pool = 0.0;          // 雞雞和插入銜接處聚集的白色濃度 0~1
+uniform float sem_spread = 0.0;        // 白色暈開的程度 0~1
+uniform float sem_flow = 0.0;          // 白色往下流開的進度 0~1
 uniform float blood_blur = 0.0;       // 0~1：抽插久了血越來越模糊、變淡
 uniform float blood_seed = 0.0;       // 每次破處隨機，血痕分布每次都不一樣
 float bhash(float n) { return fract(sin(n * 12.9898 + blood_seed * 78.233) * 43758.5453); }
@@ -1467,6 +1505,22 @@ void fragment() {
         sh_ *= 1.0 - smoothstep(70.0, 150.0, abs(sp_.x - 998.0));
         c.rgb *= 1.0 - 0.16 * sh_ * flush_amt;
     }
+    if (sem_on > 0.5) {   // 內射後雞雞上的精液：從尖端到根部慢慢出現，銜接處先聚集白色，再慢慢暈開、往下流開
+        vec2 sq_ = UV / TEXTURE_PIXEL_SIZE;
+        float dj_ = sq_.y - junction_px - arch_v * dx * dx / TEXTURE_PIXEL_SIZE.y;   // 銜接線往下的距離
+        float rvEnd_ = sem_reveal * (sem_len + 60.0);
+        float rv_ = 1.0 - smoothstep(rvEnd_ - 60.0, rvEnd_, dj_ + 30.0);
+        c.a *= mix(rv_, 1.0, step(0.999, sem_reveal));
+        float xw_ = abs(sq_.x - 998.0);
+        float wide_ = 1.0 - smoothstep(40.0 + 80.0 * sem_spread, 95.0 + 130.0 * sem_spread, xw_);
+        float yc_ = 10.0 + sem_flow * 110.0;
+        float sig_ = 16.0 + 70.0 * sem_spread;
+        float band_ = exp(-((dj_ - yc_) * (dj_ - yc_)) / (sig_ * sig_)) * smoothstep(-4.0, 3.0, dj_);
+        float nz_ = 0.6 + 0.4 * bnoise(vec2(sq_.x, dj_) * (0.05 - 0.03 * sem_spread) + 11.0);
+        float pm_ = clamp(band_ * wide_ * nz_ * sem_pool, 0.0, 1.0);
+        c.rgb = mix(c.rgb, vec3(0.98, 0.97, 0.93), pm_);
+        c.a = max(c.a, pm_ * 0.92);
+    }
     if (debug_on > 0.5) {
         // F1「查看裁切範圍」：被裁掉的部分不隱藏，改成半透明紅色顯示
         c.rgb = mix(vec3(1.0, 0.15, 0.15), c.rgb, keep);
@@ -1481,6 +1535,11 @@ void fragment() {
         _jijiClipMat.SetShaderParameter("clip_v", 0f);
         j.Material = _jijiClipMat;
         // 精液跟雞雞同一張畫布、同一個位移和旋轉 → 共用同一個裁切材質，一起被裁切
-        if (Layers.TryGetValue("精液", out var sm) && sm != null) sm.Material = _jijiClipMat;
+        if (Layers.TryGetValue("精液", out var sm) && sm != null)
+        {
+            _jijiSemMat = new ShaderMaterial { Shader = sh };   // 精液自己一份材質（同一支 shader、每幀複製裁切參數），才能單獨做出現／聚集／暈開
+            _jijiSemMat.SetShaderParameter("sem_on", 1f);
+            sm.Material = _jijiSemMat;
+        }
     }
 }
