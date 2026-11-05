@@ -1156,11 +1156,13 @@ void fragment() {
     [Export] public bool PlayTimeLimitOn = true;         // 遊玩時間限制
     [Export(PropertyHint.Range, "10,3600,1")] public float PlayTimeLimitSec = 300f;   // 5 分鐘
     float _playTime; bool _playTimeUp;
+    [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomPx = 20f;   // 插入物件只有底部額外向右擴張幾 px，讓右下角伸到雞雞的右緣貼齊（雞雞右緣 x≈1119、插入內容右緣 x≈1098）
     [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 3f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
     void UpdateInsertMask()
     {
         if (_insertEdgeMat == null) return;
         _insertEdgeMat.SetShaderParameter("wid_s", InsertWidenRightPx / 239f);
+        _insertEdgeMat.SetShaderParameter("wid_b", InsertWidenBottomPx / 239f);
     }
 
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
@@ -1276,6 +1278,8 @@ uniform float hook_px = 0.0;                // 插入後貼著雞雞那一圈：
 uniform vec2 arc_v = vec2(1385.0, 1685.0);  // 月牙形：推動量沿著高度走一個橢圓輪廓，從這個範圍的上端開始、中間最大、下端回到 0
 uniform float arc_peak = 1528.5;          // 月牙最凸（推動量最大）的高度（畫布 px）：上面從 arc_v.x 圓滑升到這裡，下面用餘弦快速收回到 arc_v.y（左下角固定）
 uniform float arc_mix = 1.0;                // 1＝完全用月牙（橢圓）輪廓；0＝用原本「平台＋兩頭 smoothstep」
+uniform float ins_rot = 0.0;               // 插入時彎曲處（肘）繞 ins_pivot 旋轉的角度（弧度；負＝逆時針）
+uniform vec2 ins_pivot = vec2(1020.0, 1520.0);   // 彎曲處的中心（內褲圖座標 px）
 uniform float ins_left = 0.3;              // 插入後左邊再往右多推的比例（乘上 hug_k 的平滑插入狀態）
 uniform float hug_k = 0.0;                  // 插入後：入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼；平滑漸入）
 uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
@@ -1338,6 +1342,12 @@ void fragment() {
         vec2 vl_ = px - vec2(940.0, 1500.0);
         vec2 dl2_ = vec2(cos(leg_rot.y) * vl_.x - sin(leg_rot.y) * vl_.y, sin(leg_rot.y) * vl_.x + cos(leg_rot.y) * vl_.y) - vl_;
         px -= dr2_ * wr_ + dl2_ * wl_;
+    }
+    {   // 插入時彎曲的部分（斜邊轉成垂直的那個肘）逆時針旋轉：以彎曲處為中心、離中心越遠影響越小
+        vec2 pv_ = px - ins_pivot;
+        float rw_ = exp(-dot(pv_, pv_) / (110.0 * 110.0));
+        vec2 dr3_ = vec2(cos(ins_rot) * pv_.x - sin(ins_rot) * pv_.y, sin(ins_rot) * pv_.x + cos(ins_rot) * pv_.y) - pv_;
+        px -= dr3_ * rw_;
     }
     float b1 = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
     float b2 = clamp((px.y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);

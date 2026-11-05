@@ -470,6 +470,7 @@ public partial class TrainingRoomRuntime : Node
     public override void _Input(InputEvent @event)
     {
         if (_timingChallengeActive || _endingDay) return;
+        if (TissueInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 衛生紙模式（Tissue.cs）
         if (AllAgesLocked)
         {   // 全年齡：只剩 摸頭／蓋被子／捏臉／鏡頭
             if (PinchInput(@event)) { GetViewport().SetInputAsHandled(); return; }

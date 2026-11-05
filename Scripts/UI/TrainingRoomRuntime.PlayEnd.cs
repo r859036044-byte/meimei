@@ -346,6 +346,7 @@ public partial class TrainingRoomRuntime
         bool ok = Stamina >= EjacBtnFeelPct && SemenStock > 0f && !_ejacRunning && !_insertEjacActive;
         _ejacBtn.Disabled = !ok;
         _ejacBtn.Modulate = ok ? Colors.White : new Color(1, 1, 1, 0.45f);
+        UpdateTissue(dt);
         _endureBtn.Modulate = (_endureT > 0f) ? new Color(0.7f, 1f, 0.7f) : Colors.White;
     }
 
