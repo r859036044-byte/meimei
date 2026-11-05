@@ -1276,6 +1276,9 @@ uniform vec2 jz_rise = vec2(1423.0, 1503.0);   // 銜接處（插入時額外往
 uniform vec2 jz_fall = vec2(1535.0, 1595.0);   // 從哪個高度開始漸淡→消失
 uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
 uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
+uniform float anus_bulge = 0.0;             // 插入肛門時肛門附近內褲往外凸的程度（0～0.5）
+uniform vec2 anus_c = vec2(1003.0, 1600.0);   // 肛門中心（內褲圖座標）
+uniform float anus_r = 70.0;                // 凸起範圍半徑（px）
 uniform float thrust_j = 0.0;               // 抽插時只在銜接處多撐開的 px（折角不動，只有銜接處膨脹）
 uniform float thrust_r = 0.0;               // 抽插時銜接處右邊多跟著往右的比例
 uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
@@ -1392,6 +1395,12 @@ void fragment() {
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
+    {   // 插入肛門：肛門附近的內褲跟著肛門往外凸（以肛門為中心放大，越近越凸）
+        vec2 dvb_ = vec2(xs, ys_) - anus_c;
+        float fb_ = anus_bulge * exp(-dot(dvb_, dvb_) / (anus_r * anus_r));
+        xs = anus_c.x + dvb_.x * (1.0 - fb_);
+        ys_ = anus_c.y + dvb_.y * (1.0 - fb_);
+    }
     float env = clamp((comp - 1.0) / 1.5, 0.0, 1.0);
     float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
     // 壓縮時一個輸出像素涵蓋 comp 個來源像素：橫向多點平均（預乘），線稿才會變成連續的線，不會變成一格一格的紅黑條紋
