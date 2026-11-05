@@ -38,7 +38,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyAsideArcPeak = 1528.5f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
     [Export(PropertyHint.Range, "0,45,0.5")] public float MPantyInsertRotDeg = 15f;   // 插入時彎曲的部分逆時針旋轉幾度
-    [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1530f);        // 旋轉中心（內褲圖座標 px）
+    [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1525f);        // 旋轉中心（內褲圖座標 px）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 0.6f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
