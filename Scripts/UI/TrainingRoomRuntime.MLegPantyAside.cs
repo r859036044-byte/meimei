@@ -28,7 +28,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float MPantyAsideSag = 0.22f;   // 轉折處布往下垂（向下凹）的量（相對撥開距離）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideLowFade = 0f;   // （預設關閉）下半部切斷到肛門上面的程度；你說下面的內部不該被切掉，所以改成 0，肛門改用「只在肛門位置挖洞」
     [Export(PropertyHint.Range, "0,0.3,0.005")] public float MPantyThrustStretch = 0.9f;   // 抽插時往上的幅度（px）換成「以小穴底部為固定點的拉長」的比例（拉長 ≈ 往上 px × 這個 ÷ 250）
-    [Export] public float MPantyStretchAnchorY = 1375f;   // 抽插時內褲拉伸的固定點（上面折角的高度，畫布 px），從這裡往下拉長
+    [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
     [Export] public float MPantyAsideArcPeak = 1528.5f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
