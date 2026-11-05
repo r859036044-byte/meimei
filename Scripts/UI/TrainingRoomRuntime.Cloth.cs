@@ -1309,6 +1309,7 @@ uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
 uniform vec2 seg_y = vec2(1402.0, 1418.0);     // 補斷線：起點（深紅輪廓終點）、終點（虛線上端）的高度（畫布 px）
+uniform float seg_fade = 0.35;                // 末端淡化：從線的這個位置（0～1，0＝下端、1＝上端）開始往上漸漸變淡到消失
 uniform float seg_curve = 0.33;               // 彎曲程度：上端往內（左）偏 seg_curve×seg_len px，下端垂直（0＝直線）
 uniform float seg_lean_unused = 0.0;                // 往上向內（往左）斜多少（px／px），跟裡面那條線一樣
 uniform vec2 seg_b = vec2(1116.0, 1414.0);   // 窄帶右邊那條線上端的位置（畫布 px）
@@ -1741,7 +1742,7 @@ void fragment() {
         float ssl_ = 2.0 * seg_curve * st_;                                       // 目前的斜率，用來把橫向距離換成垂直距離
         float sd_ = abs(px.x - sxl_) / sqrt(1.0 + ssl_ * ssl_);
         float syk_ = smoothstep(sb_.y - seg_len - 1.0, sb_.y - seg_len + 1.0, px.y) * (1.0 - smoothstep(sb_.y - 0.5, sb_.y + 1.5, px.y));
-        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k;
+        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * (1.0 - smoothstep(seg_fade, 1.0, st_));   // 上端（末端）逐漸淡化
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
     }
