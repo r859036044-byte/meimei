@@ -1309,7 +1309,7 @@ uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
 uniform vec2 rline = vec2(2040.22, -0.6682);   // 右邊黑線補畫：大腿輪廓直線 x＝rline.x＋rline.y×y（畫布 px，從 腿1_M_cut 的左緣量出來）
-uniform vec2 rline_y = vec2(1331.0, 1400.0);   // 補畫的起訖高度（畫布 px）：上緣到夾角
+uniform vec2 rline_y = vec2(1320.0, 1420.0);   // 補畫的起訖高度（畫布 px）：上緣到夾角
 uniform float rline_k = 1.0;                  // 補畫的濃度（0＝不補）
 uniform vec2 ext_a = vec2(1081.0, 1374.0);   // 中間黑線往上補畫：起點（弧線原本的上端，畫布 px）
 uniform vec2 ext_b = vec2(1072.0, 1363.0);   // 補畫的終點（內褲上緣）
@@ -1679,7 +1679,17 @@ void fragment() {
             float coverA_ = max(cover_ * (1.0 - upK_), rightLine_ * upK_);
             float aBefore_ = c.a;
             c.a *= 1.0 - la_ * lw_ * (1.0 - coverA_);
-            c.a *= 1.0 - smoothstep(redge0_ + 6.0, redge0_ + 14.0, px.x) * smoothstep(0.0, 6.0, d) * la_;   // 內褲右緣以外、落在大腿上的黑線／殘影一律不顯示（大腿上不該有內褲的線）   // 順著 M 腿的輪廓裁切
+            c.a *= 1.0 - smoothstep(redge0_ + 6.0, redge0_ + 14.0, px.x) * smoothstep(0.0, 6.0, d) * la_;
+            {   // 右邊那條黑線：直接沿著「大腿遮罩的左緣」畫（用遊戲實際的腿位置，不是估的座標）：從內褲上緣一路畫到夾角
+                vec2 lqS_ = (lg_x * (pj_.x + 2.5) + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
+                float aS_ = (lqS_.x >= 0.0 && lqS_.x <= 1.0) ? texture(leg_tex, lqS_).a : 0.0;
+                float aH_ = texture(leg_tex, lq_).a;
+                float edgeL_ = (1.0 - smoothstep(0.3, 0.6, aH_)) * smoothstep(0.4, 0.7, aS_);
+                float yk7_ = smoothstep(rline_y.x - 6.0, rline_y.x + 4.0, pj_.y) * (1.0 - smoothstep(rline_y.y - 4.0, rline_y.y + 6.0, pj_.y));
+                float k7_ = edgeL_ * yk7_ * step(0.3, aBefore_) * smoothstep(1.0, 20.0, aside) * rline_k;
+                c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), k7_ * 0.95);
+                c.a = max(c.a, k7_ * 0.95 * step(0.3, aBefore_));
+            }   // 內褲右緣以外、落在大腿上的黑線／殘影一律不顯示（大腿上不該有內褲的線）   // 順著 M 腿的輪廓裁切
             {   // 窄帶範圍內（開口左緣 hb ~ 右緣 redge0_）如果還是透出腿的膚色（沒有布），直接補一層白色布
                 float inStrip_ = smoothstep(hb, hb + 3.0, px.x) * (1.0 - smoothstep(redge0_ - 4.0, redge0_, px.x));
                 float fillW_ = cover_ * (1.0 - upK_) * inStrip_ * (1.0 - c.a) * la_;
@@ -1700,7 +1710,7 @@ void fragment() {
         vec2 pj6_ = UV * vec2(2000.0, 3200.0);
         float xe6_ = rline.x + rline.y * pj6_.y - 1.6;   // 大腿輪廓（x＝a＋b×y）往內褲這一側偏 1.6px
         float yk6_ = smoothstep(rline_y.x - 3.0, rline_y.x + 6.0, pj6_.y) * (1.0 - smoothstep(rline_y.y - 4.0, rline_y.y, pj6_.y));
-        float k6_ = (1.0 - smoothstep(0.8, 2.2, abs(pj6_.x - xe6_))) * yk6_ * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * rline_k;
+        float k6_ = (1.0 - smoothstep(0.8, 2.2, abs(pj6_.x - xe6_))) * yk6_ * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * 0.0;   // 舊的固定座標版已停用（改用腿遮罩左緣）
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), k6_ * 0.9);
     }
     COLOR = c * vc;
