@@ -534,12 +534,12 @@ public partial class ExpressionTester : Control
             b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             browGrid.AddChild(b);
         }
-        AddBrowBtn("初始",     FaceExpressionController.BrowForm.Normal);
-        AddBrowBtn("皺眉(反轉)", FaceExpressionController.BrowForm.Frown);
-        AddBrowBtn("生氣",     FaceExpressionController.BrowForm.Angry);
-        AddBrowBtn("煩惱",     FaceExpressionController.BrowForm.Worried);
-        AddBrowBtn("生氣(反轉)", FaceExpressionController.BrowForm.AngryFlip);
-        AddBrowBtn("煩惱(反轉)", FaceExpressionController.BrowForm.WorriedFlip);
+        AddBrowBtn("1 初始",       FaceExpressionController.BrowForm.Normal);
+        AddBrowBtn("2 皺眉(反轉)", FaceExpressionController.BrowForm.Frown);
+        AddBrowBtn("3 生氣",       FaceExpressionController.BrowForm.Angry);
+        AddBrowBtn("4 煩惱",       FaceExpressionController.BrowForm.Worried);
+        AddBrowBtn("5 生氣(反轉)", FaceExpressionController.BrowForm.AngryFlip);
+        AddBrowBtn("6 煩惱(反轉)", FaceExpressionController.BrowForm.WorriedFlip);
         content.AddChild(browGrid);
 
         // ── 隱藏綠點（熱點綠圈＋文字藏起來，熱點仍然可以點）──────────────

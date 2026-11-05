@@ -23,7 +23,7 @@ public partial class TrainingRoomRuntime
 
         _browOperateT = operating ? BrowFrownLingerSec : Mathf.Max(0f, _browOperateT - dt);
         FaceController.SetBrowForm(_browOperateT > 0f
-            ? FaceExpressionController.BrowForm.Frown
-            : FaceExpressionController.BrowForm.Normal);
+            ? FaceExpressionController.BrowForm.Frown    // 2 號
+            : FaceExpressionController.BrowForm.Normal); // 1 號
     }
 }

@@ -384,7 +384,16 @@ public partial class FaceExpressionController : Node
     //    AngryFlip / WorriedFlip  生氣／煩惱 再整個上下反轉
     // ════════════════════════════════════════════════════════════
 
-    public enum BrowForm { Normal, Frown, Angry, Worried, AngryFlip, WorriedFlip }
+    //  編號（跟測試面板按鈕、SetBrowForm(int) 一致）：
+    //    1 初始　2 皺眉(上下反轉)　3 生氣　4 煩惱　5 生氣(上下反轉)　6 煩惱(上下反轉)
+    public enum BrowForm { Normal = 1, Frown = 2, Angry = 3, Worried = 4, AngryFlip = 5, WorriedFlip = 6 }
+
+    /// <summary>用編號（1~6）切換眉毛形態；超出範圍忽略。</summary>
+    public void SetBrowForm(int number)
+    {
+        if (number < 1 || number > 6) return;
+        SetBrowForm((BrowForm)number);
+    }
 
     public const float BrowTiltDeg = 35f;
     // 眉毛內容中心（2000x3200 貼圖像素）：旋轉與上下翻轉都繞著它，才會在原地轉／翻
