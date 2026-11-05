@@ -1402,7 +1402,7 @@ void fragment() {
     float zd_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0))));   // 銜接處上緣是球形的凸起（中間高、兩側低）
     float zj_ = smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
     float zup_ = smoothstep(jz_rise.x - 70.0, jz_rise.x, ys_ - zd_);   // 銜接處上方的漸層：往上慢慢不位移
-    float xtra_ = 50.0 * smoothstep(1500.0, 1520.0, ys_) * (1.0 - smoothstep(1650.0, 1680.0, ys_)) * step(0.5, aside) * hug_k;   // 插入時，y 1520~1650 這一段原本的位移再額外增加 50px（只動左緣；未插入＝0）
+    float xtra_ = 50.0 * smoothstep(1430.0, 1450.0, ys_) * (1.0 - smoothstep(1550.0, 1580.0, ys_)) * step(0.5, aside) * hug_k;   // 插入時，y 1520~1650 這一段原本的位移再額外增加 50px（只動左緣；未插入＝0）
     float dA_ = (aside * w * left_boost * lf_ + thrust_j * zj_) * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
     float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
