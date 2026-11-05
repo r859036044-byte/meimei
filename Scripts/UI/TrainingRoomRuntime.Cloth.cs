@@ -1312,7 +1312,7 @@ uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」�
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
-uniform float jz_mid = 60.0;                    // 插入時中間這一段原本的位移（px）：50＋10
+uniform float jz_mid = 35.0;                    // 插入時中間這一段原本的位移（px）：50＋10
 uniform float jz_arch = 105.0;                  // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
 uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
 uniform float jj_arch = 105.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
@@ -1417,8 +1417,8 @@ void fragment() {
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
     float xz_ = 0.0;
     {   // 插入時：在原本（撥開）的位移之上再「疊加」額外向右的位移，最高 jz_mid（px）
-        // 曲線（y 為畫布 px）：1350→1450 平滑升到最高、1450→1500 維持、1500→1650 平滑降回 0（上下各用一段 smoothstep，沒有台階，邊緣才不會有凸起）
-        float wz_ = hug_k * smoothstep(1350.0, 1450.0, ys_) * (1.0 - smoothstep(1500.0, 1650.0, ys_)) * step(0.5, aside);
+        // 曲線（y 為畫布 px）：1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0（上下各用一段 smoothstep，沒有台階，邊緣才不會有凸起）
+        float wz_ = hug_k * smoothstep(1350.0, 1450.0, ys_) * (1.0 - smoothstep(1500.0, 1580.0, ys_)) * step(0.5, aside);
         d += jz_mid * wz_;
         xz_ = jz_mid * wz_;   // 右緣也一起平移同樣的量（整條帶子往右滑，不是只推左緣把布壓扁）
     }
