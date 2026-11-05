@@ -44,10 +44,10 @@ public partial class TrainingRoomRuntime
             _pdLabel.AddThemeFontSizeOverride("font_size", 18);
             parent.AddChild(_pdLabel);
         }
-        _pdLabel.Text = $"Insert 跟腿平移：{(_pdLegOff ? "關" : "開")}   Home 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   End 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}   Delete 畫裁切線：{(PantyDebugLines ? "開" : "關")}";
+        _pdLabel.Text = $"Insert 跟腿平移：{(_pdLegOff ? "關" : "開")}   Home 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   End 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}   Delete 畫裁切線：{(PantyDebugLines ? "開" : "關")}\n目前：{((_jijiPhase == 3 && _jijiStage >= 1) ? "插入中（紅／黃線有效；青色是雞雞輪廓）" : "未插入（雞雞整個輪廓都在裁內褲＝青色線；紅／黃線沒作用）")}";
         var tw = CreateTween();
         _pdLabel.Modulate = Colors.White;
-        tw.TweenInterval(4f);
+        tw.TweenInterval(PantyDebugLines ? 60f : 4f);
         tw.TweenProperty(_pdLabel, "modulate:a", 0f, 0.6f);
     }
 }

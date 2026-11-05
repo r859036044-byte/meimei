@@ -1594,6 +1594,19 @@ void fragment() {
         float zdD_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0))));
         float lnY_ = max(1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.y)));   // 黃：銜接處推擠範圍上緣（球形凸起）
         float lnM_ = 1.0 - smoothstep(0.0, 1.5, abs(px.y - jf_y.y));                         // 紫：黑線（細帶裁切）高度
+        float lnC_ = 0.0;
+        if (jj_on > 0.5) {   // 青：雞雞輪廓裁內褲的邊（還沒插入時整個雞雞輪廓都在裁，所以這條才是當時的裁切線）
+            vec2 pjD_ = UV * jj_size;
+            vec2 jqD_ = (jj_x * pjD_.x + jj_y * pjD_.y + jj_o) / vec2(2000.0, 3200.0);
+            if (jqD_.x >= 0.0 && jqD_.x <= 1.0 && jqD_.y >= 0.0 && jqD_.y <= 1.0) {
+                const vec2 ojD_ = vec2(0.0007, 0.0004);
+                float jrD_ = 0.25 * (texture(jj_tex, jqD_ + ojD_).a + texture(jj_tex, jqD_ - ojD_).a + texture(jj_tex, jqD_ + vec2(ojD_.x, -ojD_.y)).a + texture(jj_tex, jqD_ + vec2(-ojD_.x, ojD_.y)).a);
+                lnC_ = 1.0 - smoothstep(0.0, 0.18, abs(smoothstep(0.38, 0.52, jrD_) - 0.5) - 0.3);
+                lnC_ *= step(0.05, jrD_) * (1.0 - step(0.95, jrD_));
+            }
+        }
+        c.rgb = mix(c.rgb, vec3(0.0, 0.9, 0.9), lnC_);
+        c.a = max(c.a, lnC_);
         c.rgb = mix(c.rgb, vec3(1.0, 0.0, 0.0), lnR_);
         c.rgb = mix(c.rgb, vec3(1.0, 0.9, 0.0), lnY_ * 0.8);
         c.rgb = mix(c.rgb, vec3(0.8, 0.0, 1.0), lnM_);
