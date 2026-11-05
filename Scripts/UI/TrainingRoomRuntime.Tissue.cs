@@ -10,13 +10,58 @@ public partial class TrainingRoomRuntime
     [ExportGroup("衛生紙")]
     [Export] public float TissueRadius   = 70f;    // 擦拭半徑（螢幕 px）
     [Export] public float TissueWipeRate = 1.6f;   // 每秒擦掉多少透明度（1＝0.6 秒擦掉）
+    [Export] public float TissueSize = 110f;           // 衛生紙大小（螢幕 px）
+    [Export] public float TissueUsePerBlob = 0.07f;    // 每擦掉一整團精液，衛生紙用掉多少（1＝揉成一團）
+    [Export] public float TissueBallWipeMul = 0.45f;   // 揉成一團後擦拭速度剩多少倍（右鍵可換新的一張）
     [Export] public string[] TissueNeedLines = { "（還沒擦乾淨…先用衛生紙擦乾淨再走。）", "（精液還留著，要擦乾淨才行。）" };
     [Export] public string[] TissueDoneLines = { "（擦乾淨了。）" };
 
     bool   _tissueOn;
     Button _tissueBtn;
-    Label  _tissueCursor;
+    ColorRect _tissueCursor;
+    ShaderMaterial _tissueMat;
+    float  _tissueUsed;   // 0＝新的一張（方形、有折痕）→ 1＝揉成一團
     bool   _tissueHadDebris;
+
+    const string TissueShaderCode = @"shader_type canvas_item;
+uniform float used = 0.0;
+uniform float seed = 0.0;
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21) + seed); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.07; a *= 0.5; } return s; }
+void fragment() {
+    vec2 p = (UV - 0.5) * 2.0;
+    float c = cos(-0.2), sn = sin(-0.2);
+    p = vec2(c * p.x - sn * p.y, sn * p.x + c * p.y);            // 稍微歪一點
+    float u = smoothstep(0.0, 1.0, used);
+    float rsq = max(abs(p.x), abs(p.y));                          // 方形
+    float rci = length(p) * 0.92;                                  // 圓團
+    float r = mix(rsq, rci, smoothstep(0.25, 0.95, u));
+    float size = mix(0.82, 0.55, u);
+    float edgeN = (fbm(p * 3.0 + 7.0) - 0.5) * (0.04 + 0.30 * u);  // 越皺邊緣越不規則
+    float m = 1.0 - smoothstep(size - 0.025, size + 0.01, r + edgeN);
+    float freq = 3.0 + 9.0 * u;
+    float n1 = fbm(p * freq + 1.3);
+    float n2 = fbm(p * freq * 1.9 + 9.1);
+    float crease = 1.0 - smoothstep(0.0, 0.06 + 0.03 * u, abs(n1 - 0.5));   // 褶皺線
+    crease = max(crease, (1.0 - smoothstep(0.0, 0.05, abs(n2 - 0.5))) * u);
+    float fold = (1.0 - smoothstep(0.0, 0.025, abs(p.x))) * 0.5 + (1.0 - smoothstep(0.0, 0.025, abs(p.y))) * 0.35;   // 折兩折的痕跡
+    fold *= (1.0 - u);
+    vec3 col = vec3(0.98, 0.97, 0.96);
+    col *= 1.0 - crease * (0.10 + 0.22 * u);
+    col *= 1.0 - fold * 0.16;
+    col *= 0.93 + 0.10 * n2;                                       // 紙面起伏
+    col = mix(col, vec3(0.93, 0.90, 0.80), clamp(used * 0.7, 0.0, 0.7) * (0.4 + 0.6 * n1));   // 越用越髒（精液）
+    float shade = smoothstep(size * 0.35, size, r) * 0.18 + u * 0.22 * (1.0 - smoothstep(0.0, size, length(p - vec2(-0.2, -0.25))));
+    col *= 1.0 - shade * (0.5 + 0.5 * u);
+    float rim = smoothstep(size - 0.10, size, r + edgeN) * m;
+    col = mix(col, vec3(0.78, 0.76, 0.76), rim * 0.55);          // 邊緣一圈淡灰，像紙的厚度
+    COLOR = vec4(col, m);
+}
+";
 
     static bool DebrisAlive(Control d) => d != null && GodotObject.IsInstanceValid(d) && !d.IsQueuedForDeletion() && d.Visible;
 
@@ -31,6 +76,7 @@ public partial class TrainingRoomRuntime
     bool TissueAllowLeave()
     {
         if (TissueRemaining() <= 0) return true;
+        if (!_tissueOn) _tissueUsed = 0f;
         _tissueOn = true;
         SayMale(TissueNeedLines);
         return false;
@@ -47,6 +93,11 @@ public partial class TrainingRoomRuntime
     bool TissueInput(InputEvent e)
     {
         if (!_tissueOn) return false;
+        if (e is InputEventMouseButton rb && rb.ButtonIndex == MouseButton.Right && rb.Pressed && !TissueOverUi(rb.Position))
+        {   // 右鍵：換一張新的衛生紙
+            _tissueUsed = 0f; _tissueMat?.SetShaderParameter("seed", GD.Randf() * 10f);
+            return true;
+        }
         if (e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && !TissueOverUi(mb.Position)) return true;
         return false;
     }
@@ -59,14 +110,16 @@ public partial class TrainingRoomRuntime
         {
             _tissueBtn = MakeCornerBtn(parent, "BtnTissue", "🧻 衛生紙", -556f, -416f);
             _tissueBtn.Visible = false;
-            _tissueBtn.Pressed += () => { _tissueOn = !_tissueOn; };
+            _tissueBtn.Pressed += () => { _tissueOn = !_tissueOn; if (_tissueOn) _tissueUsed = 0f; };
         }
         if (_tissueCursor == null || !IsInstanceValid(_tissueCursor))
         {
-            _tissueCursor = new Label { Name = "TissueCursor", Text = "🧻", MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 4000, Visible = false };
-            _tissueCursor.AddThemeFontSizeOverride("font_size", 56);
+            _tissueMat = new ShaderMaterial { Shader = new Shader { Code = TissueShaderCode } };
+            _tissueMat.SetShaderParameter("seed", GD.Randf() * 10f);
+            _tissueCursor = new ColorRect { Name = "TissueCursor", Color = Colors.White, MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 4000, Visible = false, Material = _tissueMat };
             parent.AddChild(_tissueCursor);
         }
+        _tissueCursor.Size = new Vector2(TissueSize, TissueSize);
 
         int remain = TissueRemaining();
         bool any = remain > 0;
@@ -85,7 +138,8 @@ public partial class TrainingRoomRuntime
         if (!_tissueOn) return;
 
         Vector2 m = GetViewport().GetMousePosition();
-        _tissueCursor.Position = m - new Vector2(28f, 28f);
+        _tissueCursor.Position = m - _tissueCursor.Size * 0.5f;
+        _tissueMat.SetShaderParameter("used", _tissueUsed);
         if (!Input.IsMouseButtonPressed(MouseButton.Left) || TissueOverUi(m)) return;
 
         foreach (var d in _ejacDebris.ToArray())
@@ -94,7 +148,9 @@ public partial class TrainingRoomRuntime
             Vector2 c = d.GetGlobalTransform() * (d.Size * 0.5f);
             if (c.DistanceTo(m) > TissueRadius) continue;
             var mod = d.Modulate;
-            mod.A -= TissueWipeRate * dt;
+            float dA_ = TissueWipeRate * Mathf.Lerp(1f, TissueBallWipeMul, _tissueUsed) * dt;   // 揉成團之後擦得比較慢
+            mod.A -= dA_;
+            _tissueUsed = Mathf.Min(1f, _tissueUsed + dA_ * TissueUsePerBlob);
             d.Modulate = mod;
             if (mod.A <= 0.05f) { _ejacDebris.Remove(d); d.QueueFree(); }
         }
