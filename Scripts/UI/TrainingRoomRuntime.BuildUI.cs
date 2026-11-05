@@ -403,6 +403,8 @@ uniform float center_u = 0.5;
 uniform float half_width_u = 0.105;
 uniform float top_k = 1.0;     // 上半部的撐開比例（1＝不變；內褲用）
 uniform float mid_v = -1.0;    // 上下半部的分界（V）；<0＝不分
+uniform vec2 sd_l = vec2(0.0);   // 小穴用：左邊緣跟著左腿動的位移（px）
+uniform vec2 sd_r = vec2(0.0);   // 小穴用：右邊緣跟著右腿動的位移（px）
 varying vec4 vc;
 void vertex() { vc = COLOR; }
 void fragment() {
@@ -410,7 +412,9 @@ void fragment() {
     float w = 1.0 - smoothstep(0.0, half_width_u, abs(d));
     float wv = mid_v < 0.0 ? 1.0 : mix(top_k, 1.0, smoothstep(mid_v - 0.04, mid_v + 0.04, UV.y));   // 上半部變形減弱
     float k = 1.0 - expand_amount * w * wv;
-    COLOR = texture(TEXTURE, vec2(center_u + d * k, UV.y)) * vc;   // 同上
+    float xp_ = UV.x / TEXTURE_PIXEL_SIZE.x;
+    vec2 sd_ = sd_l * (1.0 - smoothstep(885.0, 960.0, xp_)) + sd_r * smoothstep(1020.0, 1094.0, xp_);   // 小穴左右邊緣各自跟著旁邊的腿動（其他圖層位移為 0，不受影響）
+    COLOR = texture(TEXTURE, vec2(center_u + d * k, UV.y) - sd_ * TEXTURE_PIXEL_SIZE) * vc;   // 同上
 }
 "
                 };

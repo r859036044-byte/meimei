@@ -120,11 +120,26 @@ public partial class TrainingRoomRuntime
     [Export] public bool PussyBindToLegs = true;   // 小穴與腿交接的左右邊緣，跟著旁邊那條腿一起呼吸／擺動（不露縫）
     ShaderMaterial _pussyBreathMat;
 
+    /// <summary>小穴左右邊緣（跟腿的交接處）相對小穴本身的位移：用腿此刻實際的變換（含擺動旋轉）算出來。</summary>
+    void PussyLegBind(Control pussy, out Vector2 sdL, out Vector2 sdR)
+    {
+        Vector2 jL = new Vector2(885f, 1430f), jR = new Vector2(1094f, 1430f);
+        sdL = Vector2.Zero; sdR = Vector2.Zero;
+        if (!PussyBindToLegs) return;
+        if (Layers.TryGetValue("m腿/腿2", out var legL) && legL != null) sdL = legL.GetTransform() * jL - pussy.GetTransform() * jL;
+        if (Layers.TryGetValue("m腿/腿1", out var legR) && legR != null) sdR = legR.GetTransform() * jR - pussy.GetTransform() * jR;
+    }
+
     void UpdatePussyBreath()
     {
         if (!Layers.TryGetValue("m腿/小穴", out var c) || c == null) return;
         if (_pussyBreathMat == null)
         {
+            if (c.Material is ShaderMaterial exM)
+            {   // 小穴已經掛了「中心撐開」材質（BuildUI.cs）：不覆蓋，只把腿綁定的位移餵給它
+                if (_centerStretchShader != null && exM.Shader == _centerStretchShader) { Vector2 l_, r_; PussyLegBind(c, out l_, out r_); exM.SetShaderParameter("sd_l", l_); exM.SetShaderParameter("sd_r", r_); }
+                return;
+            }
             if (c.Material != null) return;   // 已經有別的 shader 就不覆蓋
             var sh = new Shader
             {
@@ -154,13 +169,7 @@ void fragment() {
         _pussyBreathMat.SetShaderParameter("amount", PussyBreathExpand * inhale);
         _pussyBreathMat.SetShaderParameter("curve_pow", PussyBreathCurvePow);
         // 綁定：小穴左右邊緣（跟腿的交接線）跟著旁邊那條腿一起動／轉，呼吸時不會露出縫
-        Vector2 jL = new Vector2(885f, 1430f), jR = new Vector2(1094f, 1430f);
-        Vector2 sdL = Vector2.Zero, sdR = Vector2.Zero;
-        if (PussyBindToLegs)
-        {
-            if (Layers.TryGetValue("m腿/腿2", out var legL) && legL != null) sdL = legL.GetTransform() * jL - c.GetTransform() * jL;
-            if (Layers.TryGetValue("m腿/腿1", out var legR) && legR != null) sdR = legR.GetTransform() * jR - c.GetTransform() * jR;
-        }
+        PussyLegBind(c, out var sdL, out var sdR);
         _pussyBreathMat.SetShaderParameter("sd_l", sdL);
         _pussyBreathMat.SetShaderParameter("sd_r", sdR);
     }
