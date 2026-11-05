@@ -106,6 +106,7 @@ uniform vec2 jc_y = vec2(0.0, 1.0);
 uniform vec2 jc_o = vec2(0.0);
 uniform float jc_on = 0.0;
 uniform float jc_from_y = 1500.0;
+uniform float jc_arch = 28.0;   // 雞雞裁衣服的起點弧度：兩側比中間低多少 px
 uniform float expand_amount = 0.0;
 uniform float center_u = 0.5225;
 uniform float taper_start_v = 0.3716;
@@ -509,7 +510,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 2.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y), jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y) + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
