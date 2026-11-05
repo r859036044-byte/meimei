@@ -31,6 +31,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 8f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1385f, 1685f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyThrustCut = 1f;          // 抽插時內褲整塊往上移的幅度減少多少（1＝不整塊上移；改成以小穴底部為固定點、往上的部分被拉長）
     [Export(PropertyHint.Range, "0,6,0.1")] public float MPantyThrustSpread = 0.4f;        // 抽插時，內褲每往上少移 1px 的推擠量，改成「左邊往右」多撐開幾 px
@@ -53,7 +54,7 @@ public partial class TrainingRoomRuntime
         MPantyAsideEnabled && _mLegOpen && !_pantyGone && MPantyLayer is TextureRect { Visible: true }
         && _mpA < MPantyAsideMaxPx * MPantyAsideInsertFrac;
 
-    Texture2D _mpEdgeTex; bool _mpEdgeTried;
+    Texture2D _mpEdgeTex; bool _mpEdgeTried; float _mpHug;
     bool _mpDrag, _mpMoved;
     float _mpT, _mpA, _mpStartT, _mpStartLX;
     Vector2 _mpDownScreen;
@@ -140,6 +141,8 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("arc_v", MPantyAsideArcV);
         _mPantyMat.SetShaderParameter("arc_mix", MPantyAsideArcMix);
         _mPantyMat.SetShaderParameter("thrust_stretch", Mathf.Clamp(thrustUp * MPantyThrustStretch / 250f, 0f, 0.25f));
+        _mpHug = Mathf.Lerp(_mpHug, (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
+        _mPantyMat.SetShaderParameter("hug_k", _mpHug);
         _mPantyMat.SetShaderParameter("hook_px", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHookPx : 0f);
         if (!_mpEdgeTried) { _mpEdgeTried = true; _mpEdgeTex = ResourceHelper.LoadTexAny("Sprites/內褲_M_edge"); }   // 邊線貼圖（載不到就用備用的即時偵測）
         _mPantyMat.SetShaderParameter("ed_tex", _mpEdgeTex);

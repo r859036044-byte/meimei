@@ -1275,6 +1275,7 @@ uniform float stretch_anchor = 1579.0;      // 固定點：小穴底部（畫布
 uniform float hook_px = 0.0;                // 插入後貼著雞雞那一圈：邊界在入口高度往右凸出一個弧形（像勾住雞雞）的量（畫布 px）
 uniform vec2 arc_v = vec2(1385.0, 1685.0);  // 月牙形：推動量沿著高度走一個橢圓輪廓，從這個範圍的上端開始、中間最大、下端回到 0
 uniform float arc_mix = 1.0;                // 1＝完全用月牙（橢圓）輪廓；0＝用原本「平台＋兩頭 smoothstep」
+uniform float hug_k = 0.0;                  // 插入後：入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼；平滑漸入）
 uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
 uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
@@ -1346,13 +1347,15 @@ void fragment() {
     float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
     float wd = max(1.0, xr - xl);
     float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
-    float d = min(aside * w * left_boost * lf_, wd * 0.8 * lf_);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
+    // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
+    float hug_ = hug_k * smoothstep(1500.0, 1560.0, ys_) * (1.0 - smoothstep(1630.0, 1690.0, ys_));
+    float d = min(aside * w * left_boost * lf_ * (1.0 + 0.25 * hug_), wd * (0.8 + 0.15 * hug_) * lf_);          // 左邊被推過去的距離（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
     {   // 弧形的勾：入口高度（約 y 1555）的推動量多一個平滑的凸起，邊界在那裡往右彎出一個弧形，像勾住雞雞
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    float dr = d * right_follow;                 // 右邊跟著往右移的量（一點點）
+    float dr = d * (right_follow + 0.4 * hug_);   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
