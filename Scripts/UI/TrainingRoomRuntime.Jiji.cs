@@ -227,7 +227,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.8,0.01")] public float AnusTaperMax = 0.12f;     // 突破後肛門下方雞雞變細的最大比例（0.3＝窄 30%）
     [Export(PropertyHint.Range, "0,0.8,0.01")] public float PussyTaperMax = 0.08f;   // 插入小穴後，雞雞靠近交接處變細的最大比例（0＝不變細）
     [Export] public float AnusTaperArchPx  = 10f;   // 變細起點的弧形：兩側比中間再往下多少 px（0＝水平）
-    [Export] public float AnusTaperStartPx = 25f;   // 變細從裁切線（肛門）往下多少 px 開始（5 → 25：起點往下 20px，變形更圓潤）
+    [Export] public float AnusTaperStartPx = 5f;    // 變細從裁切線（肛門）往下多少 px 開始
     [Export] public float AnusTaperLenPx   = 40f;   // 變細往下漸層到消失的長度（螢幕 px）；越上面越細
     float _anusOpen;   // 目前撐開程度 0~1
     ShaderMaterial _anusMat;
