@@ -43,7 +43,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyCutCurvePx = 90f;   // 銜接處細帶下端的弧形裁切：左邊比右邊低多少 px（越大越彎）
     [Export] public float MPantyJijiClipArchPx = 105f;   // 插入後雞雞和插入銜接處，內褲裁切起點的弧度（兩側比中間低多少 px，0＝橫線）
     [Export] public float MPantyJunctionArchPx = 105f;   // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
-    [Export] public float MPantyJunctionMidPx = 35f;   // 插入時，在撥開位移之上額外向右疊加的最高值（px）。曲線：y1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0
+    [Export] public float MPantyJunctionMidPx = 30f;   // 插入時，在撥開位移之上額外向右疊加的最高值（px）。曲線：y1350→1450 平滑升到最高、1450→1500 維持、1500→1580 平滑降回 0
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -192,11 +192,11 @@ public partial class TrainingRoomRuntime
         if (inserted_) _mpKeepShape = true;
         else if (_mpA < 0.5f) _mpKeepShape = false;   // 內褲被放回去了才恢復成一般撥開的樣子
         bool hugOn_ = inserted_ || (MPantyKeepShapeAfterPull && _mpKeepShape && _mpA > 0.5f);   // 拔出後內褲還在旁邊時，維持插入時那個形狀
-        _mpHug = Mathf.Lerp(_mpHug, hugOn_ ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
+        _mpHug = hugOn_ ? Mathf.Lerp(_mpHug, MPantyHugK, 1f - Mathf.Exp(-6f * dt)) : 0f;   // 插入時平滑漸入，不會一插入就突然跳；拔出時立刻復原（不延遲）
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
         {   // 除錯：插入狀態改變時印一行，確認新的位移曲線有沒有生效（build 標記 jz-add-1500-1650）
             bool hugNow_ = _mpHug > 0.5f && _mpA > 0.5f;
-            if (MPantyAsideDebugLog && hugNow_ != _mpHugLogged) { _mpHugLogged = hugNow_; GD.Print($"[MPantyDbg] build=jz-add-1500-1580-35 插入位移曲線 {(hugNow_ ? "生效中" : "未作用")}（hug={_mpHug:F2} aside={_mpA:F0} jz_mid={MPantyJunctionMidPx:F0}）"); }
+            if (MPantyAsideDebugLog && hugNow_ != _mpHugLogged) { _mpHugLogged = hugNow_; GD.Print($"[MPantyDbg] build=jz-add-1500-1580-30-nodelay 插入位移曲線 {(hugNow_ ? "生效中" : "未作用")}（hug={_mpHug:F2} aside={_mpA:F0} jz_mid={MPantyJunctionMidPx:F0}）"); }
         }
         _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
         _mPantyMat.SetShaderParameter("ins_rot", -Mathf.DegToRad(MPantyInsertRotDeg) * _mpHug);   // 逆時針 = 負；跟著插入狀態平滑漸入
