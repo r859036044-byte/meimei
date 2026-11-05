@@ -36,7 +36,7 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyJunctionFall = new Vector2(1535f, 1595f);   // 銜接處漸淡消失的高度範圍（畫布 px）
     [Export] public bool MPantyKeepShapeAfterPull = false;   // 拔出後，內褲還撥在旁邊時維持插入時的形狀（關掉＝拔出後變回一般撥開的樣子）
     [Export] public Vector2 MPantyJunctionFadeY = new Vector2(1440f, 1525f);   // 插入時銜接處那條細內褲：從哪裡開始變透明→到哪裡完全消失（畫布 px，＝碰到插入／雞雞下面的線）
-    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyJunctionFadeStr = 1f;   // 變透明的強度（0＝不變透明）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyJunctionFadeStr = 0f;   // 變透明的強度（0＝不變透明）
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float MPantyAnusBulge = 0.3f;   // 插入肛門時，肛門附近的內褲跟著肛門往外凸的程度（0＝不凸）
     [Export] public Vector2 MPantyAnusCenter = new Vector2(1003f, 1600f);   // 肛門中心（內褲圖座標 px）
     [Export] public float MPantyAnusBulgeR = 70f;   // 凸起範圍半徑（px）
