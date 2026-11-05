@@ -372,6 +372,58 @@ public partial class FaceExpressionController : Node
             _runtime?.ExprLayerExtraOffset.Remove(kv.Key);
         }
         _savedTransforms.Clear();
+        ApplyBrowTransform();   // 表情還原的是「套表情前」的角度，眉毛形態要重新蓋回去
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  眉毛形態（跟表情獨立，可以疊在任何表情上）
+    //    Normal       初始
+    //    Frown        上下反轉（皺眉）
+    //    Angry        左眉逆時針、右眉順時針 35°（生氣）
+    //    Worried      左眉順時針、右眉逆時針 35°（煩惱）
+    //    AngryFlip / WorriedFlip  生氣／煩惱 再整個上下反轉
+    // ════════════════════════════════════════════════════════════
+
+    public enum BrowForm { Normal, Frown, Angry, Worried, AngryFlip, WorriedFlip }
+
+    public const float BrowTiltDeg = 35f;
+    // 眉毛內容中心（2000x3200 貼圖像素）：旋轉與上下翻轉都繞著它，才會在原地轉／翻
+    static readonly Vector2 BrowCenterLeft  = new Vector2(844.5f, 601.5f);    // 眉毛1（畫面左）
+    static readonly Vector2 BrowCenterRight = new Vector2(1066f,  585.5f);    // 眉毛2（畫面右）
+
+    BrowForm _browForm = BrowForm.Normal;
+    public BrowForm CurrentBrowForm => _browForm;
+
+    public void SetBrowForm(BrowForm form)
+    {
+        if (_browForm == form) return;
+        _browForm = form;
+        ApplyBrowTransform();
+    }
+
+    void ApplyBrowTransform()
+    {
+        ApplyBrowLayer("眉毛1", BrowCenterLeft,  -1f);   // 左眉：生氣＝逆時針（Godot 負值）
+        ApplyBrowLayer("眉毛2", BrowCenterRight, +1f);   // 右眉：生氣＝順時針（Godot 正值）
+    }
+
+    void ApplyBrowLayer(string layer, Vector2 centerTex, float angrySign)
+    {
+        var ctrl = GetLayerControl(layer);
+        if (ctrl == null) return;
+
+        float tilt = _browForm switch
+        {
+            BrowForm.Angry or BrowForm.AngryFlip     =>  angrySign * BrowTiltDeg,
+            BrowForm.Worried or BrowForm.WorriedFlip => -angrySign * BrowTiltDeg,
+            _ => 0f,
+        };
+        bool flip = _browForm is BrowForm.Frown or BrowForm.AngryFlip or BrowForm.WorriedFlip;
+
+        // 整個形態上下鏡射：先轉再翻 ＝ 先翻再轉相反角度（Control 是先縮放再旋轉）
+        ctrl.PivotOffset     = centerTex * ctrl.Size / new Vector2(2000f, 3200f);
+        ctrl.Scale           = new Vector2(1f, flip ? -1f : 1f);
+        ctrl.RotationDegrees = flip ? -tilt : tilt;
     }
 
     Control GetLayerControl(string layerPath)

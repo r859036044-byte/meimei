@@ -523,6 +523,25 @@ public partial class ExpressionTester : Control
         content.AddChild(_hideFrontHairBtn);
         RefreshHideFrontHairButton();
 
+        // ── 眉毛形態測試（操作時會自動切成皺眉；這裡可以手動看每一種）──────────────
+        content.AddChild(MakeSectionLabel("眉毛形態"));
+        var browGrid = new GridContainer { Columns = 3 };
+        browGrid.AddThemeConstantOverride("h_separation", 4);
+        browGrid.AddThemeConstantOverride("v_separation", 4);
+        void AddBrowBtn(string text, FaceExpressionController.BrowForm f)
+        {
+            var b = MakeButton(text, () => _faceController?.SetBrowForm(f));
+            b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            browGrid.AddChild(b);
+        }
+        AddBrowBtn("初始",     FaceExpressionController.BrowForm.Normal);
+        AddBrowBtn("皺眉(反轉)", FaceExpressionController.BrowForm.Frown);
+        AddBrowBtn("生氣",     FaceExpressionController.BrowForm.Angry);
+        AddBrowBtn("煩惱",     FaceExpressionController.BrowForm.Worried);
+        AddBrowBtn("生氣(反轉)", FaceExpressionController.BrowForm.AngryFlip);
+        AddBrowBtn("煩惱(反轉)", FaceExpressionController.BrowForm.WorriedFlip);
+        content.AddChild(browGrid);
+
         // ── 隱藏綠點（熱點綠圈＋文字藏起來，熱點仍然可以點）──────────────
         Button hideDotsBtn = null;
         hideDotsBtn = MakeButton("", () =>
