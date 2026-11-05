@@ -483,7 +483,9 @@ public partial class EyeCloseController : Node
         if (_expressionClosed || _expressionClosed2 || _expressionClosed3) return;
         _targetClose = true;
         await DelaySeconds(BlinkCloseTime);
-        _targetClose = false;
+        // 眨眼途中如果表情剛好換成閉眼（插入／拔出時常常這樣），不能無條件睜開，會把閉眼表情蓋掉、
+        // 眼睛在不該睜開的時候睜開，閉眼和睜眼動畫還同時在跑（看起來像多一雙眼睛）。回到「目前表情要求的狀態」。
+        _targetClose = _expressionClosed || _expressionClosed2 || _expressionClosed3;
         float openWait = AnimSpeed > 0f ? 1f / AnimSpeed : 0f;
         await DelaySeconds(openWait);
     }
