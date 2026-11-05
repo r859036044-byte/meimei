@@ -1316,8 +1316,8 @@ uniform float ol_k = 0.0;                     // 蓋掉輪廓線的程度（0＝
 uniform float ell_dx = 20.8;                  // 橢圓中心離內褲右緣往內多少 px（最後位置：橢圓中心畫布 x≈1100）
 uniform float ell_slope = 0.627;              // 內褲右緣往上往右偏的斜率（橢圓中心跟著右緣走，所以要扣掉）
 uniform float ell_cy = 1414.0;                // 橢圓中心高度（內褲來源列）
-uniform float ell_rx = 16.0;                  // 橢圓半徑 x（px）
-uniform float ell_ry = 45.0;                  // 橢圓半徑 y（px）
+uniform float ell_rx = 14.0;                  // 橢圓半徑 x（px）
+uniform float ell_ry = 41.0;                  // 橢圓半徑 y（px）
 uniform float ell_k = 1.0;                    // 橢圓裡面腿被內褲切掉的程度（0＝關）
 uniform float body_k = 1.0;                   // 插入時窄帶本體不被腿裁切、補成不透明的程度（0＝關，回到以前）
 uniform float clean_k = 1.0;                  // 補的線左邊／下面，露出的腿線條和破圖膚色用白布蓋住的程度（0＝不蓋）
@@ -1351,7 +1351,7 @@ uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」�
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
-uniform float jz_mid = 18.0;                    // 插入時中間這一段原本的位移（px）：50＋10
+uniform float jz_mid = 13.0;                    // 插入時中間這一段原本的位移（px）：50＋10
 uniform float jz_arch = 105.0;                  // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
 uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
 uniform float jj_arch = 105.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
@@ -1792,13 +1792,13 @@ void fragment() {
     }
     {   // 窄帶右邊那條線往上加長：畫成橢圓弧，位置＝「內褲右緣 redge0_」往內 e(ys_) px，所以會跟內褲的位移（拉開量、插入程度）一起走；再用腿的遮罩裁切（不會畫到大腿上）。
         // 最後位置（拉開 150、插入）：畫布 (1116,1414) 沿橢圓弧彎到 (1100,1370)。e 是這條弧相對內褲右緣的距離，對應內褲圖來源列 ys_：
-        float u_ = clamp((1416.7 - ys_) / 45.3, 0.0, 1.0);
+        float u_ = clamp((1416.7 - ys_) / 41.0, 0.0, 1.0);
         float eS_ = u_ < 0.25 ? mix(4.8, 10.4, u_ / 0.25)
                   : u_ < 0.50 ? mix(10.4, 18.3, (u_ - 0.25) / 0.25)
                   : u_ < 0.75 ? mix(18.3, 29.5, (u_ - 0.50) / 0.25)
                               : mix(29.5, 49.2, (u_ - 0.75) / 0.25);
         float sd_ = abs(px.x - (redge0_ - eS_)) / 1.3;   // 弧線斜的，換成垂直線距的近似
-        float syk_ = smoothstep(1370.4, 1372.4, ys_) * (1.0 - smoothstep(1415.7, 1417.7, ys_));
+        float syk_ = smoothstep(1374.7, 1376.7, ys_) * (1.0 - smoothstep(1415.7, 1417.7, ys_));
         vec2 lq9_ = (lg_x * (UV.x * cl_size.x) + lg_y * (UV.y * cl_size.y) + lg_o) / vec2(2000.0, 3200.0);
         float legA_ = (lg_on > 0.5 && lq9_.x >= 0.0 && lq9_.x <= 1.0 && lq9_.y >= 0.0 && lq9_.y <= 1.0) ? texture(leg_tex, lq9_).a : 0.0;
         float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(seg_fade, 1.0, u_));   // 上端淡化（只顯示這條線，不被腿裁切）
