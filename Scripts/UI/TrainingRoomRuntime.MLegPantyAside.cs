@@ -32,6 +32,8 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
     [Export] public float MPantyAsideArcPeak = 1528.5f;   // 月牙最凸的高度（畫布 px）：上面圓滑升到這裡、下面快速收回（左下角固定）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideArcMix = 1f;          // 1＝月牙（橢圓）輪廓；0＝原本的平台形
+    [Export(PropertyHint.Range, "0,45,0.5")] public float MPantyInsertRotDeg = 10f;   // 插入時彎曲的部分逆時針旋轉幾度
+    [Export] public Vector2 MPantyInsertRotPivot = new Vector2(1020f, 1520f);        // 旋轉中心（內褲圖座標 px）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyInsertLeft = 0.3f;   // 插入後左邊再往右多推的比例（內褲斜線更斜）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyHugK = 1f;   // 插入後，入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼）
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideSteepLine = 0.35f;     // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點；斜的／平的邊一律全濃度
@@ -147,6 +149,8 @@ public partial class TrainingRoomRuntime
         _mpHug = Mathf.Lerp(_mpHug, (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHugK : 0f, 1f - Mathf.Exp(-6f * dt));   // 平滑漸入，不會一插入就突然跳
         _mPantyMat.SetShaderParameter("hug_k", _mpHug);
         _mPantyMat.SetShaderParameter("ins_left", MPantyInsertLeft);
+        _mPantyMat.SetShaderParameter("ins_rot", -Mathf.DegToRad(MPantyInsertRotDeg) * _mpHug);   // 逆時針 = 負；跟著插入狀態平滑漸入
+        _mPantyMat.SetShaderParameter("ins_pivot", MPantyInsertRotPivot);
         _mPantyMat.SetShaderParameter("hook_px", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyHookPx : 0f);
         if (!_mpEdgeTried) { _mpEdgeTried = true; _mpEdgeTex = ResourceHelper.LoadTexAny("Sprites/內褲_M_edge"); }   // 邊線貼圖（載不到就用備用的即時偵測）
         _mPantyMat.SetShaderParameter("ed_tex", _mpEdgeTex);
