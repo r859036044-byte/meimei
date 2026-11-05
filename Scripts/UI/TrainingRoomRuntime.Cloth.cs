@@ -1658,8 +1658,15 @@ void fragment() {
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
             la_ = mix(la_, smoothstep(0.30, 0.65, la_), smoothstep(1.0, 10.0, aside));   // 撥開時大腿的切口要乾淨（不要淡化）
             // 撥開後右腿邊那一段（約 y 1430~1545）：窄帶被腿輪廓裁掉的地方會露出腿的膚色 → 這裡減弱腿的裁切，讓白色布蓋住膚色（右緣黑線 rin_ 照舊保留）
-            float cover_ = smoothstep(1420.0, 1450.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover;
+            float cover_ = smoothstep(1370.0, 1400.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover;
+            float aBefore_ = c.a;
             c.a *= 1.0 - la_ * lw_ * (1.0 - cover_);   // 順著 M 腿的輪廓裁切
+            {   // 窄帶範圍內（開口左緣 hb ~ 右緣 redge0_）如果還是透出腿的膚色（沒有布），直接補一層白色布
+                float inStrip_ = smoothstep(hb, hb + 3.0, px.x) * (1.0 - smoothstep(redge0_ - 4.0, redge0_, px.x));
+                float fillW_ = cover_ * inStrip_ * (1.0 - c.a) * la_;
+                c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), fillW_ / max(c.a + fillW_, 0.001));
+                c.a = max(c.a, fillW_);
+            }
         }
     }
     COLOR = c * vc;
