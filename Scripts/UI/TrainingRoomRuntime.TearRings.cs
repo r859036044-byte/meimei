@@ -18,6 +18,8 @@ public partial class TrainingRoomRuntime
     [Export] public float TearRingFall = 24f;            // 起始下落速度（畫布 px/秒）：慢慢流
     [Export] public float TearRingAccel = 7f;            // 往下越來越快（px/秒²）
     [Export] public float TearRingDrift = 0.55f;         // 斜著流：橫向／縱向的比例（左半臉往左下、右半臉往右下；0＝直直往下）
+    [Export] public float TearRingStartOut = 3f;         // 水滴起點再往外移多少（左半臉往左、右半臉往右，畫布 px）
+    [Export] public bool TearHideOuterCorner = true;     // 暫時關掉眼角外側的兩張小眼淚圖（眼淚3、眼淚4）
     [Export] public float TearRingSideSpeed = 9f;        // 開頭往左／右的速度（畫布 px/秒）
     [Export] public float TearRingSideDown = 5f;         // 開頭同時往下的速度（畫布 px/秒）：不是純水平，而是很斜的緩降
     [Export] public float TearRingSideTime = 1.2f;       // 這個開頭階段花多久（秒），之後平滑轉成往左下／右下流
@@ -96,6 +98,10 @@ public partial class TrainingRoomRuntime
     {
         if (!TearRingEnabled) { ClearTearRings(); return; }
 
+        if (TearHideOuterCorner)
+            foreach (var n in new[] { "表情/眼淚3", "表情/眼淚4" })
+                if (Layers.TryGetValue(n, out var ol) && ol != null) ol.Visible = false;   // 每幀壓住，避免被表情切換又打開
+
         // 1) 生成：整個臉共用一個計時；不痛 5 秒一個，痛苦值越高越快（最快 3 秒一個）
         var visible = new List<int>();
         for (int i = 0; i < _tearSrc.Length; i++)
@@ -115,6 +121,7 @@ public partial class TrainingRoomRuntime
                 parent.AddChild(node);
                 parent.MoveChild(node, tl.GetIndex() + 1);   // 疊在眼淚圖層上面、前髮下面
                 var origin = tl.Position + new Vector2(rc.Position.X + (float)GD.RandRange(0.15, 0.85) * rc.Size.X, rc.End.Y);
+                origin.X += (origin.X < TearRingCenterX ? -1f : 1f) * TearRingStartOut;   // 起點再往外移
                 node.Position = origin;
                 _tearRings.Add(new TearRingState { Node = node, Origin = origin, Pos = origin, Phase = (float)GD.RandRange(0.0, Mathf.Tau), Dir = origin.X < TearRingCenterX ? -1f : 1f });
             }
