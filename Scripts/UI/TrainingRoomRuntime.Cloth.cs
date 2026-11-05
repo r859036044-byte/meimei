@@ -1470,7 +1470,7 @@ void fragment() {
         float inE_ = max(inH_ * line_steep, inV_);       // 邊的內側
         // 開口切線（hb）本身也補一條黑線：萬一開口邊界落在布的中間，切口也不能是光禿禿一條虛線
         float cutL_ = (1.0 - smoothstep(0.0, 3.0, abs(px.x - hb - 1.5))) * smoothstep(0.5, 0.9, c.a / max(holeA, 0.001)) * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
-        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA));
+        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA)) * (1.0 - smoothstep(3.0, 7.0, comp) * (1.0 - edgeNear_));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
     }
@@ -1491,7 +1491,7 @@ void fragment() {
         float gy_ = dFdy(cleanA_);
         float sh_ = abs(gy_) / (abs(gx_) + abs(gy_) + 0.0001);   // 1＝邊是平的／斜到近水平，0＝邊是垂直的
         float orient_ = mix(line_steep, 1.0, smoothstep(0.35, 0.65, sh_));
-        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA * (1.0 - clamp(kc_, 0.0, 1.0) * (1.0 - edgeNear_));   // 細帶中間不畫擠在一起的線，只留邊緣的線
+        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA * (1.0 - max(clamp(kc_, 0.0, 1.0), smoothstep(3.0, 7.0, comp)) * (1.0 - edgeNear_));   // 被壓很窄的地方（不管在哪個高度）只留邊緣的線，中間的線全不畫   // 細帶中間不畫擠在一起的線，只留邊緣的線
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lineE_);
         c.a = max(c.a, lineE_);
     }
