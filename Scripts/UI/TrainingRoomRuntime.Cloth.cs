@@ -1309,9 +1309,10 @@ uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
 uniform vec2 seg_y = vec2(1402.0, 1418.0);     // 補斷線：起點（深紅輪廓終點）、終點（虛線上端）的高度（畫布 px）
-uniform float seg_lean = 0.33;                // 往上向內（往左）斜多少（px／px），跟裡面那條線一樣
-uniform vec2 seg_b = vec2(1114.0, 1414.0);   // 窄帶右邊那條線上端的位置（畫布 px）
-uniform float seg_len = 55.0;                 // 往上加長幾 px（到內褲上緣）
+uniform float seg_curve = 0.33;               // 彎曲程度：上端往內（左）偏 seg_curve×seg_len px，下端垂直（0＝直線）
+uniform float seg_lean_unused = 0.0;                // 往上向內（往左）斜多少（px／px），跟裡面那條線一樣
+uniform vec2 seg_b = vec2(1119.0, 1414.0);   // 窄帶右邊那條線上端的位置（畫布 px）
+uniform float seg_len = 36.0;                 // 往上加長幾 px（到內褲上緣）
 uniform float seg_bx = 15.0;                  // 下端離大腿遮罩左緣往右多少 px（＝窄帶右邊虛線上端的位置；固定座標，線才會是直的）
 uniform float seg_dx = 5.0;                   // 起點相對大腿遮罩左緣往右多少 px（深紅輪廓線本身在遮罩邊緣內側）
 uniform float seg_in = 4.0;                   // 終點離內褲右緣往內多少 px
@@ -1734,12 +1735,13 @@ void fragment() {
         c.a = max(c.a, k8_ * 0.95);
     }
     {   // 最右邊那條線中間斷掉的一段：腿的深紅輪廓畫到夾角就停，下面窄帶右邊的虛線是分開的——在兩者之間補一小段線連起來（從深紅輪廓的終點，斜往右下接到虛線上端）
-        vec2 sb_ = seg_b;                                                   // 下端：窄帶右邊那條線的上端（畫布 px）——從這裡把這條線一路往上加長，不另外畫第二條
-        vec2 sa_ = sb_ - vec2(seg_lean * seg_len, seg_len);                  // 上端：往上 seg_len px、向內（往左）斜 seg_lean，一直接到內褲上緣（直線，不彎）
-        vec2 sab_ = sb_ - sa_;
-        float stt_ = clamp(dot(px - sa_, sab_) / max(1.0, dot(sab_, sab_)), 0.0, 1.0);
-        float sd_ = length(px - (sa_ + sab_ * stt_));
-        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * smoothstep(1.0, 20.0, aside) * seg_k;
+        vec2 sb_ = seg_b;   // 下端：窄帶右邊那條線斷掉的地方（畫布 px）——從這裡把這條線一路往上加長，不另外畫第二條
+        float st_ = clamp((sb_.y - px.y) / max(1.0, seg_len), 0.0, 1.0);          // 0＝下端、1＝上端（內褲上緣）
+        float sxl_ = sb_.x - seg_curve * seg_len * st_ * st_;                     // 彎曲：下端垂直、越往上越往內（左）彎，跟左邊那條弧線一樣
+        float ssl_ = 2.0 * seg_curve * st_;                                       // 目前的斜率，用來把橫向距離換成垂直距離
+        float sd_ = abs(px.x - sxl_) / sqrt(1.0 + ssl_ * ssl_);
+        float syk_ = smoothstep(sb_.y - seg_len - 1.0, sb_.y - seg_len + 1.0, px.y) * (1.0 - smoothstep(sb_.y - 0.5, sb_.y + 1.5, px.y));
+        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k;
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
     }
