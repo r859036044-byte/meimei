@@ -1481,6 +1481,7 @@ void fragment() {
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
     c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_) * (1.0 - edgeNear_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點（邊緣的線不淡化）
+    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(kc_, 0.0, 1.0) * smoothstep(0.15, 0.5, dark_) * (1.0 - edgeNear_) * 0.95);   // 被擠成一條的地方，擠在一起的黑線一律淡掉，不要變成一堆像程式畫的黑線
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1531,12 +1532,12 @@ void fragment() {
         }
     }
     {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉（乾淨的切口＋一條細黑線），不是淡化
-        float cutJ_ = hug_k * jf_str * smoothstep(jf_y.y - 1.5, jf_y.y + 1.5, px.y) * (1.0 - smoothstep(jf_y.y + 60.0, jf_y.y + 95.0, px.y));
+        float cutJ_ = hug_k * jf_str * smoothstep(jf_y.y - 1.5, jf_y.y + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);   // 黑線以下、右側那條細帶全部裁掉（左下角不動）
         float aPJ_ = c.a;
         c.a *= 1.0 - cutJ_;
         float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - jf_y.y - 1.0))) * hug_k * jf_str * step(0.3, aPJ_);
-        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.9);
-        c.a = max(c.a, lnJ_ * 0.9 * aPJ_);
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6 * smoothstep(1000.0, 1040.0, px.x));
+        c.a = max(c.a, lnJ_ * 0.6 * aPJ_ * smoothstep(1000.0, 1040.0, px.x));
     }
     c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
