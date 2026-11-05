@@ -1539,7 +1539,7 @@ void fragment() {
     {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
         float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
         float jk_ = max(hug_k, jj_on * step(0.5, aside));   // 雞雞出現（還沒插入）時也要裁，不只插入後
-        float cutJ_ = jk_ * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
+        float cutJ_ = jk_ * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * (1.0 - smoothstep(yl_ + 110.0, yl_ + 150.0, px.y)) * smoothstep(1000.0, 1040.0, px.x);   // 只裁黑線往下約110px，更下面的內褲不裁
         float aPJ_ = c.a;
         c.a *= 1.0 - cutJ_;
         float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * jk_ * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
