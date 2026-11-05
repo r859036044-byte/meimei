@@ -32,6 +32,8 @@ public partial class TrainingRoomRuntime
     [Export] public float MPantyStretchWidth = 90f;       // 變形範圍（高度方向）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyInsertHideLow = 1f;   // 插入時小穴底部以下多出來的一節內褲隱藏程度（0＝不藏）
     [Export(PropertyHint.Range, "0,1,0.05")] public float MPantyCornerPush = 1f;   // 插入後雞雞和小穴銜接處的內褲被推到右下角的程度（0＝不推）
+    [Export] public Vector2 MPantyJunctionRise = new Vector2(1423f, 1503f);   // 銜接處（插入時額外往右推）漸入的高度範圍（畫布 px）：整組一起加減就是上下移動
+    [Export] public Vector2 MPantyJunctionFall = new Vector2(1535f, 1570f);   // 銜接處漸淡消失的高度範圍（畫布 px）
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -152,6 +154,8 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("arc_v", MPantyAsideArcV);
         _mPantyMat.SetShaderParameter("arc_mix", MPantyAsideArcMix);
         _mPantyMat.SetShaderParameter("arc_peak", MPantyAsideArcPeak);
+        _mPantyMat.SetShaderParameter("jz_rise", MPantyJunctionRise);
+        _mPantyMat.SetShaderParameter("jz_fall", MPantyJunctionFall);
         _mPantyMat.SetShaderParameter("corner_push", MPantyCornerPush);
         _mPantyMat.SetShaderParameter("low_hide", MPantyInsertHideLow);
         _mPantyMat.SetShaderParameter("stretch_anchor", MPantyStretchAnchorY);
