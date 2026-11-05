@@ -34,6 +34,7 @@ public partial class TrainingRoomRuntime
     /// <summary>Phase 2：點 B 衝到的位置微調，單位是「螢幕 px」（正＝往下）。
     /// 之前是用角色畫布 px（角色整體縮小到 31.5%），使用者說往下 10px 實際畫面上只動了 3px 左右，
     /// 看起來像沒動；改成螢幕 px，執行時自動換算成畫布 px。使用者累計要求 10+15+20 ＝ 45。</summary>
+    [Export] public float JijiInsertOffsetX = -1f;   // 插入時雞雞＋精液額外左右微調（畫布 px，負＝向左）
     [Export] public float JijiBellyOffsetX = -1f;   // 男人肚子（雞雞的肚子）單獨左右微調（畫布 px，負＝向左）
     [Export] public Vector2 JijiPhase2Offset     = new Vector2(7f, 51f);   // X：男人肚子＋雞雞往右 3 → 5；Y：45 → 47 → 49 → 51
     /// <summary>雞雞（連同精液）以底部為錨點的旋轉角度（度，Godot 正＝順時針；-1.5 ＝ 逆時針 1.5 度）。</summary>
@@ -201,7 +202,7 @@ public partial class TrainingRoomRuntime
     [Export] public float AnusOpenSpeed   = 6f;     // 撐開／收回的跟隨速度
     [Export] public float AnusClipOffsetPx = 10f;     // 肛門目標：裁切線相對「肛門圖層上緣」的位置（螢幕 px，正＝往下、負＝往上）
     [Export(PropertyHint.Range, "0,0.8,0.01")] public float AnusTaperMax = 0.12f;     // 突破後肛門下方雞雞變細的最大比例（0.3＝窄 30%）
-    [Export(PropertyHint.Range, "0,0.8,0.01")] public float PussyTaperMax = 0.12f;   // 插入小穴後，雞雞靠近交接處變細的最大比例（0＝不變細）
+    [Export(PropertyHint.Range, "0,0.8,0.01")] public float PussyTaperMax = 0.08f;   // 插入小穴後，雞雞靠近交接處變細的最大比例（0＝不變細）
     [Export] public float AnusTaperArchPx  = 10f;   // 變細起點的弧形：兩側比中間再往下多少 px（0＝水平）
     [Export] public float AnusTaperStartPx = 5f;    // 變細從裁切線（肛門）往下多少 px 開始
     [Export] public float AnusTaperLenPx   = 40f;   // 變細往下漸層到消失的長度（螢幕 px）；越上面越細
@@ -581,7 +582,7 @@ void fragment() {
         foreach (var n in _jijiLayers)
         {
             if (!Layers.TryGetValue(n, out var c) || c == null) continue;
-            if (_layerBasePos.TryGetValue(n, out var bp)) c.Position = bp + off + (n == "男人肚子" ? new Vector2(JijiBellyOffsetX, 0f) : Vector2.Zero);
+            if (_layerBasePos.TryGetValue(n, out var bp)) c.Position = bp + off + (n == "男人肚子" ? new Vector2(JijiBellyOffsetX, 0f) : (_jijiPhase == 3 && _jijiStage >= 1 ? new Vector2(JijiInsertOffsetX, 0f) : Vector2.Zero));
             c.Modulate = new Color(1f, 1f, 1f, _jijiAlpha);
             if (n == "精液") c.Visible = _jijiSemenShown;
             // 雞雞／精液：以雞雞底部中央為錨點微旋轉（男人肚子不轉）

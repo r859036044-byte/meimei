@@ -1273,7 +1273,9 @@ uniform float max_reach = 140.0;             // 撥開時內褲最多能離原�
 uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
 uniform float ed_on = 0.0;
 uniform vec2 jz_rise = vec2(1423.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
-uniform vec2 jz_fall = vec2(1535.0, 1570.0);   // 從哪個高度開始漸淡→消失
+uniform vec2 jz_fall = vec2(1535.0, 1595.0);   // 從哪個高度開始漸淡→消失
+uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
+uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
 uniform float thrust_j = 0.0;               // 抽插時只在銜接處多撐開的 px（折角不動，只有銜接處膨脹）
 uniform float thrust_r = 0.0;               // 抽插時銜接處右邊多跟著往右的比例
 uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
@@ -1325,7 +1327,7 @@ float W_(float y) {
     float uU_ = clamp((y - arc_v.x) / max(1.0, arc_peak - arc_v.x), 0.0, 1.0);
     float wU_ = pow(max(0.0, sin(1.5708 * uU_)), 0.85);                       // 上半：圓滑往右凸（指數越小越圓）
     float uD_ = clamp((y - arc_peak) / max(1.0, arc_v.y - arc_peak), 0.0, 1.0);
-    float wD_ = 1.0 - pow(uD_, 1.2);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
+    float wD_ = 1.0 - pow(uD_, 1.15);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
     float wArc_ = y < arc_peak ? wU_ : wD_;
     return mix(wOld_, wArc_, arc_mix);
 }
@@ -1449,7 +1451,7 @@ void fragment() {
         vec4 em_ = vec4(0.0);
         float cleanA_ = 0.0;
         for (int k = 0; k < 5; k++) {
-            float eko_ = (float(k) - 2.0) * 0.25 * comp;
+            float eko_ = (float(k) - 2.0) * 0.4 * comp;
             vec4 ek_ = texture(ed_tex, vec2((xs + eko_) / 2000.0, ys_ / 3200.0));
             em_ = max(em_, ek_);       // 線用取最大值：壓縮時線不會被平均掉變淡
             cleanA_ += ek_.b;
@@ -1479,7 +1481,7 @@ void fragment() {
         vec2 ab_ = pb_ - pa_;
         float tt_ = clamp(dot(px - pa_, ab_) / max(1.0, dot(ab_, ab_)), 0.0, 1.0);
         float dist_ = length(px - (pa_ + ab_ * tt_));
-        float sl_ = (1.0 - smoothstep(0.8, 2.4, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
+        float sl_ = (1.0 - smoothstep(1.3, 3.3, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
     }
     {   // 下半部淡出的裁切：拉開越多，下半部（尾巴、肛門那一帶）越淡出，不要留一條被扯長的尾巴
@@ -1514,11 +1516,12 @@ void fragment() {
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
             // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
-            float jedge_ = (1.0 - smoothstep(0.0, 0.45, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_);
+            float jedge_ = (1.0 - smoothstep(0.0, 0.62, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_);
             c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), jedge_ * 0.9);
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
+    c.a *= 1.0 - hug_k * jf_str * smoothstep(jf_y.x, jf_y.y, px.y) * (1.0 - smoothstep(jf_y.y, jf_y.y + 60.0, px.y));   // 插入時：銜接處那條細內褲越往下越透明，碰到插入／雞雞下面的線就消失
     c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
