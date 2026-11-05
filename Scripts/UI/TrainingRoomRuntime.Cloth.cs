@@ -1309,11 +1309,13 @@ uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
 uniform vec2 seg_y = vec2(1402.0, 1418.0);     // 補斷線：起點（深紅輪廓終點）、終點（虛線上端）的高度（畫布 px）
+uniform float clean_k = 1.0;                  // 補的線左邊／下面，露出的腿線條和破圖膚色用白布蓋住的程度（0＝不蓋）
+uniform float clean_dn = 30.0;                // 往下清理到線下端再往下多少 px
 uniform float seg_fade = 0.35;                // 末端淡化：從線的這個位置（0～1，0＝下端、1＝上端）開始往上漸漸變淡到消失
 uniform float seg_curve = 0.33;               // 彎曲程度：上端往內（左）偏 seg_curve×seg_len px，下端垂直（0＝直線）
 uniform float seg_lean_unused = 0.0;                // 往上向內（往左）斜多少（px／px），跟裡面那條線一樣
 uniform vec2 seg_b = vec2(1116.0, 1414.0);   // 窄帶右邊那條線上端的位置（畫布 px）
-uniform float seg_len = 36.0;                 // 往上加長幾 px（到內褲上緣）
+uniform float seg_len = 44.0;                 // 往上加長幾 px（到內褲上緣）
 uniform float seg_bx = 15.0;                  // 下端離大腿遮罩左緣往右多少 px（＝窄帶右邊虛線上端的位置；固定座標，線才會是直的）
 uniform float seg_dx = 5.0;                   // 起點相對大腿遮罩左緣往右多少 px（深紅輪廓線本身在遮罩邊緣內側）
 uniform float seg_in = 4.0;                   // 終點離內褲右緣往內多少 px
@@ -1694,6 +1696,19 @@ void fragment() {
             float aBefore_ = c.a;
             c.a *= 1.0 - la_ * lw_ * (1.0 - coverA_);
             c.a *= 1.0 - smoothstep(redge0_ + 6.0, redge0_ + 14.0, px.x) * smoothstep(0.0, 6.0, d) * la_;
+            {   // 清理：補的那條線的左邊和下面，露出來的腿的線條／破圖的膚色，一律用白色內褲布蓋住（只蓋線左邊，線右邊的大腿不動）
+                float st2_ = clamp((seg_b.y - pj_.y) / max(1.0, seg_len), 0.0, 1.0);
+                float bx_ = seg_b.x - 2.0 - seg_curve * seg_len * st2_ * st2_;
+                float yk9_ = smoothstep(seg_b.y - seg_len - 2.0, seg_b.y - seg_len + 6.0, pj_.y) * (1.0 - smoothstep(seg_b.y + clean_dn - 8.0, seg_b.y + clean_dn, pj_.y));
+                float xk9_ = (1.0 - smoothstep(bx_ - 2.0, bx_ + 1.0, pj_.x)) * smoothstep(seg_b.x - 75.0, seg_b.x - 60.0, pj_.x);
+                float tk9_ = yk9_ * xk9_ * smoothstep(0.1, 0.5, la_) * (1.0 - c.a) * clean_k * smoothstep(1.0, 20.0, aside);   // 只填「內褲被腿裁掉、露出腿」的地方（c.a 低），內褲自己的線和布不動
+                float stub_ = smoothstep(seg_b.x - 32.0, seg_b.x - 28.0, pj_.x) * (1.0 - smoothstep(seg_b.x - 8.0, seg_b.x - 4.0, pj_.x)) * smoothstep(seg_b.y - 14.0, seg_b.y - 10.0, pj_.y) * (1.0 - smoothstep(seg_b.y + 12.0, seg_b.y + 16.0, pj_.y));   // 夾角下面那截露出的深紅腿線所在的小範圍
+                float mk9_ = (1.0 - smoothstep(0.30, 0.75, c.r)) * smoothstep(0.1, 0.5, c.a) * stub_ * clean_k * smoothstep(1.0, 20.0, aside);   // 露出的腿的深紅線（很深很紅）：線左邊的一律換成布色
+                float tkS_ = stub_ * (1.0 - c.a) * clean_k * smoothstep(1.0, 20.0, aside);   // 露出腿線條的那一小塊：不管腿遮罩，只要內褲在這裡是透的，就補布
+                tk9_ = max(tk9_, tkS_);
+                c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), max(tk9_, mk9_));
+                c.a = max(c.a, tk9_);
+            }
             {   // 右邊那條黑線：直接沿著「大腿遮罩的左緣」畫（用遊戲實際的腿位置，不是估的座標）：從內褲上緣一路畫到夾角
                 vec2 lqS_ = (lg_x * (pj_.x + 2.5) + lg_y * pj_.y + lg_o) / vec2(2000.0, 3200.0);
                 float aS_ = (lqS_.x >= 0.0 && lqS_.x <= 1.0) ? texture(leg_tex, lqS_).a : 0.0;
