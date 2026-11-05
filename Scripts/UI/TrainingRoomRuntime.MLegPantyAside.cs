@@ -19,7 +19,7 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MPantyAsideGrabV = new Vector2(1390f, 1500f);   // 按下的判定：可以拉伸的位置（畫布 px；往上移，內褲高度 1326~1684）
     [Export] public Vector2 MPantyAsideShearV = new Vector2(1370f, 1440f);  // 上轉折帶：上面不動，過了這裡被推到全量（畫布 px）
     [Export] public Vector2 MPantyAsideFixV   = new Vector2(1570f, 1680f);  // 下轉折帶：被推的量慢慢回到 0（畫布 px）。肛門那一帶（y≈1580~1630）也跟小穴一樣壓縮靠到最右邊，只擋住一點點；最下面左下角（>1650）固定不動，中間用弧度接起來
-    [Export] public float MPantyJijiClipFromY = 1470f;   // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；以上＝插進去的部分，內褲在雞雞上面
+    [Export] public float MPantyJijiClipFromY = 1500f;   // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；以上＝插進去的部分，內褲在雞雞上面
     [Export] public bool MPantyJijiClip = true;   // 內褲被雞雞裁切（雞雞蓋過內褲的地方，內褲被裁掉）
     [Export] public float MPantyAsideFollow  = 14f;    // 跟手速度
     [Export(PropertyHint.Range, "0,1,0.01")] public float MPantyAsideFoldK = 0f;   // 褶皺（陰影／亮面）濃度
@@ -40,6 +40,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float MPantyAnusBulge = 0.3f;   // 插入肛門時，肛門附近的內褲跟著肛門往外凸的程度（0＝不凸）
     [Export] public Vector2 MPantyAnusCenter = new Vector2(1003f, 1600f);   // 肛門中心（內褲圖座標 px）
     [Export] public float MPantyAnusBulgeR = 70f;   // 凸起範圍半徑（px）
+    [Export] public float MPantyCutCurvePx = 90f;   // 銜接處細帶下端的弧形裁切：左邊比右邊低多少 px（越大越彎）
     [Export] public float MPantyStretchAnchorY = 1579f;   // 抽插時內褲拉伸的固定點（畫布 px）：以下不動，以上被拉長（變形在上面）
     [Export(PropertyHint.Range, "0,60,1")] public float MPantyHookPx = 0f;              // 插入後貼著雞雞那一圈，邊界在入口高度往右凸出的弧形（像勾住雞雞）的量（畫布 px）
     [Export] public Vector2 MPantyAsideArcV = new Vector2(1375f, 1670f);   // 月牙形：推動量沿高度走橢圓輪廓，從上端開始、中間最大、下端回到 0（畫布 px）。上端往下移＝圖 1 那塊更小
@@ -167,6 +168,15 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("anus_c", MPantyAnusCenter);
         _mPantyMat.SetShaderParameter("anus_r", MPantyAnusBulgeR);
         _mPantyMat.SetShaderParameter("jf_y", MPantyJunctionFadeY);
+        _mPantyMat.SetShaderParameter("jf_curve", MPantyCutCurvePx);
+        if (Layers.TryGetValue("插入", out var insL_) && insL_ is TextureRect insT_ && insT_.Texture != null && insT_.Visible)
+        {   // 沿插入物件下緣裁切：把插入的貼圖、位置、縮放餵給 shader
+            _mPantyMat.SetShaderParameter("ins_tex", insT_.Texture);
+            _mPantyMat.SetShaderParameter("ins_xf", new Vector4(insT_.Position.X - panty.Position.X, insT_.Position.Y - panty.Position.Y, insT_.Scale.X, insT_.Scale.Y));
+            _mPantyMat.SetShaderParameter("ins_pv", insT_.PivotOffset);
+            _mPantyMat.SetShaderParameter("ins_on", 1f);
+        }
+        else _mPantyMat.SetShaderParameter("ins_on", 0f);
         _mPantyMat.SetShaderParameter("jf_str", _jijiAnus ? 0f : MPantyJunctionFadeStr);
         _mPantyMat.SetShaderParameter("corner_push", _jijiAnus ? 0f : MPantyCornerPush);
         _mPantyMat.SetShaderParameter("low_hide", _jijiAnus ? 0f : MPantyInsertHideLow);

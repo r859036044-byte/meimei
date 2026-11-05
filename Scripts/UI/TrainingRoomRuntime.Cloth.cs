@@ -1277,6 +1277,11 @@ uniform float ed_on = 0.0;
 uniform vec2 jz_rise = vec2(1395.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
 uniform vec2 jz_fall = vec2(1535.0, 1595.0);   // 從哪個高度開始漸淡→消失
 uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
+uniform sampler2D ins_tex : repeat_disable;   // 插入物件貼圖：內褲細帶沿它的下緣裁切
+uniform vec4 ins_xf = vec4(0.0, 0.0, 1.0, 1.0);   // 插入圖層相對內褲圖層的位置 xy、縮放 zw
+uniform vec2 ins_pv = vec2(0.0);
+uniform float ins_on = 0.0;
+uniform float jf_curve = 90.0;                 // 裁切線的弧度（左邊比右邊低多少 px）
 uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
 uniform float anus_bulge = 0.0;             // 插入肛門時肛門附近內褲往外凸的程度（0～0.5）
 uniform vec2 anus_c = vec2(1003.0, 1600.0);   // 肛門中心（內褲圖座標）
@@ -1346,6 +1351,12 @@ float D_(float y) {   // 這一列被推動的距離（跟 fragment 裡算的一
     float wd_ = max(1.0, XRY_(y) - XLY_(y));
     float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, y));
     return min(aside * W_(y) * left_boost * lf_, wd_ * 0.8 * lf_);
+}
+float insA_(vec2 p) {
+    vec2 q = ins_pv + (p - ins_xf.xy - ins_pv) / ins_xf.zw;
+    vec2 uv = q / vec2(2000.0, 3200.0);
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0;
+    return texture(ins_tex, uv).a;
 }
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
@@ -1536,15 +1547,22 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
-    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
-        float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
-        float jk_ = max(hug_k, jj_on * step(0.5, aside));   // 雞雞出現（還沒插入）時也要裁，不只插入後
-        float cutJ_ = jk_ * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
+    {   // 插入時：銜接處那條細內褲，沿著「插入」物件下面的黑線往下裁掉（裁切邊緣就是插入的下緣輪廓，不是橫的直線）
+        float jk_ = max(hug_k, jj_on * step(0.5, aside));
+        float xg_ = smoothstep(1000.0, 1040.0, px.x);
         float aPJ_ = c.a;
-        c.a *= 1.0 - cutJ_;
-        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * jk_ * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
-        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6);
-        c.a = max(c.a, lnJ_ * 0.6 * aPJ_);
+        if (ins_on > 0.5) {
+            float here_ = insA_(px);
+            float above_ = 0.0;
+            for (int k = 1; k <= 14; k++) above_ = max(above_, insA_(px + vec2(-4.0 * float(k), -8.0 * float(k))));   // 往左上看，插入物件還在不在
+            float below_ = (1.0 - smoothstep(0.1, 0.5, here_)) * smoothstep(0.1, 0.5, above_);
+            float cutI_ = jk_ * jf_str * below_ * xg_;
+            c.a *= 1.0 - cutI_;
+            float edgeI_ = (1.0 - smoothstep(0.1, 0.5, here_)) * smoothstep(0.3, 0.6, insA_(px + vec2(-2.0, -3.0)));   // 插入下緣那圈線
+            float lnI_ = edgeI_ * jk_ * jf_str * step(0.3, aPJ_) * xg_;
+            c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnI_ * 0.6);
+            c.a = max(c.a, lnI_ * 0.6 * aPJ_);
+        }
     }
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
