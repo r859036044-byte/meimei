@@ -1372,7 +1372,7 @@ void fragment() {
     float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
     // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
     float hug_ = hug_k * smoothstep(1500.0, 1550.0, ys_) * (1.0 - smoothstep(1540.0, 1575.0, ys_));   // 銜接處下面就淡掉（下面不跟著被推），左下角不離開
-    float zj_ = smoothstep(1432.0, 1512.0, ys_) * (1.0 - smoothstep(1535.0, 1570.0, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
+    float zj_ = smoothstep(1423.0, 1503.0, ys_) * (1.0 - smoothstep(1535.0, 1570.0, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
     float dA_ = (aside * w * left_boost * lf_ + thrust_j * zj_) * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
     float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
@@ -1382,7 +1382,7 @@ void fragment() {
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    float kc_ = hug_k * corner_push * smoothstep(1432.0, 1512.0, ys_) * (1.0 - smoothstep(1535.0, 1570.0, ys_));
+    float kc_ = hug_k * corner_push * smoothstep(1423.0, 1503.0, ys_) * (1.0 - smoothstep(1535.0, 1570.0, ys_));
     d = mix(d, max(d, wd * 0.97), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
     float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 10.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
