@@ -106,6 +106,7 @@ uniform vec2 jc_y = vec2(0.0, 1.0);
 uniform vec2 jc_o = vec2(0.0);
 uniform float jc_on = 0.0;
 uniform float jc_from_y = 1500.0;
+uniform float jc_arch = 105.0;   // 雞雞裁衣服的起點弧度：兩側比中間低多少 px
 uniform float expand_amount = 0.0;
 uniform float center_u = 0.5225;
 uniform float taper_start_v = 0.3716;
@@ -509,7 +510,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - texture(jc_tex, jq3_).a * smoothstep(jc_from_y, jc_from_y + 40.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y + jc_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(pj3_.x - 985.0) / 130.0, 0.0, 1.0), 2.0)))) * step(1.0, jc_from_y), jc_from_y + jc_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(pj3_.x - 985.0) / 130.0, 0.0, 1.0), 2.0)))) * step(1.0, jc_from_y) + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1156,11 +1157,13 @@ void fragment() {
     [Export] public bool PlayTimeLimitOn = true;         // 遊玩時間限制
     [Export(PropertyHint.Range, "10,3600,1")] public float PlayTimeLimitSec = 300f;   // 5 分鐘
     float _playTime; bool _playTimeUp;
-    [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 3f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
+    [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomPx = 0f;   // 插入物件只有底部額外向右擴張幾 px，讓右下角伸到雞雞的右緣貼齊（雞雞右緣 x≈1119、插入內容右緣 x≈1098）
+    [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 0f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
     void UpdateInsertMask()
     {
         if (_insertEdgeMat == null) return;
         _insertEdgeMat.SetShaderParameter("wid_s", InsertWidenRightPx / 239f);
+        _insertEdgeMat.SetShaderParameter("wid_b", InsertWidenBottomPx / 239f);
     }
 
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
@@ -1254,21 +1257,67 @@ uniform float lg_on = 0.0;
 // ── 撥開（MLegPantyAside.cs）：抓內褲上面一點往右拉；右邊固定不動，左邊被推到右邊，布被壓向右邊變扁 ──
 uniform float aside = 0.0;                    // 左邊被推過去多遠（畫布 px），0＝沒撥開
 uniform vec2 shear_v = vec2(1370.0, 1440.0);  // 上轉折帶（畫布 px）：上面不動，過了這裡被推到全量
-uniform vec2 fix_v = vec2(1520.0, 1600.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
+uniform vec2 fix_v = vec2(1570.0, 1680.0);    // 下轉折帶：被推的量慢慢回到 0，最底下固定不動
 uniform vec3 edge_l = vec3(839.17, 70.6, -9.12);     // 內褲左緣 x(y)＝c0 + c1*t + c2*t*t，t＝(y-1400)/100（畫布 px，實測擬合）
 uniform vec3 edge_r = vec3(1125.35, -77.5, 18.26);   // 內褲右緣
 uniform float fold_k = 0.0;                   // 褶皺陰影濃度（0＝不要陰影，只留線條）
 uniform float fold_freq = 0.10;               // 褶皺間距（越大越密）
 uniform float right_follow = 0.05;            // 右邊也會跟著往右移一點點（相對左邊被推的量）
-uniform float low_k = 0.6;                    // 下半部（靠近肛門）比上面多拉開的倍率（0＝一樣）
+uniform sampler2D an_tex : filter_linear;   // 肛門圖層的貼圖：撥開時，內褲只在肛門的位置挖一個洞（下半部其他地方完整保留）
+uniform vec2 an_off = vec2(0.0);            // 肛門圖層相對內褲圖層的位移（畫布 px）
+uniform float an_on = 0.0;
+uniform vec2 leg_offr = vec2(0.0);           // 右腿相對內褲的平移（px）：呼吸／擺動時邊緣跟著腿走，不露縫
+uniform vec2 leg_offl = vec2(0.0);           // 左腿相對內褲的平移（px）
+uniform vec2 leg_rot = vec2(0.0);           // 右腿／左腿目前的旋轉（弧度）：內褲和腳交接的地方跟著腳的旋轉做一點變形，才貼得緊
+uniform float low_str = 0.9;                // 肛門那一帶（y≳1540）的內褲位移強度倍率（1＝跟上面一樣；越小位移越少）
+uniform float seam_fade = 1.0;              // 內褲中間那條黑色縫線：內褲被拉開時淡化的程度（0＝不淡化）
+uniform float low_fade = 1.0;                // 下半部淡出的程度（拉開越多，下半部越淡出；0＝不淡出）
+uniform float max_reach = 140.0;             // 撥開時內褲最多能離原本右緣往右多遠（畫布 px）；再遠的一律隱藏，避免拉出一條長長的殘影
+uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
+uniform float ed_on = 0.0;
+uniform vec2 jz_rise = vec2(1300.0, 1500.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
+uniform vec2 jz_fall = vec2(1500.0, 1550.0);   // 從哪個高度開始漸淡→消失
+uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
+uniform sampler2D ins_tex : repeat_disable;   // 插入物件貼圖：內褲細帶沿它的下緣裁切
+uniform vec4 ins_xf = vec4(0.0, 0.0, 1.0, 1.0);   // 插入圖層相對內褲圖層的位置 xy、縮放 zw
+uniform vec2 ins_pv = vec2(0.0);
+uniform float ins_on = 0.0;
+uniform float jf_curve = 90.0;                 // 裁切線的弧度（左邊比右邊低多少 px）
+uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
+uniform float anus_bulge = 0.0;             // 插入肛門時肛門附近內褲往外凸的程度（0～0.5）
+uniform vec2 anus_c = vec2(1003.0, 1600.0);   // 肛門中心（內褲圖座標）
+uniform float anus_r = 70.0;                // 凸起範圍半徑（px）
+uniform float thrust_j = 0.0;               // 抽插時只在銜接處多撐開的 px（折角不動，只有銜接處膨脹）
+uniform float thrust_r = 0.0;               // 抽插時銜接處右邊多跟著往右的比例
+uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
+uniform float stretch_center = 1432.0;      // 變形中心（畫布 px）：雞雞和插入銜接處
+uniform float stretch_width = 90.0;
+uniform float stretch_anchor = 1579.0;      // 固定點（畫布 px）：這個高度以下完全不動，往上的部分被拉長（變形集中在上面）
+uniform float hook_px = 0.0;                // 插入後貼著雞雞那一圈：邊界在入口高度往右凸出一個弧形（像勾住雞雞）的量（畫布 px）
+uniform vec2 arc_v = vec2(1385.0, 1685.0);  // 月牙形：推動量沿著高度走一個橢圓輪廓，從這個範圍的上端開始、中間最大、下端回到 0
+uniform float arc_peak = 1528.5;          // 月牙最凸（推動量最大）的高度（畫布 px）：上面從 arc_v.x 圓滑升到這裡，下面用餘弦快速收回到 arc_v.y（左下角固定）
+uniform float arc_mix = 1.0;                // 1＝完全用月牙（橢圓）輪廓；0＝用原本「平台＋兩頭 smoothstep」
+uniform float ins_rot = 0.0;               // 插入時彎曲處（肘）繞 ins_pivot 旋轉的角度（弧度；負＝逆時針）
+uniform vec2 ins_pivot = vec2(1020.0, 1520.0);   // 彎曲處的中心（內褲圖座標 px）
+uniform float ins_left = 0.3;              // 插入後左邊再往右多推的比例（乘上 hug_k 的平滑插入狀態）
+uniform float low_hide = 1.0;               // 插入時小穴底部以下那一節內褲的隱藏程度（0＝不藏）
+uniform float corner_push = 1.0;            // 插入後入口附近的內褲被推到右下角的程度（0＝不推）
+uniform float hug_k = 0.0;                  // 插入後：入口下面右下角那一帶的內褲再往右貼著雞雞的程度（0＝不貼；平滑漸入）
+uniform float line_steep = 0.35;            // 陡的（近垂直的）邊的黑線濃度倍率：直線的黑線少一點（0＝沒有）；斜的／平的邊一律全濃度
+uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變細，補一圈描邊的濃度（0＝不補）
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
+uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
 uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」起訖高度（畫布 px）
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
+uniform float jz_mid = 60.0;                    // 插入時中間這一段原本的位移（px）：50＋10
+uniform float jz_arch = 105.0;                  // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
+uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
+uniform float jj_arch = 105.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
 uniform float jj_from_y = 1500.0;             // 雞雞蓋在內褲上面只限這條線以下（畫布 px）；這條線以上＝插進去的部分，內褲在雞雞上面
-uniform float sag_k = 0.12;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
+uniform float sag_k = 0.22;                   // 轉折處布往下垂（向下凹）的量，相對撥開距離
 uniform float crease_frac = 0.22;             // 右側摺線的位置：從右緣往左，佔被壓縮那一段寬度的比例
 // ── 雞雞裁切（內褲被雞雞蓋過去的地方裁掉，露出底下的雞雞）──
 uniform sampler2D jj_tex : filter_linear;
@@ -1286,7 +1335,16 @@ void vertex() { vc = COLOR; }
 float W_(float y) {
     float a_ = clamp((y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
     float b_ = clamp((y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);
-    return (a_ * a_ * (3.0 - 2.0 * a_)) * (1.0 - b_ * b_ * (3.0 - 2.0 * b_));
+    float wOld_ = (a_ * a_ * (3.0 - 2.0 * a_)) * (1.0 - b_ * b_ * (3.0 - 2.0 * b_));
+    float yc_ = 0.5 * (arc_v.x + arc_v.y);
+    float hr_ = max(1.0, 0.5 * (arc_v.y - arc_v.x));
+    float t_ = (y - yc_) / hr_;
+    float uU_ = clamp((y - arc_v.x) / max(1.0, arc_peak - arc_v.x), 0.0, 1.0);
+    float wU_ = pow(max(0.0, sin(1.5708 * uU_)), 0.85);                       // 上半：圓滑往右凸（指數越小越圓）
+    float uD_ = clamp((y - arc_peak) / max(1.0, arc_v.y - arc_peak), 0.0, 1.0);
+    float wD_ = 1.0 - pow(uD_, 1.15);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
+    float wArc_ = y < arc_peak ? wU_ : wD_;
+    return mix(wOld_, wArc_, arc_mix);
 }
 float XLY_(float y) { float t = (y - 1400.0) / 100.0; return edge_l.x + edge_l.y * t + edge_l.z * t * t; }
 float XRY_(float y) { float t = (y - 1400.0) / 100.0; return edge_r.x + edge_r.y * t + edge_r.z * t * t; }
@@ -1294,39 +1352,165 @@ float XRE_(float y) {   // 撥開後內褲右緣的實際位置
     float wd_ = max(1.0, XRY_(y) - XLY_(y));
     return XRY_(y) + min(aside * W_(y) * left_boost, wd_ * 0.8) * right_follow;
 }
+float D_(float y) {   // 這一列被推動的距離（跟 fragment 裡算的一樣），拿來看推動量隨高度變化多快
+    float wd_ = max(1.0, XRY_(y) - XLY_(y));
+    float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, y));
+    return min(aside * W_(y) * left_boost * lf_, wd_ * 0.8 * lf_);
+}
+float insA_(vec2 p) {
+    vec2 q = ins_pv + (p - ins_xf.xy - ins_pv) / ins_xf.zw;
+    vec2 uv = q / vec2(2000.0, 3200.0);
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0;
+    return texture(ins_tex, uv).a;
+}
 void fragment() {
     vec2 px = UV * vec2(2000.0, 3200.0);
+    {   // 內褲和腳交接的地方跟著腳的旋轉做一點變形：靠近右緣的跟右腿轉、靠近左緣的跟左腿轉（離邊緣越遠越不動）
+        float wr_ = smoothstep(XRY_(px.y) - 70.0, XRY_(px.y) + 10.0, px.x);
+        float wl_ = 1.0 - smoothstep(XLY_(px.y) - 10.0, XLY_(px.y) + 70.0, px.x);
+        vec2 vr_ = px - vec2(1060.0, 1500.0);
+        vec2 dr2_ = vec2(cos(leg_rot.x) * vr_.x - sin(leg_rot.x) * vr_.y, sin(leg_rot.x) * vr_.x + cos(leg_rot.x) * vr_.y) - vr_;
+        vec2 vl_ = px - vec2(940.0, 1500.0);
+        vec2 dl2_ = vec2(cos(leg_rot.y) * vl_.x - sin(leg_rot.y) * vl_.y, sin(leg_rot.y) * vl_.x + cos(leg_rot.y) * vl_.y) - vl_;
+        px -= dr2_ * wr_ + dl2_ * wl_;
+        float wrT_ = smoothstep(XRY_(px.y) - 140.0, XRY_(px.y) + 10.0, px.x);
+        float wlT_ = 1.0 - smoothstep(XLY_(px.y) - 10.0, XLY_(px.y) + 140.0, px.x);
+        px -= leg_offr * wrT_ + leg_offl * wlT_;   // 腿的平移也要跟（範圍比旋轉更寬，腿向上動時右上角才不露縫）
+    }
+    {   // 插入時彎曲的部分（斜邊轉成垂直的那個肘）逆時針旋轉：以彎曲處為中心、離中心越遠影響越小
+        vec2 pv_ = px - ins_pivot;
+        float rw_ = exp(-dot(pv_, pv_) / (110.0 * 110.0));
+        vec2 dr3_ = vec2(cos(ins_rot) * pv_.x - sin(ins_rot) * pv_.y, sin(ins_rot) * pv_.x + cos(ins_rot) * pv_.y) - pv_;
+        px -= dr3_ * rw_;
+    }
     float b1 = clamp((px.y - shear_v.x) / max(1.0, shear_v.y - shear_v.x), 0.0, 1.0);
     float b2 = clamp((px.y - fix_v.x) / max(1.0, fix_v.y - fix_v.x), 0.0, 1.0);
-    float w = (b1 * b1 * (3.0 - 2.0 * b1)) * (1.0 - b2 * b2 * (3.0 - 2.0 * b2));
+    float w = W_(px.y);   // 推動量沿高度的輪廓（月牙形）
     float sag = sag_k * aside * (b1 * b1 * (3.0 - 2.0 * b1)) * sin(3.14159 * b2);   // 下轉折帶中間布往下垂，讓上下接得平順
-    float ys_ = px.y - sag;                      // 取圖用的來源列：內褲左右緣要用這一列的位置算，開口邊界才會剛好貼在內褲自己的邊線上
+    float ys0_ = px.y - sag;
+    float stA_ = smoothstep(stretch_anchor + 8.0, stretch_anchor - 40.0, ys0_);   // 1＝固定點上方、0＝下方（下方完全不動）
+    float sb_ = (ys0_ - stretch_center) / stretch_width;
+    float ts_loc_ = thrust_stretch;   // 變形集中在雞雞和插入銜接處的內褲
+    float ys_ = mix(ys0_, stretch_anchor + (ys0_ - stretch_anchor) / (1.0 + ts_loc_), stA_);   // 小穴底部固定，往上的部分被拉長（不是整塊往上移，也不是單純擴張）
+    // 取圖用的來源列：內褲左右緣要用這一列的位置算，開口邊界才會剛好貼在內褲自己的邊線上
     float t_ = (ys_ - 1400.0) / 100.0;
     float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
     float xr = edge_r.x + edge_r.y * t_ + edge_r.z * t_ * t_;
     float wd = max(1.0, xr - xl);
-    // 越靠下面拉開越多：下半部（肛門那一帶）右邊也跟著一起滑，整塊往右滑到大腿下面去（不再壓縮），肛門才會露出來
-    float lowT = smoothstep(1500.0, 1600.0, ys_);
-    float capf = mix(0.8, 3.0, lowT);
-    float d = min(aside * w * left_boost * (1.0 + low_k * lowT), wd * capf);          // 左邊被推過去的距離（上面最多推掉寬度 8 成，下面可以整塊滑走）
+    float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
+    // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
+    float hug_ = hug_k * smoothstep(1500.0, 1550.0, ys_) * (1.0 - smoothstep(1540.0, 1575.0, ys_));   // 銜接處下面就淡掉（下面不跟著被推），左下角不離開
+    float zd_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0))));   // 銜接處上緣是球形的凸起（中間高、兩側低）
+    float zj_ = smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
+    float zup_ = smoothstep(jz_rise.x - 70.0, jz_rise.x, ys_ - zd_);   // 銜接處上方的漸層：往上慢慢不位移
+    float xtra_ = 0.0;   // （已停用）不再額外加位移
+    float dA_ = (aside * w * left_boost * lf_ + thrust_j * zj_) * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
+    float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
+    // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
+    float d = pow(pow(max(dA_, 0.001), -8.0) + pow(max(dB_, 0.001), -8.0), -0.125);
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
-    float dr = d * mix(right_follow, 1.0, lowT);   // 右邊跟著往右移的量：上面只一點點，下面整塊跟著滑
+    {   // 弧形的勾：入口高度（約 y 1555）的推動量多一個平滑的凸起，邊界在那裡往右彎出一個弧形，像勾住雞雞
+        float hh_ = (ys_ - 1555.0) / 32.0;
+        d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
+    }
+    float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
+    d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
+    {   // 插入時：中間這一段（1374~1592）原本的位移直接改成 jz_mid（px），上下兩端漸漸接回原本的位移
+        float wz_ = hug_k * smoothstep(1374.0, 1444.0, ys_) * (1.0 - smoothstep(1532.0, 1592.0, ys_)) * step(0.5, aside);
+        d = mix(d, jz_mid, wz_);
+    }
+    float dr = d * (right_follow + 0.04 * hug_ + thrust_r * zj_);   // 右緣只跟一點點：之前貼雞雞那一帶跟 0.5×d（上百 px），銜接處下面的最外側折角就被拉出去一大段，露出皮膚色   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
+    {   // 插入肛門：肛門附近的內褲跟著肛門往外凸（以肛門為中心放大，越近越凸）
+        vec2 dvb_ = vec2(xs, ys_) - anus_c;
+        float fb_ = anus_bulge * exp(-dot(dvb_, dvb_) / (anus_r * anus_r));
+        xs = anus_c.x + dvb_.x * (1.0 - fb_);
+        ys_ = anus_c.y + dvb_.y * (1.0 - fb_);
+    }
     float env = clamp((comp - 1.0) / 1.5, 0.0, 1.0);
     float shade = env * sin(xs * fold_freq + px.y * 0.03 + sin(px.y * 0.06) * 1.5);   // 壓縮出來的垂直褶皺
-    vec4 c = texture(TEXTURE, vec2(xs / 2000.0, ys_ / 3200.0));
+    // 壓縮時一個輸出像素涵蓋 comp 個來源像素：橫向多點平均（預乘），線稿才會變成連續的線，不會變成一格一格的紅黑條紋
+    vec4 c;
+    {
+        vec4 acc_ = vec4(0.0);
+        for (int k = 0; k < 5; k++) {
+            float ko_ = (float(k) - 2.0) * 0.25 * min(comp, 8.0);
+            vec4 tk_ = texture(TEXTURE, vec2((xs + ko_) / 2000.0, ys_ / 3200.0));
+            acc_ += vec4(tk_.rgb * tk_.a, tk_.a);
+        }
+        acc_ /= 5.0;
+        c = vec4(acc_.a > 0.001 ? acc_.rgb / acc_.a : vec3(0.0), acc_.a);
+    }
+    {   // 內褲中間那條黑色縫線（約 x 958~1000、y 1438~1600）當成獨立的東西：內褲被拉開時淡化，脫離內褲就消失
+        float sx_ = smoothstep(954.0, 964.0, xs) * (1.0 - smoothstep(994.0, 1004.0, xs));
+        float sy_ = smoothstep(1434.0, 1446.0, ys_) * (1.0 - smoothstep(1594.0, 1606.0, ys_));
+        float seamK_ = sx_ * sy_ * smoothstep(15.0, 70.0, aside) * seam_fade;
+        vec3 fill_ = 0.5 * (texture(TEXTURE, vec2((xs - 24.0) / 2000.0, ys_ / 3200.0)).rgb + texture(TEXTURE, vec2((xs + 24.0) / 2000.0, ys_ / 3200.0)).rgb);
+        float dkS_ = smoothstep(0.18, 0.50, 1.0 - dot(c.rgb, vec3(0.3333)));
+        c.rgb = mix(c.rgb, fill_, seamK_ * dkS_);
+    }
     // 開口：只有「真的被推動」的地方才切；沒推動的地方（最底下的尾巴、上面）完全不切，
     // 否則用估算的左緣去切，會把尾巴左下角那個向外翹的角整塊切掉。
-    float hb = xl + d - mix(edge_pad, 28.0, lowT);   // 下半部（尾巴）的左緣估算比實際偏右，多留一些，不然尾巴左下角又會被切掉
+    float hb = xl + d - edge_pad;
     float holeA = (d > 1.0) ? smoothstep(hb - 1.0, hb + 1.5, px.x) : 1.0;   // 開口邊緣柔邊（不要一格一格的鋸齒）
-    c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;   // 圖本身有大片半透明（霧），拉高到實心；被推動的地方把外圍最淡的霧去掉，不然會多出一圈突出去的尖角
+    c.a = smoothstep(0.3 * smoothstep(0.0, 6.0, d), 0.6, c.a) * holeA;
+    float redge0_ = xr + dr;
+    float edgeNear_ = max(1.0 - smoothstep(0.0, 14.0, px.x - (xl + d)), 1.0 - smoothstep(0.0, 14.0, redge0_ - px.x)) * smoothstep(1.0, 8.0, d);   // 左右邊緣 14px 內
+    {   // 邊緣的線稿被壓縮後會變細變淡：把邊緣 14px 內的線加深，補回被壓掉的粗細
+        float dkc_ = 1.0 - dot(c.rgb, vec3(0.3333));
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), clamp((comp - 1.0) * 0.35, 0.0, 0.8) * smoothstep(0.12, 0.45, dkc_) * edgeNear_ * outline_k * 0.5);
+    }
+    if (ed_on < 0.5) {   // 邊緣補黑線（沒有邊線貼圖時的備用做法）：只要被推動（d>1），可見形狀的邊緣就補一圈深色描邊——不再等「壓縮超過一定程度」才開，
+        // 剪切剛開始的那條斜邊（壓縮還很小）也要有黑線。邊的外側和內側都補，線才夠明顯、連續。
+        float rr_ = 3.0;
+        float k03_ = 0.3 * smoothstep(0.0, 6.0, d);   // 跟上面實心化用同一條門檻，邊才判得準
+        float aL_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2((xs - rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        float aR_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2((xs + rr_ * comp) / 2000.0, ys_ / 3200.0)).a);
+        float aU_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ - rr_) / 3200.0)).a);
+        float aD_ = smoothstep(k03_, 0.6, texture(TEXTURE, vec2(xs / 2000.0, (ys_ + rr_) / 3200.0)).a);
+        float edgeK_ = smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
+        // 左右鄰居偵測到的邊＝陡的（近垂直）邊：黑線減少；上下鄰居偵測到的邊＝斜的／平的邊：黑線照樣強化
+        float outH_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, max(aL_, aR_));
+        float inH_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, min(aL_, aR_)));
+        float outV_ = (1.0 - smoothstep(0.1, 0.4, c.a)) * smoothstep(0.4, 0.8, max(aU_, aD_));
+        float inV_ = smoothstep(0.5, 0.9, c.a) * (1.0 - smoothstep(0.15, 0.45, min(aU_, aD_)));
+        float outE_ = max(outH_ * line_steep, outV_);   // 邊的外側
+        float inE_ = max(inH_ * line_steep, inV_);       // 邊的內側
+        // 開口切線（hb）本身也補一條黑線：萬一開口邊界落在布的中間，切口也不能是光禿禿一條虛線
+        float cutL_ = (1.0 - smoothstep(0.0, 3.0, abs(px.x - hb - 1.5))) * smoothstep(0.5, 0.9, c.a / max(holeA, 0.001)) * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
+        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA)) * (1.0 - smoothstep(3.0, 7.0, comp) * (1.0 - edgeNear_));
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
+        c.a = max(c.a, eo_);
+    }
+    if (ed_on > 0.5) {   // 用烘好的乾淨邊線貼圖：形狀圓角、沒有雜訊，斜邊／下面的角也有連續的黑線；跟內褲同一套座標，會一起被拉、一起被壓
+        vec4 em_ = vec4(0.0);
+        float cleanA_ = 0.0;
+        for (int k = 0; k < 5; k++) {
+            float eko_ = (float(k) - 2.0) * 0.4 * min(comp, 3.0);   // 壓得很窄時取樣間距不要跟著暴增（會取到很遠的線，變成梳子狀橫紋）
+            vec4 ek_ = texture(ed_tex, vec2((xs + eko_) / 2000.0, ys_ / 3200.0));
+            em_ = max(em_, ek_);       // 線用取最大值：壓縮時線不會被平均掉變淡
+            cleanA_ += ek_.b;
+        }
+        cleanA_ /= 5.0;
+        float pushK_ = smoothstep(0.0, 6.0, d);
+        c.a = mix(c.a, smoothstep(0.42, 0.58, cleanA_) * holeA, pushK_);   // 被推動時改用乾淨的圓角形狀（取代帶雜訊的霧邊緣）
+        // 陡／斜要用「畫面上」的方向判斷：內褲被剪切、壓縮之後，原圖裡陡的邊在畫面上可能已經變成斜的
+        float gx_ = dFdx(cleanA_);
+        float gy_ = dFdy(cleanA_);
+        float sh_ = abs(gy_) / (abs(gx_) + abs(gy_) + 0.0001);   // 1＝邊是平的／斜到近水平，0＝邊是垂直的
+        float orient_ = mix(line_steep, 1.0, smoothstep(0.35, 0.65, sh_));
+        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA * (1.0 - max(clamp(kc_, 0.0, 1.0), smoothstep(3.0, 7.0, comp)) * (1.0 - edgeNear_));   // 被壓很窄的地方（不管在哪個高度）只留邊緣的線，中間的線全不畫   // 細帶中間不畫擠在一起的線，只留邊緣的線
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lineE_);
+        c.a = max(c.a, lineE_);
+    }
     c.rgb *= 1.0 - fold_k * 0.30 * clamp(shade, 0.0, 1.0);   // 陰影（預設 fold_k＝0，不要）
     float dark_ = 1.0 - dot(c.rgb, vec3(0.3333));   // 被壓縮擠在一起的原本黑線（線稿）淡化一點，不要一堆黑線
-    float redge0_ = xr + dr;
     float nearR_ = smoothstep(redge0_ - 38.0, redge0_ - 22.0, px.x) * (1.0 - smoothstep(0.0, 6.0, px.x - redge0_));   // 右緣那條邊線附近：保留黑線
-    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點
+    c.rgb = mix(c.rgb, vec3(0.88, 0.85, 0.90), clamp(env * 0.45, 0.0, 0.45) * smoothstep(0.30, 0.65, dark_) * (1.0 - nearR_) * (1.0 - edgeNear_));   // 被擠壓出來的線條褶皺：明顯的保留，只淡化一點（邊緣的線不淡化）
+    c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), clamp(kc_, 0.0, 1.0) * (1.0 - edgeNear_) * 0.9);   // 被擠成細帶的地方整條用平的布色，不要出現一格一格的橫紋   // 被擠成一條的地方，擠在一起的黑線一律淡掉，不要變成一堆像程式畫的黑線
+    c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), smoothstep(3.0, 7.0, comp) * (1.0 - edgeNear_) * step(0.3, c.a));   // 擠得很窄的地方整條用平的布色，原本的線稿擠在一起會變成橫向破圖
     float cx_ = (xr + dr) - crease_frac * ((xr + dr) - (xl + d));   // 右側多出來的一條黑色摺線（布被壓出來的折邊）
     float cline = (1.0 - smoothstep(0.8, 2.4, abs(px.x - cx_))) * smoothstep(0.05, 0.4, comp - 1.0) * step(0.3, c.a);
     c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), cline * 0.45);
@@ -1336,13 +1520,101 @@ void fragment() {
         vec2 ab_ = pb_ - pa_;
         float tt_ = clamp(dot(px - pa_, ab_) / max(1.0, dot(ab_, ab_)), 0.0, 1.0);
         float dist_ = length(px - (pa_ + ab_ * tt_));
-        float sl_ = (1.0 - smoothstep(0.8, 2.4, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
+        float sl_ = (1.0 - smoothstep(1.3, 3.3, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
+    }
+    {   // 下半部淡出的裁切：拉開越多，下半部（尾巴、肛門那一帶）越淡出，不要留一條被扯長的尾巴
+        // 乾淨的切斷（不要半透明漸層）：拉開越多，切斷線從內褲最底下往上移，到最大時停在肛門上面（y≈1575），
+        // 切斷處補一條細的深色邊線，看起來像內褲的下緣；肛門就露出來
+        float pull_ = smoothstep(20.0, 120.0, aside) * low_fade;
+        float yc_ = mix(1700.0, 1575.0, pull_);
+        float aPre_ = c.a;
+        c.a *= 1.0 - smoothstep(yc_, yc_ + 6.0, ys_);
+        float hem_ = (1.0 - smoothstep(0.0, 2.5, abs(ys_ - yc_ - 1.0))) * step(0.3, aPre_) * pull_;
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), hem_ * 0.8);
+        c.a = max(c.a, hem_ * aPre_);
+        // （已拿掉）以前這裡有一條「剪切太陡的地方把深色線條刪掉」的規則，結果把斜邊的黑線也刪掉了，所以斜線怎麼補都看不到。
+    }
+    if (an_on > 0.5) {   // 肛門：撥開時只在肛門的位置挖洞，露出底下的肛門（下半部其他地方的內褲完整保留）
+        vec2 auv_ = (px - an_off) / vec2(2000.0, 3200.0);
+        if (auv_.x >= 0.0 && auv_.x <= 1.0 && auv_.y >= 0.0 && auv_.y <= 1.0)
+            c.a *= 1.0 - smoothstep(0.05, 0.5, texture(an_tex, auv_).a) * smoothstep(40.0, 110.0, aside);
+    }
+    {   // 保險：撥開時，超過「原本右緣 + max_reach」的部分一律不顯示
+        float xrc_ = edge_r.x + edge_r.y * clamp(t_, -0.5, 2.4) + edge_r.z * clamp(t_, -0.5, 2.4) * clamp(t_, -0.5, 2.4);
+        c.a *= 1.0 - smoothstep(xrc_ + max_reach, xrc_ + max_reach + 6.0, px.x) * smoothstep(0.0, 6.0, d);
     }
     if (jj_on > 0.5) {
         vec2 pj2_ = UV * jj_size;
         vec2 jq_ = (jj_x * pj2_.x + jj_y * pj2_.y + jj_o) / vec2(2000.0, 3200.0);
-        if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) c.a *= 1.0 - texture(jj_tex, jq_).a * smoothstep(jj_from_y, jj_from_y + 40.0, px.y);   // 只有這條線以下的雞雞蓋在內褲上面
+        if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) {
+            const vec2 oj_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，切口的線才不會變成一個一個的點
+            float jraw_ = 0.25 * (texture(jj_tex, jq_ + oj_).a + texture(jj_tex, jq_ - oj_).a + texture(jj_tex, jq_ + vec2(oj_.x, -oj_.y)).a + texture(jj_tex, jq_ + vec2(-oj_.x, oj_.y)).a);
+            float js_ = smoothstep(0.38, 0.52, jraw_);   // 裁切邊緣要俐落，不要淡出
+            float jfy_ = jj_from_y + jj_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0)))) * step(1.0, jj_from_y);   // 裁切起點是一條弧形，不是橫線
+            float jw_ = smoothstep(jfy_, jfy_ + 2.0, px.y);
+            float aPreJ_ = c.a;
+            c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
+            // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
+            float jedge_ = (1.0 - smoothstep(0.0, 0.62, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_) * smoothstep(0.2, 0.8, hug_k);   // 黑線只在插入後才畫，還沒插入時不要把內褲染暗
+            c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), jedge_ * 0.9);
+            c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
+        }
+    }
+    {   // 插入時：銜接處那條細內褲，沿著「插入」物件下面的黑線往下裁掉（裁切邊緣就是插入的下緣輪廓，不是橫的直線）
+        float jk_ = max(hug_k, jj_on * step(0.5, aside));
+        float xg_ = smoothstep(1000.0, 1040.0, px.x);
+        float aPJ_ = c.a;
+        if (ins_on > 0.5) {
+            float here_ = insA_(px);
+            float above_ = 0.0;
+            for (int k = 1; k <= 14; k++) above_ = max(above_, insA_(px + vec2(-4.0 * float(k), -8.0 * float(k))));   // 往左上看，插入物件還在不在
+            float below_ = (1.0 - smoothstep(0.1, 0.5, here_)) * smoothstep(0.1, 0.5, above_);
+            float cutI_ = jk_ * jf_str * below_ * xg_;
+            c.a *= 1.0 - cutI_;
+            float edgeI_ = (1.0 - smoothstep(0.1, 0.5, here_)) * smoothstep(0.3, 0.6, insA_(px + vec2(-2.0, -3.0)));   // 插入下緣那圈線
+            float lnI_ = edgeI_ * jk_ * jf_str * step(0.3, aPJ_) * xg_;
+            c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnI_ * 0.6);
+            c.a = max(c.a, lnI_ * 0.6 * aPJ_);
+        }
+    }
+    {   // 右上角補洞：這一帶內褲被腿帶動、拉伸後偶爾會出現被切掉、露出底下皮膚色的缺口，周圍有內褲的話就把缺口補上（只補 12px 以內的洞）
+        float gz_ = smoothstep(1500.0, 1440.0, px.y) * smoothstep(XRY_(px.y) - 80.0, XRY_(px.y) - 20.0, px.x) * step(0.5, aside);
+        if (gz_ > 0.01 && c.a < 0.97) {
+            float dil_ = 0.0;
+            for (int gi = 0; gi < 8; gi++) {
+                float ga_ = 6.2831853 * float(gi) / 8.0;
+                vec2 go_ = vec2(cos(ga_), sin(ga_)) * (gi % 2 == 0 ? 7.0 : 13.0);
+                dil_ = max(dil_, texture(TEXTURE, vec2((xs + go_.x) / 2000.0, (ys_ + go_.y) / 3200.0)).a);
+            }
+            float fillA_ = smoothstep(0.4, 0.8, dil_) * gz_;
+            c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), fillA_ * (1.0 - c.a));
+            c.a = max(c.a, fillA_ * 0.97);
+        }
+    }
+    if (dbg_lines > 0.5 && px.x > 780.0 && px.x < 1200.0 && px.y > 1320.0 && px.y < 1700.0) {   // 除錯：畫出內褲各條裁切／推擠線（按 Delete 開關）
+        float jfyD_ = jj_from_y + jj_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0)))) * step(1.0, jj_from_y);
+        float lnR_ = 1.0 - smoothstep(0.0, 2.0, abs(px.y - jfyD_));                         // 紅：雞雞裁內褲的起點（弧形）
+        float zdD_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0))));
+        float lnY_ = max(1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.x)), 1.0 - smoothstep(0.0, 1.5, abs(px.y - zdD_ - jz_rise.y)));   // 黃：銜接處推擠範圍上緣（球形凸起）
+        float lnM_ = 1.0 - smoothstep(0.0, 1.5, abs(px.y - jf_y.y));                         // 紫：黑線（細帶裁切）高度
+        float lnC_ = 0.0;
+        if (jj_on > 0.5) {   // 青：雞雞輪廓裁內褲的邊（還沒插入時整個雞雞輪廓都在裁，所以這條才是當時的裁切線）
+            vec2 pjD_ = UV * jj_size;
+            vec2 jqD_ = (jj_x * pjD_.x + jj_y * pjD_.y + jj_o) / vec2(2000.0, 3200.0);
+            if (jqD_.x >= 0.0 && jqD_.x <= 1.0 && jqD_.y >= 0.0 && jqD_.y <= 1.0) {
+                const vec2 ojD_ = vec2(0.0007, 0.0004);
+                float jrD_ = 0.25 * (texture(jj_tex, jqD_ + ojD_).a + texture(jj_tex, jqD_ - ojD_).a + texture(jj_tex, jqD_ + vec2(ojD_.x, -ojD_.y)).a + texture(jj_tex, jqD_ + vec2(-ojD_.x, ojD_.y)).a);
+                lnC_ = 1.0 - smoothstep(0.0, 0.18, abs(smoothstep(0.38, 0.52, jrD_) - 0.5) - 0.3);
+                lnC_ *= step(0.05, jrD_) * (1.0 - step(0.95, jrD_));
+            }
+        }
+        c.rgb = mix(c.rgb, vec3(0.0, 0.9, 0.9), lnC_);
+        c.a = max(c.a, lnC_);
+        c.rgb = mix(c.rgb, vec3(1.0, 0.0, 0.0), lnR_);
+        c.rgb = mix(c.rgb, vec3(1.0, 0.9, 0.0), lnY_ * 0.8);
+        c.rgb = mix(c.rgb, vec3(0.8, 0.0, 1.0), lnM_);
+        c.a = max(c.a, max(lnR_, max(lnY_ * 0.8, lnM_)));
     }
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
@@ -1350,6 +1622,7 @@ void fragment() {
         if (cq_.x >= 0.0 && cq_.x <= 1.0 && cq_.y >= 0.0 && cq_.y <= 1.0) {
             const vec2 oc_ = vec2(0.0007, 0.0004);
             float ca_ = 0.25 * (texture(cc_tex, cq_ + oc_).a + texture(cc_tex, cq_ - oc_).a + texture(cc_tex, cq_ + vec2(oc_.x, -oc_.y)).a + texture(cc_tex, cq_ + vec2(-oc_.x, oc_.y)).a);
+            ca_ = mix(ca_, smoothstep(0.30, 0.65, ca_), smoothstep(1.0, 10.0, aside));   // 撥開時衣服的切口也要乾淨
             c.a *= 1.0 - ca_ * cc_k;   // 衣服蓋到的地方，內褲被裁掉（內褲在衣服下面）
         }
     }
@@ -1370,13 +1643,16 @@ void fragment() {
             vec4 ts_ = texture(TEXTURE, vec2((xs + float(i) * 8.0) / 2000.0, ys_ / 3200.0));
             rd_ = max(rd_, ts_.a * smoothstep(0.30, 0.60, 1.0 - dot(ts_.rgb, vec3(0.3333))));
         }
-        float rin_ = rd_;
-        lw_ = max(lw_, smoothstep(0.0, 6.0, d) * lowT);             // 往下滑到右邊的下半部：照常被大腿裁切（滑到大腿下面）
-        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_ * (1.0 - lowT);
+        float rin_ = rd_ * smoothstep(960.0, 1000.0, pj_.x);   // 只有右半邊的黑線才保留；左邊腰帶尖端那條線要被大腿裁掉（不然會殘留在腳上）
+        lw_ *= 1.0 - smoothstep(0.0, 6.0, d) * rin_;
         if (lq_.x >= 0.0 && lq_.x <= 1.0 && lq_.y >= 0.0 && lq_.y <= 1.0) {
             const vec2 o_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，邊緣才不會一格一格
-            float la_ = 0.25 * (texture(leg_tex, lq_ + o_).a + texture(leg_tex, lq_ - o_).a + texture(leg_tex, lq_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lq_ + vec2(-o_.x, o_.y)).a);
+            // 右上角（內褲上半部、右邊）大腿切進內褲的邊界往右退一點，白色布多留一點、黑線才能再往上連到左邊那條的高度
+            float relaxK_ = smoothstep(0.0, 6.0, d) * (1.0 - smoothstep(0.30, 0.55, ry_)) * smoothstep(979.0, 1020.0, pj_.x);
+            vec2 lqr_ = lq_ + vec2(leg_relax * relaxK_, 0.0);
+            float la_ = 0.25 * (texture(leg_tex, lqr_ + o_).a + texture(leg_tex, lqr_ - o_).a + texture(leg_tex, lqr_ + vec2(o_.x, -o_.y)).a + texture(leg_tex, lqr_ + vec2(-o_.x, o_.y)).a);
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
+            la_ = mix(la_, smoothstep(0.30, 0.65, la_), smoothstep(1.0, 10.0, aside));   // 撥開時大腿的切口要乾淨（不要淡化）
             c.a *= 1.0 - la_ * lw_;   // 順著 M 腿的輪廓裁切
         }
     }
@@ -1477,10 +1753,11 @@ void fragment() {
             && Layers.TryGetValue("衣服", out var cth) && cth != null && cth.GetParent() == _charRoot && _duvet.GetIndex() < cth.GetIndex())
             _clothTopInit = false;   // 被子後來才建立／被移動，重新排一次
         ApplyClothOnTop();
+        UpdateMPantyFollow();   // 內褲先移到這一幀跟著抽插／呼吸的最終位置，下面的遮罩和撥開才不會差一步（抽插時裁切才會跟著動）
         UpdateClothLegMask();
         UpdateClothThrust();
         UpdateBellyOnCloth();
-        UpdateMPantyFollow();
+        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開／裁切（MLegPantyAside.cs）：要在內褲位置定案之後
         UpdateBowLayers();
     }
 
@@ -1494,7 +1771,7 @@ void fragment() {
         if (!_layerBasePos.TryGetValue("m腿/內褲", out var bp) || !_layerBasePos.TryGetValue("m腿/腿1", out var b1) || !_layerBasePos.TryGetValue("m腿/腿2", out var b2)) return;
         Vector2 delta = ((l1.Position - b1) + (l2.Position - b2)) * 0.5f;
         Vector2 thrust = MLegThrustOffset.TryGetValue("m腿/小穴", out var to) ? to : Vector2.Zero;   // 插入推擠：跟小穴一起往上
-        mp.Position = bp + delta * MPantyLegFollow + thrust;
+        mp.Position = bp + delta * MPantyLegFollow + thrust * (1f - MPantyThrustCut);   // 抽插時內褲往上的幅度減少（改成往右撐開，見 MLegPantyAside.cs）
         float spread = Mathf.Abs(l1.RotationDegrees - l2.RotationDegrees);
         mp.PivotOffset = mp.Size * 0.5f;
         mp.Scale = new Vector2(1f + spread * MPantySpreadScale, 1f);
@@ -1646,7 +1923,6 @@ void fragment() {
         // M 腿專用內褲：M 腿打開、而且內褲還沒脫才出現；脫了就不出現
         if (Layers.TryGetValue("m腿/內褲", out var mp_) && mp_ != null) mp_.Visible = _mLegOpen && !_pantyGone;
         UpdateMLegPantyThighCut(_mLegOpen && !_pantyGone);
-        UpdateMLegPantyAside((float)GetProcessDeltaTime());   // M 腿內褲撥開（MLegPantyAside.cs）
         if (_clothMat == null) return;
         _clothMat.SetShaderParameter("bump_see", AllAgesLocked ? 0f : ClothBumpSeeThrough);
         BumpOne("肚子", 1, ClothBumpBelly);

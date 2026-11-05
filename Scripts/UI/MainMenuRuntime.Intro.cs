@@ -69,6 +69,10 @@ public partial class MainMenuRuntime : Control
 
     async Task LogoIntro(CancellationToken ct = default)
     {
+        // Logo 出現的這段本來就要等：先在背景把調教室的貼圖／場景預載，之後進調教室的黑屏就短很多
+        foreach (var relPath in TrainingRoomRuntime.GetPreloadSpritePaths())
+            ResourceHelper.PreloadTexAny(relPath);
+        ResourceLoader.LoadThreadedRequest("res://Scenes/TrainingRoom.tscn");
         SetActive(_logoPanel, true);
         SetActive(_mainPanel, false);
 
@@ -141,6 +145,7 @@ public partial class MainMenuRuntime : Control
 
         // 播放主選單 BGM
         var opClip = LoadBgm("Audio/bgm/meimei_op");
+        SetupOpBgm(opClip);   // 循環＋後半音量補償（OpBgm.cs）
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
@@ -650,6 +655,7 @@ public partial class MainMenuRuntime : Control
 
         // 開場曲（與按下 SKIP 後的狀態一致）
         var opClip = LoadBgm("Audio/bgm/meimei_op");
+        SetupOpBgm(opClip);   // 循環＋後半音量補償（OpBgm.cs）
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;

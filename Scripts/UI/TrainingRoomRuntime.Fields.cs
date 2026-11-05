@@ -92,6 +92,7 @@ public partial class TrainingRoomRuntime : Node
         "m腿/腿1","m腿/腿2","m腿/腳1","m腿/腳2","m腿/足1","m腿/足2",
         "m腿/肛門",   // 肛門放在 M 腿最前面（腿／腳／足上面、前髮下面；原本小穴細節的位置）；mleg_extra 的「m腿/小穴細節」已停用（跟肛門.png 一樣）
         "m腿/內褲",   // M 腿專用內褲圖（內褲_M.png）：在 M 腿各層、衣服上面；M 腿打開且內褲沒脫才顯示（見 Cloth.cs UpdateClothBump）
+        "表情/眼淚1","表情/眼淚2","表情/眼淚3","表情/眼淚4",   // 眼淚要在前髮下面
         "前髮",
         // 使用者要求眉毛要畫在前髮上面（之前眉毛排在前髮之前，會被前髮蓋住）。
         // Godot 的子節點繪製順序＝陣列順序，越後面加入的越晚畫、疊在越上層，
@@ -103,7 +104,6 @@ public partial class TrainingRoomRuntime : Node
         // 原本寫成 "m腿_小穴"（底線）跟其他 m腿 圖層的 "/" 命名慣例不一致，也讓 basename
         // 規則抓不到對應檔案（見下面 _extraSpritePaths 說明），改成 "m腿/小穴" 統一慣例；
         // Effects.cs 的 _breathLowerSet 裡同一個字串也要一起改，否則兩邊對不上。
-        "表情/眼淚1","表情/眼淚2","表情/眼淚3","表情/眼淚4",
         "表情/小穴水","表情/高潮水",
         // 插入用疊層（Unity 場景物件名稱 → 實際圖檔）：肚子=charuduzi、洞=xiaoxuekaidi、
         // 開1=xiaoxuekai、插入=xiaoxuekai2。之前在 Unity 裡用中文名字找不到，是因為場景檔把
@@ -132,6 +132,12 @@ public partial class TrainingRoomRuntime : Node
     {
         yield return "Backgrounds/bg_LinaiBed_night_room";
         yield return "Backgrounds/bg_LinaiBed_night_bed";
+        // 進房間後才同步載入、之前沒列進預載的貼圖（被子、M 腿內褲邊線／裁切腿、各種游標與小圖示）：一併預載，避免黑屏／進場瞬間卡頓
+        foreach (var extra in new[] {
+            "Backgrounds/bg_LinaiBed_night_duvet_covered", "Backgrounds/bg_LinaiBed_night_duvet_kicked",
+            "Sprites/內褲_M_edge", "Sprites/腿1_M_cut", "Sprites/腿2_M_cut",
+            "Sprites/游標", "Sprites/手圖標", "Sprites/蝴蝶結", "Sprites/pinch_hand", "Sprites/舌頭游標", "Sprites/舌頭2" })
+            yield return extra;
 
         foreach (var layerName in LayerOrder)
         {
@@ -425,6 +431,7 @@ public partial class TrainingRoomRuntime : Node
     [Export] public Vector2 ArmAttachPivot2   = new Vector2(0.5f, 0.5f);
     [Export] public Vector2 HandAttachPivot1  = new Vector2(0.5f, 0.5f);
     [Export] public Vector2 HandAttachPivot2  = new Vector2(0.5f, 0.5f);
+    [Export] public float BraidStaticRotDeg = 4f;   // 兩條辮子的固定旋轉：右邊（後髮3）順時針、左邊（後髮2）逆時針各轉幾度，讓辮子和後面的頭髮接起來
     [Export] public Vector2 BraidAttachPivot1 = new Vector2(0.58825f, 0.800313f); // _辮子1（髮根）
     [Export] public Vector2 BraidAttachPivot2 = new Vector2(0.37000f, 0.801563f); // _辮子2（髮根）
     // 辮子「呼吸同步旋轉」的幅度（度），跟上面的錨點一起在 Inspector 微調：

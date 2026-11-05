@@ -1498,6 +1498,7 @@ public partial class MainMenuRuntime : Control
     {
         // ① 原本的 Update 邏輯（含提前 return，故抽成獨立方法）
         UpdateDialogueInput((float)delta);
+        UpdateOpBgmEq();
         UpdateBreath((float)delta);
 
         // ② 原本的 LateUpdate 邏輯：即時同步 Inspector 數值到 UI 物件

@@ -89,7 +89,13 @@ public partial class TrainingRoomRuntime
         if (thrust) wet += _jijiAnus ? (_anusComfort ? WetGainThrust * AnusComfortWetMult : 0f) : WetGainThrust;   // 肛門舒服時小穴濕得比較快
         bool anything = breast || nipple || mouth || head || bTouch || lickB || thrust;
         AddWetness((anything ? wet : -WetDecay) * dt);
-        StepMale(dt, anything, thrust, sThrust);   // 精力／勃起度／精液量（PlayEnd.cs）
+        // 勃起度上升的權重：只摸胸／乳頭最輕、嘴／摸頭次之、摸 B 正常、抽插最重（取目前在做的事裡最大的）
+        float erectW = 0f;
+        if (breast || nipple) erectW = Mathf.Max(erectW, ErectWBreast);
+        if (mouth || head)    erectW = Mathf.Max(erectW, ErectWMouthHead);
+        if (bTouch || lickB)  erectW = Mathf.Max(erectW, ErectWB);
+        if (thrust)           erectW = Mathf.Max(erectW, ErectWThrust);
+        StepMale(dt, anything, thrust, sThrust, erectW);   // 精力／勃起度／精液量（PlayEnd.cs）
 
         // ── 穴高潮值 ──
         float rate = 0f;
