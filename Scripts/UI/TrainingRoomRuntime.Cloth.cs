@@ -106,6 +106,7 @@ uniform vec2 jc_y = vec2(0.0, 1.0);
 uniform vec2 jc_o = vec2(0.0);
 uniform float jc_on = 0.0;
 uniform float jc_from_y = 1500.0;
+uniform float jc_arch = 28.0;   // 雞雞裁衣服的起點弧度：兩側比中間低多少 px
 uniform float expand_amount = 0.0;
 uniform float center_u = 0.5225;
 uniform float taper_start_v = 0.3716;
@@ -509,7 +510,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 2.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y), jc_from_y + jc_arch * pow(clamp(abs(pj3_.x - 1000.0) / 140.0, 0.0, 1.0), 2.0) * step(1.0, jc_from_y) + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1408,7 +1409,7 @@ void fragment() {
     }
     float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
-    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 16.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_) + thrust_r * zj_) + 0.0 * kc_;   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
@@ -1469,7 +1470,7 @@ void fragment() {
         float inE_ = max(inH_ * line_steep, inV_);       // 邊的內側
         // 開口切線（hb）本身也補一條黑線：萬一開口邊界落在布的中間，切口也不能是光禿禿一條虛線
         float cutL_ = (1.0 - smoothstep(0.0, 3.0, abs(px.x - hb - 1.5))) * smoothstep(0.5, 0.9, c.a / max(holeA, 0.001)) * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3);
-        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA));
+        float eo_ = max(max(outE_, inE_ * 0.85) * holeA * edgeK_, cutL_ * step(0.001, holeA)) * (1.0 - smoothstep(3.0, 7.0, comp) * (1.0 - edgeNear_));
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), eo_);
         c.a = max(c.a, eo_);
     }
@@ -1490,7 +1491,7 @@ void fragment() {
         float gy_ = dFdy(cleanA_);
         float sh_ = abs(gy_) / (abs(gx_) + abs(gy_) + 0.0001);   // 1＝邊是平的／斜到近水平，0＝邊是垂直的
         float orient_ = mix(line_steep, 1.0, smoothstep(0.35, 0.65, sh_));
-        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA * (1.0 - clamp(kc_, 0.0, 1.0) * (1.0 - edgeNear_));   // 細帶中間不畫擠在一起的線，只留邊緣的線
+        float lineE_ = max(em_.r, em_.g) * orient_ * smoothstep(1.0, 8.0, d) * min(1.0, outline_k * 1.3) * holeA * (1.0 - max(clamp(kc_, 0.0, 1.0), smoothstep(3.0, 7.0, comp)) * (1.0 - edgeNear_));   // 被壓很窄的地方（不管在哪個高度）只留邊緣的線，中間的線全不畫   // 細帶中間不畫擠在一起的線，只留邊緣的線
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lineE_);
         c.a = max(c.a, lineE_);
     }

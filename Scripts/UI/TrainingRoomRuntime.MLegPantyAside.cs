@@ -305,6 +305,7 @@ public partial class TrainingRoomRuntime
             _clothMat.SetShaderParameter("jc_x", Tc.X);
             _clothMat.SetShaderParameter("jc_y", Tc.Y);
             _clothMat.SetShaderParameter("jc_o", Tc.Origin);
+            _clothMat.SetShaderParameter("jc_arch", MPantyJijiClipArchPx);
             _clothMat.SetShaderParameter("jc_from_y", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyJijiClipFromY : 0f);
         }
     }
