@@ -1365,7 +1365,7 @@ void fragment() {
     // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
     float hug_ = hug_k * smoothstep(1500.0, 1550.0, ys_) * (1.0 - smoothstep(1585.0, 1640.0, ys_));   // 左下角之前就淡掉，左下角不離開
     float dA_ = aside * w * left_boost * lf_ * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
-    float dB_ = wd * (0.8 + 0.08 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
+    float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
     float d = pow(pow(max(dA_, 0.001), -8.0) + pow(max(dB_, 0.001), -8.0), -0.125);
     // 右邊固定：把 [xl, xr] 的布壓縮進 [xl+d, xr]（越拉越扁）；xl+d 以左變成開口
@@ -1373,7 +1373,7 @@ void fragment() {
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    float dr = d * (right_follow + 0.25 * hug_);   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
+    float dr = d * (right_follow + 0.5 * hug_);   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
     float comp = wd / nw;                        // 壓縮倍率（1＝沒壓）
