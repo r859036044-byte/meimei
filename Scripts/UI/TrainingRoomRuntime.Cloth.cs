@@ -1705,7 +1705,8 @@ void fragment() {
             float rightLine_ = dk_ * smoothstep(redge0_ - 12.0, redge0_ - 6.0, px.x) * (1.0 - smoothstep(redge0_ + 2.0, redge0_ + 8.0, px.x)) * smoothstep(1330.0, 1370.0, pj_.y) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * leg_cover * smoothstep(0.3, 0.8, hug_k) * rl_k * smoothstep(0.3, 0.8, hug_k);
             float coverA_ = max(cover_ * (1.0 - upK_), rightLine_ * upK_);
             // 窄帶的本體（開口左緣 hb ～ 右緣 redge0_ 內側）：內褲在這裡自己決定形狀——不被腿裁切、透明度補成實的，這樣腿的輪廓線不會從半透明的內褲底下透出來（淡淡的斜線）
-            float body_ = smoothstep(hb + 1.0, hb + 4.0, px.x) * (1.0 - smoothstep(redge0_ - 10.0, redge0_ - 6.0, px.x)) * smoothstep(1398.0, 1408.0, pj_.y) * (1.0 - smoothstep(1560.0, 1575.0, pj_.y)) * smoothstep(1.0, 20.0, aside) * body_k * smoothstep(0.3, 0.8, hug_k);
+            float body_ = smoothstep(hb + 6.0, hb + 10.0, px.x) * (1.0 - smoothstep(redge0_ - 10.0, redge0_ - 6.0, px.x)) * smoothstep(1398.0, 1408.0, pj_.y) * (1.0 - smoothstep(1440.0, 1458.0, pj_.y))   // 本體只補窄帶上端（斜線出現的那一段），下面照原樣，左邊也退進來一點，不要在窄帶左邊多出一條白色
+                  * smoothstep(1.0, 20.0, aside) * body_k * smoothstep(0.3, 0.8, hug_k);
 
             // 橢圓：補畫的線是橢圓的右上 1/4 弧（中心約畫布 (1100,1414)、半徑 16×45）；橢圓裡面的範圍＝腿要被內褲「切掉」的地方（內褲在這裡不被腿裁切、補成不透明）。橢圓中心跟著內褲右緣位移
             float cxE_ = redge0_ - ell_dx - ell_slope * (1416.7 - ys_);
