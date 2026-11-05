@@ -212,6 +212,7 @@ public partial class FaceExpressionController : Node
     // 在所有 _Process 之後再跑（模擬 LateUpdate）
     public override void _Process(double delta)
     {
+        AnimateBrow((float)delta);   // 眉毛形態慢慢變化
         if (string.IsNullOrEmpty(_currentExpr)) return;
         if (!_exprTransformMap.TryGetValue(_currentExpr, out var overrides)) return;
 
@@ -403,10 +404,39 @@ public partial class FaceExpressionController : Node
     BrowForm _browForm = BrowForm.Normal;
     public BrowForm CurrentBrowForm => _browForm;
 
-    public void SetBrowForm(BrowForm form)
+    [Export] public float BrowMoveSec = 1.5f;   // 眉毛從一個形態慢慢變到另一個形態要幾秒（例如 2→6）
+
+    // 目前畫面上的狀態（會慢慢追向目標）：傾斜 -1（煩惱）~ 0 ~ +1（生氣）、Y 縮放 +1 正常 ~ -1 反轉
+    float _browTiltCur = 0f, _browScaleYCur = 1f;
+    float _browTiltTgt = 0f; bool _browFlipTgt = false;
+
+    /// <summary>切換眉毛形態。instant＝true 立刻到位；false 則花 BrowMoveSec 秒慢慢變過去
+    /// （2→6 就是反轉狀態下眉毛慢慢轉成煩惱的角度）。</summary>
+    public void SetBrowForm(BrowForm form, bool instant = false)
     {
-        if (_browForm == form) return;
         _browForm = form;
+        _browTiltTgt = form switch
+        {
+            BrowForm.Angry or BrowForm.AngryFlip     =>  1f,
+            BrowForm.Worried or BrowForm.WorriedFlip => -1f,
+            _ => 0f,
+        };
+        _browFlipTgt = form is BrowForm.Frown or BrowForm.AngryFlip or BrowForm.WorriedFlip;
+        if (instant)
+        {
+            _browTiltCur = _browTiltTgt;
+            _browScaleYCur = _browFlipTgt ? -1f : 1f;
+        }
+        ApplyBrowTransform();
+    }
+
+    void AnimateBrow(float dt)
+    {
+        float tgtScaleY = _browFlipTgt ? -1f : 1f;
+        if (Mathf.IsEqualApprox(_browTiltCur, _browTiltTgt) && Mathf.IsEqualApprox(_browScaleYCur, tgtScaleY)) return;
+        float step = dt * 2f / Mathf.Max(0.01f, BrowMoveSec);   // 全幅（傾斜 -1→+1、Y 縮放 +1→-1）剛好 BrowMoveSec 秒
+        _browTiltCur   = Mathf.MoveToward(_browTiltCur,   _browTiltTgt, step);
+        _browScaleYCur = Mathf.MoveToward(_browScaleYCur, tgtScaleY,    step);
         ApplyBrowTransform();
     }
 
@@ -421,18 +451,12 @@ public partial class FaceExpressionController : Node
         var ctrl = GetLayerControl(layer);
         if (ctrl == null) return;
 
-        float tilt = _browForm switch
-        {
-            BrowForm.Angry or BrowForm.AngryFlip     =>  angrySign * BrowTiltDeg,
-            BrowForm.Worried or BrowForm.WorriedFlip => -angrySign * BrowTiltDeg,
-            _ => 0f,
-        };
-        bool flip = _browForm is BrowForm.Frown or BrowForm.AngryFlip or BrowForm.WorriedFlip;
-
-        // 整個形態上下鏡射：先轉再翻 ＝ 先翻再轉相反角度（Control 是先縮放再旋轉）
+        // 整個形態上下鏡射：先轉再翻 ＝ 先翻再轉相反角度（Control 是先縮放再旋轉）。
+        // 用「目標」是否反轉決定角度正負，變形途中才不會在翻到一半時角度跳掉。
+        float tilt = angrySign * _browTiltCur * BrowTiltDeg;
         ctrl.PivotOffset     = centerTex * ctrl.Size / new Vector2(2000f, 3200f);
-        ctrl.Scale           = new Vector2(1f, flip ? -1f : 1f);
-        ctrl.RotationDegrees = flip ? -tilt : tilt;
+        ctrl.Scale           = new Vector2(1f, _browScaleYCur);
+        ctrl.RotationDegrees = _browFlipTgt ? -tilt : tilt;
     }
 
     Control GetLayerControl(string layerPath)

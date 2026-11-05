@@ -21,9 +21,16 @@ public partial class TrainingRoomRuntime
             Input.IsMouseButtonPressed(MouseButton.Middle) ||
             _jijiPhase != 0 || _lickOn || _bTouchRunning);
 
+        bool wasOn = _browOperateT > 0f;
         _browOperateT = operating ? BrowFrownLingerSec : Mathf.Max(0f, _browOperateT - dt);
-        FaceController.SetBrowForm(_browOperateT > 0f
-            ? FaceExpressionController.BrowForm.Frown    // 2 號
-            : FaceExpressionController.BrowForm.Normal); // 1 號
+        bool isOn = _browOperateT > 0f;
+        if (isOn && !wasOn)
+        {
+            // 初始觸碰：先是 2 號（皺眉），再慢慢變成 6 號（煩惱，上下反轉）
+            FaceController.SetBrowForm(FaceExpressionController.BrowForm.Frown, instant: true);
+            FaceController.SetBrowForm(FaceExpressionController.BrowForm.WorriedFlip);
+        }
+        else if (!isOn && wasOn)
+            FaceController.SetBrowForm(FaceExpressionController.BrowForm.Normal);   // 1 號
     }
 }
