@@ -431,6 +431,7 @@ public partial class TrainingRoomRuntime : Node
     [Export] public Vector2 ArmAttachPivot2   = new Vector2(0.5f, 0.5f);
     [Export] public Vector2 HandAttachPivot1  = new Vector2(0.5f, 0.5f);
     [Export] public Vector2 HandAttachPivot2  = new Vector2(0.5f, 0.5f);
+    [Export] public float BraidStaticRotDeg = 2f;   // 兩條辮子的固定旋轉：右邊（後髮3）順時針、左邊（後髮2）逆時針各轉幾度，讓辮子和後面的頭髮接起來
     [Export] public Vector2 BraidAttachPivot1 = new Vector2(0.58825f, 0.800313f); // _辮子1（髮根）
     [Export] public Vector2 BraidAttachPivot2 = new Vector2(0.37000f, 0.801563f); // _辮子2（髮根）
     // 辮子「呼吸同步旋轉」的幅度（度），跟上面的錨點一起在 Inspector 微調：
