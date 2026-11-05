@@ -1357,7 +1357,9 @@ void fragment() {
         vec2 vl_ = px - vec2(940.0, 1500.0);
         vec2 dl2_ = vec2(cos(leg_rot.y) * vl_.x - sin(leg_rot.y) * vl_.y, sin(leg_rot.y) * vl_.x + cos(leg_rot.y) * vl_.y) - vl_;
         px -= dr2_ * wr_ + dl2_ * wl_;
-        px -= leg_offr * wr_ + leg_offl * wl_;   // 腿的平移也要跟（之前只跟旋轉，腿呼吸上下動時右上角就露縫）
+        float wrT_ = smoothstep(XRY_(px.y) - 140.0, XRY_(px.y) + 10.0, px.x);
+        float wlT_ = 1.0 - smoothstep(XLY_(px.y) - 10.0, XLY_(px.y) + 140.0, px.x);
+        px -= leg_offr * wrT_ + leg_offl * wlT_;   // 腿的平移也要跟（範圍比旋轉更寬，腿向上動時右上角才不露縫）
     }
     {   // 插入時彎曲的部分（斜邊轉成垂直的那個肘）逆時針旋轉：以彎曲處為中心、離中心越遠影響越小
         vec2 pv_ = px - ins_pivot;
@@ -1536,10 +1538,11 @@ void fragment() {
     }
     {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
         float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
-        float cutJ_ = hug_k * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
+        float jk_ = max(hug_k, jj_on * step(0.5, aside));   // 雞雞出現（還沒插入）時也要裁，不只插入後
+        float cutJ_ = jk_ * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
         float aPJ_ = c.a;
         c.a *= 1.0 - cutJ_;
-        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * hug_k * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
+        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * jk_ * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
         c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6);
         c.a = max(c.a, lnJ_ * 0.6 * aPJ_);
     }
