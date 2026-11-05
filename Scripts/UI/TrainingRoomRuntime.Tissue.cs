@@ -69,6 +69,8 @@ void fragment() {
     {
         int n = 0;
         foreach (var d in _ejacDebris) if (DebrisAlive(d) && d.Modulate.A > 0.05f && d.SelfModulate.A > 0.05f) n++;
+        if (JijiHasBlood()) n++;
+        if (JijiHasSemen()) n++;
         return n;
     }
 
@@ -80,6 +82,24 @@ void fragment() {
         _tissueOn = true;
         SayMale(TissueNeedLines);
         return false;
+    }
+
+    bool JijiHasBlood() => _jijiBlood > 0.04f && JijiVisibleForTissue();
+    bool JijiHasSemen() => _jijiSemenShown && _semAlpha > 0.05f && JijiVisibleForTissue();
+    bool JijiVisibleForTissue() => _jijiPhase > 0 && Layers.TryGetValue("雞雞", out var j) && j != null && j.Visible;
+
+    /// <summary>雞雞內容範圍（螢幕座標）；滑鼠在上面擦就能擦掉雞雞上的血和精液。</summary>
+    bool MouseOnJiji(Vector2 m)
+    {
+        if (!Layers.TryGetValue("雞雞", out var j) || j == null || !j.Visible) return false;
+        var r = LayerContentRect("雞雞");
+        if (r == null) return false;
+        var t = j.GetGlobalTransform();
+        Vector2 a = t * r.Value.Position, b = t * (r.Value.Position + new Vector2(r.Value.Size.X, 0f));
+        Vector2 c2 = t * (r.Value.Position + r.Value.Size), d2 = t * (r.Value.Position + new Vector2(0f, r.Value.Size.Y));
+        float minX = Mathf.Min(Mathf.Min(a.X, b.X), Mathf.Min(c2.X, d2.X)), maxX = Mathf.Max(Mathf.Max(a.X, b.X), Mathf.Max(c2.X, d2.X));
+        float minY = Mathf.Min(Mathf.Min(a.Y, b.Y), Mathf.Min(c2.Y, d2.Y)), maxY = Mathf.Max(Mathf.Max(a.Y, b.Y), Mathf.Max(c2.Y, d2.Y));
+        return new Rect2(minX - TissueRadius * 0.4f, minY - TissueRadius * 0.4f, maxX - minX + TissueRadius * 0.8f, maxY - minY + TissueRadius * 0.8f).HasPoint(m);
     }
 
     bool TissueOverUi(Vector2 p)
@@ -141,6 +161,13 @@ void fragment() {
         _tissueCursor.Position = m - _tissueCursor.Size * 0.5f;
         _tissueMat.SetShaderParameter("used", _tissueUsed);
         if (!Input.IsMouseButtonPressed(MouseButton.Left) || TissueOverUi(m)) return;
+
+        if (MouseOnJiji(m))
+        {   // 擦雞雞：血和精液慢慢變淡，擦完就消失
+            float k = TissueWipeRate * Mathf.Lerp(1f, TissueBallWipeMul, _tissueUsed) * dt * 0.5f;
+            if (JijiHasBlood()) { float b0 = _jijiBlood; _jijiBlood = Mathf.Max(0f, _jijiBlood - k); _tissueUsed = Mathf.Min(1f, _tissueUsed + (b0 - _jijiBlood) * TissueUsePerBlob); if (_jijiBlood < 0.04f) { _jijiBlood = 0f; _jijiBloodBlur = 0f; } }
+            if (JijiHasSemen()) { float s0 = _semAlpha; _semAlpha = Mathf.Max(0f, _semAlpha - k); _tissueUsed = Mathf.Min(1f, _tissueUsed + (s0 - _semAlpha) * TissueUsePerBlob); if (_semAlpha < 0.05f) HideJijiSemen(); }
+        }
 
         foreach (var d in _ejacDebris.ToArray())
         {
