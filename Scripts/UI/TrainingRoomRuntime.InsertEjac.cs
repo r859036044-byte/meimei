@@ -232,6 +232,8 @@ public partial class TrainingRoomRuntime
     {
         // 拔出後破處流血就結束（_firstTimeBleeding 還留著，給這次內射的粉紅精液用）
         _bleedActive = false; _jijiBloodBurst = false; _jijiBlood = 0f; _jijiBloodBlur = 0f;
+        foreach (var r in _jijiBloodRoots) if (r.Outer != null && IsInstanceValid(r.Outer)) r.Outer.QueueFree();   // 拔出後血只從洞流，雞雞上的血流一律收掉
+        _jijiBloodRoots.Clear();
         if (_creampieAmount <= 0)
         {
             // 沒有內射但第一次：拔出後洞口流下兩道血

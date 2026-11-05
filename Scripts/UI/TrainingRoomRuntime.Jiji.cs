@@ -363,7 +363,7 @@ void fragment() {
         _holeTopAlpha = 0f;
         foreach (var n in new[] { "開1", "洞", "開上", "插入", "肚子" })
         {
-            if (keepHole && n == "洞") continue;
+            if (keepHole && (n == "洞" || n == "開1")) continue;   // 拔出後洞和頂部（開1 的 Λ）一起留著、一起縮小
             if (!Layers.TryGetValue(n, out var c) || c == null) continue;
             c.Visible = false;
             c.Scale = Vector2.One;
@@ -697,7 +697,14 @@ void fragment() {
                 if (_openLayerPivot.TryGetValue("洞", out var hpv)) hl.PivotOffset = hpv;
                 hl.Visible = true;
                 hl.Scale = new Vector2(_holeLeftScale, 1f);
-                if (!lickingB && _holeLeftScale < full * 0.01f) { hl.Visible = false; _holeLeftOpen = false; }   // 完全合起來
+                if (Layers.TryGetValue("開1", out var tp) && tp != null)
+                {   // 頂部（開1）跟洞同一個縮放、同一個中心一起縮小，洞合起來頂部也一起消失
+                    if (_openLayerPivot.TryGetValue("開1", out var tpv)) tp.PivotOffset = tpv;
+                    SetOverlayOffset("開1", tp, new Vector2(JijiOpen1OffsetX / CharScreenScale(), JijiOverlayOffsetY / CharScreenScale()));
+                    tp.Visible = true;
+                    tp.Scale = new Vector2(_holeLeftScale, 1f);
+                }
+                if (!lickingB && _holeLeftScale < full * 0.01f) { hl.Visible = false; _holeLeftOpen = false; if (Layers.TryGetValue("開1", out var tp2) && tp2 != null) { tp2.Visible = false; tp2.Scale = Vector2.One; JijiLayerExtraOffset.Remove("開1"); } }   // 完全合起來
             }
             return;
         }
