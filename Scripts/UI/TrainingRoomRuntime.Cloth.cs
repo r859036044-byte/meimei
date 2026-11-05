@@ -1451,7 +1451,7 @@ void fragment() {
         vec4 em_ = vec4(0.0);
         float cleanA_ = 0.0;
         for (int k = 0; k < 5; k++) {
-            float eko_ = (float(k) - 2.0) * 0.25 * comp;
+            float eko_ = (float(k) - 2.0) * 0.4 * comp;
             vec4 ek_ = texture(ed_tex, vec2((xs + eko_) / 2000.0, ys_ / 3200.0));
             em_ = max(em_, ek_);       // 線用取最大值：壓縮時線不會被平均掉變淡
             cleanA_ += ek_.b;
@@ -1481,7 +1481,7 @@ void fragment() {
         vec2 ab_ = pb_ - pa_;
         float tt_ = clamp(dot(px - pa_, ab_) / max(1.0, dot(ab_, ab_)), 0.0, 1.0);
         float dist_ = length(px - (pa_ + ab_ * tt_));
-        float sl_ = (1.0 - smoothstep(0.8, 2.4, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
+        float sl_ = (1.0 - smoothstep(1.3, 3.3, dist_)) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * (1.0 - 0.5 * tt_);
         c.rgb = mix(c.rgb, vec3(0.33, 0.12, 0.12), sl_ * slash_k);
     }
     {   // 下半部淡出的裁切：拉開越多，下半部（尾巴、肛門那一帶）越淡出，不要留一條被扯長的尾巴
@@ -1516,7 +1516,7 @@ void fragment() {
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
             // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
-            float jedge_ = (1.0 - smoothstep(0.0, 0.45, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_);
+            float jedge_ = (1.0 - smoothstep(0.0, 0.62, abs(js_ - 0.5))) * jw_ * step(0.3, aPreJ_);
             c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), jedge_ * 0.9);
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
