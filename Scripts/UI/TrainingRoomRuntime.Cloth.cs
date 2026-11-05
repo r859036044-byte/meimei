@@ -1416,7 +1416,8 @@ void fragment() {
     float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
     {   // 插入時：中間這一段（1374~1592）原本的位移直接改成 jz_mid（px），上下兩端漸漸接回原本的位移
-        float wz_ = hug_k * smoothstep(1374.0, 1444.0, ys_) * (1.0 - smoothstep(1532.0, 1592.0, ys_)) * step(0.5, aside);
+        // 位移曲線（y 為畫布 px）：1350→1400 升到一半、1400→1450 升到最高（jz_mid）、1450→1550 維持、1550→1590 降回 0
+        float wz_ = hug_k * (0.5 * smoothstep(1350.0, 1400.0, ys_) + 0.5 * smoothstep(1400.0, 1450.0, ys_)) * (1.0 - smoothstep(1550.0, 1590.0, ys_)) * step(0.5, aside);
         d = mix(d, jz_mid, wz_);
     }
     float dr = d * (right_follow + 0.04 * hug_ + thrust_r * zj_);   // 右緣只跟一點點：之前貼雞雞那一帶跟 0.5×d（上百 px），銜接處下面的最外側折角就被拉出去一大段，露出皮膚色   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
