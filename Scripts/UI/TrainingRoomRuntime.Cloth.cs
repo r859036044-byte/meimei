@@ -1692,10 +1692,10 @@ void fragment() {
             la_ = max(la_, texture(leg_tex, lq_ + vec2(-leg_grow, 0.0)).a * smoothstep(0.0, 6.0, d) * (1.0 - rin_));   // 撥開時大腿的輪廓再往左多裁一點（右緣黑邊線除外）
             la_ = mix(la_, smoothstep(0.30, 0.65, la_), smoothstep(1.0, 10.0, aside));   // 撥開時大腿的切口要乾淨（不要淡化）
             // 撥開後右腿邊那一段（約 y 1430~1545）：窄帶被腿輪廓裁掉的地方會露出腿的膚色 → 這裡減弱腿的裁切，讓白色布蓋住膚色（右緣黑線 rin_ 照舊保留）
-            float cover_ = smoothstep(cover_y0, cover_y0 + 25.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover * (1.0 - smoothstep(redge0_ - cover_in, redge0_ - cover_in + 12.0, px.x));   // 右邊只補到「中間那條黑線」為止（離右緣 cover_in px），線右邊的大腿照常裁切，不要多出白色
+            float cover_ = smoothstep(cover_y0, cover_y0 + 25.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(redge0_ - cover_in, redge0_ - cover_in + 12.0, px.x));   // 右邊只補到「中間那條黑線」為止（離右緣 cover_in px），線右邊的大腿照常裁切，不要多出白色
             float upK_ = (1.0 - smoothstep(1385.0, 1425.0, pj_.y)) * cover_top;   // 夾角上端：只留黑線
             // 夾角上端：不要讓內褲左邊那條弧線穿到腿外面（會形成 X 形的角）；只讓最右邊（內褲右緣 redge0_ 附近）那條黑線透出來，往上接到腿的輪廓
-            float rightLine_ = dk_ * smoothstep(redge0_ - 12.0, redge0_ - 6.0, px.x) * (1.0 - smoothstep(redge0_ + 2.0, redge0_ + 8.0, px.x)) * smoothstep(1330.0, 1370.0, pj_.y) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * leg_cover * rl_k;
+            float rightLine_ = dk_ * smoothstep(redge0_ - 12.0, redge0_ - 6.0, px.x) * (1.0 - smoothstep(redge0_ + 2.0, redge0_ + 8.0, px.x)) * smoothstep(1330.0, 1370.0, pj_.y) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * leg_cover * smoothstep(0.3, 0.8, hug_k) * rl_k * smoothstep(0.3, 0.8, hug_k);
             float coverA_ = max(cover_ * (1.0 - upK_), rightLine_ * upK_);
             float aBefore_ = c.a;
             // 補布的顏色不用固定色塊：取這一列內褲自己左邊內部的布色（亮的那個），陰影和色調才會跟旁邊一樣
@@ -1713,18 +1713,18 @@ void fragment() {
                 float yk9_ = smoothstep(seg_b.y - seg_len - 2.0, seg_b.y - seg_len + 6.0, pj_.y) * (1.0 - smoothstep(seg_b.y + clean_dn - 8.0, seg_b.y + clean_dn, pj_.y));
                 float bx2_ = min(bx_, redge0_ - 4.0);   // 右邊界不超過窄帶右緣（線下面右邊不要多出一塊白色）
                 float xk9_ = (1.0 - smoothstep(bx2_ - 2.0, bx2_ + 1.0, pj_.x)) * smoothstep(seg_b.x - 75.0, seg_b.x - 60.0, pj_.x);
-                float tk9_ = yk9_ * xk9_ * smoothstep(0.1, 0.5, la_) * (1.0 - c.a) * clean_k * smoothstep(1.0, 20.0, aside);   // 只填「內褲被腿裁掉、露出腿」的地方（c.a 低），內褲自己的線和布不動
+                float tk9_ = yk9_ * xk9_ * smoothstep(0.1, 0.5, la_) * (1.0 - c.a) * clean_k * smoothstep(0.3, 0.8, hug_k) * smoothstep(1.0, 20.0, aside);   // 只填「內褲被腿裁掉、露出腿」的地方（c.a 低），內褲自己的線和布不動
                 float stub_ = smoothstep(seg_b.x - 32.0, seg_b.x - 28.0, pj_.x) * (1.0 - smoothstep(seg_b.x - 8.0, seg_b.x - 4.0, pj_.x)) * smoothstep(seg_b.y - 14.0, seg_b.y - 10.0, pj_.y) * (1.0 - smoothstep(seg_b.y + 12.0, seg_b.y + 16.0, pj_.y));   // 夾角下面那截露出的深紅腿線所在的小範圍
-                float mk9_ = (1.0 - smoothstep(0.30, 0.75, c.r)) * smoothstep(0.1, 0.5, c.a) * stub_ * clean_k * smoothstep(1.0, 20.0, aside);   // 露出的腿的深紅線（很深很紅）：線左邊的一律換成布色
+                float mk9_ = (1.0 - smoothstep(0.30, 0.75, c.r)) * smoothstep(0.1, 0.5, c.a) * stub_ * clean_k * smoothstep(0.3, 0.8, hug_k) * smoothstep(1.0, 20.0, aside);   // 露出的腿的深紅線（很深很紅）：線左邊的一律換成布色
                 {   // 右上到左下那條粗的深紅線是腿自己的輪廓：沿著腿遮罩左緣把它用布色蓋掉（只蓋輪廓那一窄條，大腿的膚色不動）
                     float xe9_ = rline.x + rline.y * pj_.y;
                     float oy_ = smoothstep(ol_y.x - 2.0, ol_y.x + 3.0, pj_.y) * (1.0 - smoothstep(ol_y.y - 3.0, ol_y.y + 2.0, pj_.y));
                     float ox_ = smoothstep(xe9_ - ol_w - 1.5, xe9_ - ol_w, pj_.x) * (1.0 - smoothstep(xe9_ + ol_r, xe9_ + ol_r + 1.5, pj_.x));
-                    float ok_ = oy_ * ox_ * ol_k * smoothstep(1.0, 20.0, aside);
+                    float ok_ = oy_ * ox_ * ol_k * smoothstep(0.3, 0.8, hug_k) * smoothstep(1.0, 20.0, aside);
                     c.rgb = mix(c.rgb, clothcol_, ok_);
                     c.a = max(c.a, ok_);
                 }
-                float tkS_ = stub_ * (1.0 - c.a) * clean_k * smoothstep(1.0, 20.0, aside);   // 露出腿線條的那一小塊：不管腿遮罩，只要內褲在這裡是透的，就補布
+                float tkS_ = stub_ * (1.0 - c.a) * clean_k * smoothstep(0.3, 0.8, hug_k) * smoothstep(1.0, 20.0, aside);   // 露出腿線條的那一小塊：不管腿遮罩，只要內褲在這裡是透的，就補布
                 tk9_ = max(tk9_, tkS_);
                 c.rgb = mix(c.rgb, clothcol_, max(tk9_, mk9_));
                 c.a = max(c.a, tk9_);
@@ -1735,7 +1735,7 @@ void fragment() {
                 float aH_ = texture(leg_tex, lq_).a;
                 float edgeL_ = (1.0 - smoothstep(0.3, 0.6, aH_)) * smoothstep(0.4, 0.7, aS_);
                 float yk7_ = smoothstep(rline_y.x - 6.0, rline_y.x + 4.0, pj_.y) * (1.0 - smoothstep(rline_y.y - 4.0, rline_y.y + 6.0, pj_.y));
-                float k7_ = edgeL_ * yk7_ * step(0.3, aBefore_) * smoothstep(1.0, 20.0, aside) * rline_k;
+                float k7_ = edgeL_ * yk7_ * step(0.3, aBefore_) * smoothstep(1.0, 20.0, aside) * rline_k * smoothstep(0.3, 0.8, hug_k);
                 c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), k7_ * 0.95);
                 c.a = max(c.a, k7_ * 0.95 * step(0.3, aBefore_));
             }   // 內褲右緣以外、落在大腿上的黑線／殘影一律不顯示（大腿上不該有內褲的線）   // 順著 M 腿的輪廓裁切
@@ -1752,7 +1752,7 @@ void fragment() {
         vec2 ab5_ = ext_b - ext_a;
         float tt5_ = clamp(dot(pj5_ - ext_a, ab5_) / max(1.0, dot(ab5_, ab5_)), 0.0, 1.0);
         float dist5_ = length(pj5_ - (ext_a + ab5_ * tt5_));
-        float k5_ = (1.0 - smoothstep(0.9, 2.2, dist5_)) * (1.0 - 0.5 * tt5_) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * ext_k;
+        float k5_ = (1.0 - smoothstep(0.9, 2.2, dist5_)) * (1.0 - 0.5 * tt5_) * smoothstep(1.0, 20.0, aside) * step(0.3, c.a) * ext_k * smoothstep(0.3, 0.8, hug_k);
         c.rgb = mix(c.rgb, vec3(0.50, 0.36, 0.38), k5_);
     }
     {   // 右邊那條黑線（窄帶右緣的線）原本只畫到夾角就停了：順著大腿的輪廓往上補畫，一直畫到內褲上緣，長度跟左邊那條弧線差不多
@@ -1766,7 +1766,7 @@ void fragment() {
         float ytop_ = rv_y.x, ybot_ = rv_y.y;
         float yk8_ = smoothstep(ytop_ - 4.0, ytop_ + 3.0, px.y) * (1.0 - smoothstep(ybot_ - 6.0, ybot_ + 4.0, px.y));
         float xl8_ = redge0_ - rv_in - rv_slope * (ybot_ - px.y);   // 內褲右緣（往上會往右偏）再扣掉 rv_slope：往上改成往左（向內）折，跟左邊那條弧線一樣
-        float k8_ = (1.0 - smoothstep(0.8, 2.3, abs(px.x - xl8_))) * yk8_ * smoothstep(1.0, 20.0, aside) * rv_k;
+        float k8_ = (1.0 - smoothstep(0.8, 2.3, abs(px.x - xl8_))) * yk8_ * smoothstep(1.0, 20.0, aside) * rv_k * smoothstep(0.3, 0.8, hug_k);
         c.rgb = mix(c.rgb, vec3(0.42, 0.25, 0.27), k8_ * 0.95);
         c.a = max(c.a, k8_ * 0.95);
     }
@@ -1777,7 +1777,7 @@ void fragment() {
         float ssl_ = 2.0 * seg_curve * st_;                                       // 目前的斜率，用來把橫向距離換成垂直距離
         float sd_ = abs(px.x - sxl_) / sqrt(1.0 + ssl_ * ssl_);
         float syk_ = smoothstep(sb_.y - seg_len - 1.0, sb_.y - seg_len + 1.0, px.y) * (1.0 - smoothstep(sb_.y - 0.5, sb_.y + 1.5, px.y));
-        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * (1.0 - smoothstep(seg_fade, 1.0, st_));   // 上端（末端）逐漸淡化
+        float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(seg_fade, 1.0, st_));   // 上端（末端）逐漸淡化
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
     }
