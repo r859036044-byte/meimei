@@ -509,7 +509,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.05, 0.40, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 24.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1521,8 +1521,8 @@ void fragment() {
         if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) {
             const vec2 oj_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，切口的線才不會變成一個一個的點
             float jraw_ = 0.25 * (texture(jj_tex, jq_ + oj_).a + texture(jj_tex, jq_ - oj_).a + texture(jj_tex, jq_ + vec2(oj_.x, -oj_.y)).a + texture(jj_tex, jq_ + vec2(-oj_.x, oj_.y)).a);
-            float js_ = smoothstep(0.05, 0.40, jraw_);
-            float jw_ = smoothstep(jj_from_y, jj_from_y + 24.0, px.y);
+            float js_ = smoothstep(0.38, 0.52, jraw_);   // 裁切邊緣要俐落，不要淡出
+            float jw_ = smoothstep(jj_from_y, jj_from_y + 2.0, px.y);
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
             // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
@@ -1531,15 +1531,15 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
-    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉（乾淨的切口＋一條細黑線），不是淡化
-        float cutJ_ = hug_k * jf_str * smoothstep(jf_y.y - 1.5, jf_y.y + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);   // 黑線以下、右側那條細帶全部裁掉（左下角不動）
+    {   // 插入時：銜接處那條細內褲，在黑線（jf_y.y）以下直接裁掉；裁切線往右彎上去，細帶的下端是一條曲線收進右邊，不是方方正正的腳
+        float yl_ = jf_y.y + 45.0 * pow(1.0 - smoothstep(1010.0, 1130.0, px.x), 1.6);
+        float cutJ_ = hug_k * jf_str * smoothstep(yl_ - 1.5, yl_ + 1.5, px.y) * smoothstep(1000.0, 1040.0, px.x);
         float aPJ_ = c.a;
         c.a *= 1.0 - cutJ_;
-        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - jf_y.y - 1.0))) * hug_k * jf_str * step(0.3, aPJ_);
-        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6 * smoothstep(1000.0, 1040.0, px.x));
-        c.a = max(c.a, lnJ_ * 0.6 * aPJ_ * smoothstep(1000.0, 1040.0, px.x));
+        float lnJ_ = (1.0 - smoothstep(0.0, 2.2, abs(px.y - yl_ - 1.0))) * hug_k * jf_str * step(0.3, aPJ_) * smoothstep(1000.0, 1040.0, px.x);
+        c.rgb = mix(c.rgb, vec3(0.30, 0.12, 0.12), lnJ_ * 0.6);
+        c.a = max(c.a, lnJ_ * 0.6 * aPJ_);
     }
-    c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
         vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);

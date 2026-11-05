@@ -224,7 +224,7 @@ public partial class TrainingRoomRuntime
         _mPantyMat.SetShaderParameter("slash_y", MPantySlashY);
         _mPantyMat.SetShaderParameter("slash_in", MPantySlashIn);
         _mPantyMat.SetShaderParameter("slash_k", MPantySlashK);
-        _mPantyMat.SetShaderParameter("jj_from_y", MPantyJijiClipFromY);
+        _mPantyMat.SetShaderParameter("jj_from_y", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyJijiClipFromY : 0f);   // 還沒插入：整個雞雞都裁內褲；插入後只有銜接處以下裁
         _mPantyMat.SetShaderParameter("crease_frac", MPantyAsideCreaseFrac);
         _mPantyMat.SetShaderParameter("fold_freq", MPantyAsideFoldFreq);
     }
@@ -279,7 +279,7 @@ public partial class TrainingRoomRuntime
             _clothMat.SetShaderParameter("jc_x", Tc.X);
             _clothMat.SetShaderParameter("jc_y", Tc.Y);
             _clothMat.SetShaderParameter("jc_o", Tc.Origin);
-            _clothMat.SetShaderParameter("jc_from_y", MPantyJijiClipFromY);
+            _clothMat.SetShaderParameter("jc_from_y", (_jijiPhase == 3 && _jijiStage >= 1) ? MPantyJijiClipFromY : 0f);
         }
     }
 
