@@ -1353,7 +1353,8 @@ void fragment() {
     if (taper_k > 0.0005) {   // 肛門突破後：靠近肛門的地方雞雞往中間收（越上面越細，往下漸層消失）
         float tdx_ = clamp(abs(UV.x - 998.0 / 2000.0) / (134.5 / 2000.0), 0.0, 1.0);
         float ddp_ = UV.y / TEXTURE_PIXEL_SIZE.y - taper_start_px - taper_arch_px * tdx_ * tdx_;   // 弧形：兩側晚一點才開始
-        float tk_ = taper_k * (1.0 - clamp(ddp_ / max(taper_len_px, 1.0), 0.0, 1.0));
+        float tu_ = clamp((ddp_ + 5.0) / (max(taper_len_px, 1.0) + 5.0), 0.0, 1.0);   // 起點上方 5px 先緩緩收，不要突然歪進去
+        float tk_ = taper_k * (1.0 - tu_ * tu_ * (3.0 - 2.0 * tu_));
         float cxu_ = 998.0 / 2000.0;
         c = texture(TEXTURE, vec2(cxu_ + (UV.x - cxu_) / (1.0 - tk_), UV.y)) * vcol;
     }
