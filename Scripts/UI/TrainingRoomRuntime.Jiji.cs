@@ -662,7 +662,12 @@ void fragment() {
             _jijiFlush = Mathf.MoveToward(_jijiFlush, flushOn ? 1f : 0f, (float)GetProcessDeltaTime() * (flushOn ? 0.7f : 0.8f));
             _jijiClipMat.SetShaderParameter("flush_amt", _jijiFlush);
             _jijiClipMat.SetShaderParameter("circle_rise_px", JijiTouchDepth() * JijiClipCircleFollow);
-            _jijiClipMat.SetShaderParameter("taper_k", (_jijiPhase == 3 && _jijiStage >= 1) ? (_jijiAnus ? AnusTaperMax * aw : PussyTaperMax) : 0f);   // 插入小穴時雞雞和插入物件交接處也往中間收，配合插入物件的寬度
+            float taperK_ = (_jijiPhase == 3 && _jijiStage >= 1) ? (_jijiAnus ? AnusTaperMax * aw : PussyTaperMax) : 0f;
+            _jijiClipMat.SetShaderParameter("taper_k", taperK_);   // 插入小穴時雞雞和插入物件交接處也往中間收，配合插入物件的寬度
+            // 雞雞左緣（x≈892）離收縮中線（x≈998）約 106px，變細時左緣被往右拉 taperK_*106；
+            // 插入物件的左下角多往左伸同樣的量，跟著補上雞雞縮進去的縫（雞雞本身不動）
+            if (_insertEdgeMat != null)
+                _insertEdgeMat.SetShaderParameter("wid_lb", (InsertWidenBottomLeftPx + taperK_ * 106f) / 210f);
             _jijiClipMat.SetShaderParameter("taper_start_px", clipLocalY + AnusTaperStartPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
