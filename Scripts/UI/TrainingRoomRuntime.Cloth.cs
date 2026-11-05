@@ -1274,6 +1274,8 @@ uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_
 uniform float ed_on = 0.0;
 uniform vec2 jz_rise = vec2(1423.0, 1503.0);   // 銜接處（插入時額外往右）從哪個高度開始漸入→完全生效（畫布 px）
 uniform vec2 jz_fall = vec2(1535.0, 1570.0);   // 從哪個高度開始漸淡→消失
+uniform vec2 jf_y = vec2(1440.0, 1525.0);      // 細帶開始變透明 → 完全消失的高度（畫布 px）
+uniform float jf_str = 1.0;                    // 變透明的強度（0＝不變）
 uniform float thrust_j = 0.0;               // 抽插時只在銜接處多撐開的 px（折角不動，只有銜接處膨脹）
 uniform float thrust_r = 0.0;               // 抽插時銜接處右邊多跟著往右的比例
 uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
@@ -1519,6 +1521,7 @@ void fragment() {
             c.a = max(c.a, jedge_ * 0.9 * aPreJ_);
         }
     }
+    c.a *= 1.0 - hug_k * jf_str * smoothstep(jf_y.x, jf_y.y, px.y) * (1.0 - smoothstep(jf_y.y, jf_y.y + 35.0, px.y));   // 插入時：銜接處那條細內褲越往下越透明，碰到插入／雞雞下面的線就消失
     c.a *= 1.0 - hug_k * low_hide * smoothstep(1585.0, 1615.0, px.y) * smoothstep(1050.0, 1090.0, px.x);   // 插入時：小穴底部以下多出來的一節內褲收掉
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
