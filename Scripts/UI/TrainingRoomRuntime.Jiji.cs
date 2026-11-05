@@ -1333,6 +1333,8 @@ uniform float radius = 4.0;
 uniform float wid_l = 0.428;   // 插入內容左緣 U（向右擴張的基準）
 uniform float wid_s = 0.0;     // 向右擴張比例
 uniform float wid_b = 0.0;     // 只有底部額外的向右擴張比例：讓插入物件的右下角伸到雞雞的右緣（貼齊）
+uniform float wid_r = 0.545;   // 插入內容右緣 U（向左擴張的基準）
+uniform float wid_lb = 0.0;    // 只有底部額外的向左擴張比例：讓插入物件的左下角貼齊雞雞的左緣
 varying vec4 vcol;
 void vertex() { vcol = COLOR; }
 void fragment() {
@@ -1345,7 +1347,8 @@ void fragment() {
     float w = side * bottom;
     float wb_ = smoothstep(1330.0 * texel.y, 1430.0 * texel.y, UV.y);   // 越靠底部越多
     float wid_ = wid_s + wid_b * wb_;
-    vec2 UVw = vec2(UV.x > wid_l ? wid_l + (UV.x - wid_l) / (1.0 + wid_) : UV.x, UV.y);   // 向右擴張（底部額外多一些）
+    float ux_ = UV.x < wid_r ? wid_r - (wid_r - UV.x) / (1.0 + wid_lb * wb_) : UV.x;   // 向左擴張（只有底部，越靠底越多）
+    vec2 UVw = vec2(ux_ > wid_l ? wid_l + (ux_ - wid_l) / (1.0 + wid_) : ux_, UV.y);   // 向右擴張（底部額外多一些）
     vec4 c = texture(TEXTURE, UVw);
     if (w > 0.001) {
         vec4 acc = vec4(0.0);

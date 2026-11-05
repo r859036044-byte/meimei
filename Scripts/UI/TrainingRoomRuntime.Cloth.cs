@@ -1159,9 +1159,11 @@ void fragment() {
     float _playTime; bool _playTimeUp;
     [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomPx = 0f;   // 插入物件只有底部額外向右擴張幾 px，讓右下角伸到雞雞的右緣貼齊（雞雞右緣 x≈1119、插入內容右緣 x≈1098）
     [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 0f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
+    [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomLeftPx = 10f;   // 插入物件只有底部額外向左擴張幾 px，讓左下角貼齊雞雞的左緣（插入內容左緣 x≈880、右緣 x≈1090）
     void UpdateInsertMask()
     {
         if (_insertEdgeMat == null) return;
+        _insertEdgeMat.SetShaderParameter("wid_lb", InsertWidenBottomLeftPx / 210f);
         _insertEdgeMat.SetShaderParameter("wid_s", InsertWidenRightPx / 239f);
         _insertEdgeMat.SetShaderParameter("wid_b", InsertWidenBottomPx / 239f);
     }
