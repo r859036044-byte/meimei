@@ -1273,7 +1273,9 @@ uniform float max_reach = 140.0;             // 撥開時內褲最多能離原�
 uniform sampler2D ed_tex : filter_linear;   // 烘好的邊線貼圖（內褲_M_edge.png）：R＝陡的邊的黑線、G＝斜／平的邊的黑線、B＝乾淨的圓角形狀
 uniform float ed_on = 0.0;
 uniform float thrust_stretch = 0.0;         // 抽插時以小穴底部為固定點，往上的部分被拉長的比例（0＝不拉）
-uniform float stretch_anchor = 1375.0;      // 固定點：上面折角（畫布 px），從這裡往下被拉長
+uniform float stretch_center = 1432.0;      // 變形中心（畫布 px）：雞雞和插入銜接處
+uniform float stretch_width = 90.0;
+uniform float stretch_anchor = 1579.0;      // 固定點（畫布 px）：這個高度以下完全不動，往上的部分被拉長（變形集中在上面）
 uniform float hook_px = 0.0;                // 插入後貼著雞雞那一圈：邊界在入口高度往右凸出一個弧形（像勾住雞雞）的量（畫布 px）
 uniform vec2 arc_v = vec2(1385.0, 1685.0);  // 月牙形：推動量沿著高度走一個橢圓輪廓，從這個範圍的上端開始、中間最大、下端回到 0
 uniform float arc_peak = 1528.5;          // 月牙最凸（推動量最大）的高度（畫布 px）：上面從 arc_v.x 圓滑升到這裡，下面用餘弦快速收回到 arc_v.y（左下角固定）
@@ -1354,8 +1356,10 @@ void fragment() {
     float w = W_(px.y);   // 推動量沿高度的輪廓（月牙形）
     float sag = sag_k * aside * (b1 * b1 * (3.0 - 2.0 * b1)) * sin(3.14159 * b2);   // 下轉折帶中間布往下垂，讓上下接得平順
     float ys0_ = px.y - sag;
-    float stA_ = smoothstep(stretch_anchor - 8.0, stretch_anchor + 40.0, ys0_) * (1.0 - smoothstep(1585.0, 1650.0, ys0_));   // 1＝折角下方、往下漸淡（左下角固定不動）
-    float ys_ = mix(ys0_, stretch_anchor + (ys0_ - stretch_anchor) / (1.0 + thrust_stretch), stA_);   // 小穴底部固定，往上的部分被拉長（不是整塊往上移，也不是單純擴張）
+    float stA_ = smoothstep(stretch_anchor + 8.0, stretch_anchor - 40.0, ys0_);   // 1＝固定點上方、0＝下方（下方完全不動）
+    float sb_ = (ys0_ - stretch_center) / stretch_width;
+    float ts_loc_ = thrust_stretch * exp(-sb_ * sb_);   // 變形集中在雞雞和插入銜接處的內褲
+    float ys_ = mix(ys0_, stretch_anchor + (ys0_ - stretch_anchor) / (1.0 + ts_loc_), stA_);   // 小穴底部固定，往上的部分被拉長（不是整塊往上移，也不是單純擴張）
     // 取圖用的來源列：內褲左右緣要用這一列的位置算，開口邊界才會剛好貼在內褲自己的邊線上
     float t_ = (ys_ - 1400.0) / 100.0;
     float xl = edge_l.x + edge_l.y * t_ + edge_l.z * t_ * t_;
@@ -1363,7 +1367,7 @@ void fragment() {
     float wd = max(1.0, xr - xl);
     float lf_ = mix(1.0, low_str, smoothstep(1540.0, 1610.0, ys_));   // 肛門那一帶的位移強度降低一點
     // 插入後貼合雞雞：入口（約 y 1500）往下到左下角之前，推動量上限放寬、右邊也多跟著往右，內褲右下角往右擴張一點去貼著雞雞
-    float hug_ = hug_k * smoothstep(1500.0, 1550.0, ys_) * (1.0 - smoothstep(1585.0, 1640.0, ys_));   // 左下角之前就淡掉，左下角不離開
+    float hug_ = hug_k * smoothstep(1440.0, 1520.0, ys_) * (1.0 - smoothstep(1585.0, 1640.0, ys_));   // 左下角之前就淡掉，左下角不離開
     float dA_ = aside * w * left_boost * lf_ * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
     float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
