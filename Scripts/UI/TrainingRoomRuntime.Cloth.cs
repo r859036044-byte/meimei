@@ -1379,7 +1379,7 @@ void fragment() {
         float hh_ = (ys_ - 1555.0) / 32.0;
         d = min(d + hook_px * exp(-hh_ * hh_) * step(0.5, aside), wd * 0.8);
     }
-    float kc_ = hug_k * corner_push * smoothstep(1460.0, 1505.0, ys_) * (1.0 - smoothstep(1545.0, 1600.0, ys_));
+    float kc_ = hug_k * corner_push * smoothstep(1470.0, 1515.0, ys_) * (1.0 - smoothstep(1555.0, 1610.0, ys_));
     d = mix(d, max(d, wd * 0.97), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
     float dr = d * (right_follow + 0.5 * hug_ * (1.0 - kc_)) + 6.0 * kc_;   // 銜接處右邊不再跟著外擴（會把內褲撐大），只往右多一點點   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
