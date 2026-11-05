@@ -148,6 +148,7 @@ public partial class TrainingRoomRuntime
 
     static readonly string[] _jijiLayers = { "雞雞", "男人肚子", "精液" };
     ShaderMaterial _jijiSemMat;
+    public float _semAlpha = 1f;   // 雞雞上精液的殘留程度（用衛生紙擦會降低）
     float _semReveal = 1f, _semPool, _semSpread, _semFlow, _semT = -1f;   // 內射後精液動畫（_semT<0＝沒在播）
     [Export] public float SemRevealSec = 7f;    // 內射後精液從尖端到根部出現的秒數
     [Export] public float SemFlowSec   = 16f;   // 銜接處白色聚集→暈開→流開到消失的總秒數
@@ -168,7 +169,7 @@ public partial class TrainingRoomRuntime
         if (_semT > SemFlowSec) { _semT = -1f; _semReveal = 1f; _semPool = 0f; }
     }
     public void ShowJijiSemen() { if (_jijiPhase > 0) { _jijiSemenShown = true; _semT = -1f; _semReveal = 1f; } }
-    public void HideJijiSemen() { _jijiSemenShown = false; _semT = -1f; _semReveal = 1f; _semPool = 0f; SetLayerQuiet("精液", false); }
+    public void HideJijiSemen() { _jijiSemenShown = false; _semAlpha = 1f; _semT = -1f; _semReveal = 1f; _semPool = 0f; SetLayerQuiet("精液", false); }
 
     /// <summary>開1／洞 跟著插入深度的額外位移，由呼吸迴圈疊加在基準位置上（見 Effects.cs 一般圖層迴圈）。</summary>
     public readonly System.Collections.Generic.Dictionary<string, Vector2> JijiLayerExtraOffset = new();
@@ -369,7 +370,6 @@ void fragment() {
         _jijiPhase2Pos = CalcPhase2Offset();
         _jijiOffset = _jijiPhase2Pos + new Vector2(0f, JijiDefaultOffsetY);
         foreach (var n in _jijiLayers) SetLayerQuiet(n, n != "精液");   // 精液射精後才出現
-        _jijiSemenShown = false;
         EnsureJijiClip();
         // 原地淡入（不滑動，對照 Unity JijiAppearCoroutine）
         _ = AnimateJijiAsync(null, fadeIn: true, JijiAppearDuration);
@@ -437,8 +437,7 @@ void fragment() {
     void HideJiji()
     {
         _creampieAmount = 0;
-        _firstTimeBleeding = false; _jijiBlood = 0f;
-        _jijiSemenShown = false;
+        _firstTimeBleeding = false;   // 雞雞上的血和精液不隨收起消失，要用衛生紙擦掉（Tissue.cs）
         HideOpenAndInsertLayers();
         _jijiAnimCts?.Cancel();
         _jijiAnimating = false;
@@ -601,7 +600,7 @@ void fragment() {
         {
             if (!Layers.TryGetValue(n, out var c) || c == null) continue;
             if (_layerBasePos.TryGetValue(n, out var bp)) c.Position = bp + off + (n == "男人肚子" ? new Vector2(JijiBellyOffsetX, 0f) : (_jijiPhase == 3 && _jijiStage >= 1 ? new Vector2(JijiInsertOffsetX, 0f) : Vector2.Zero));
-            c.Modulate = new Color(1f, 1f, 1f, _jijiAlpha);
+            c.Modulate = new Color(1f, 1f, 1f, _jijiAlpha * (n == "精液" ? _semAlpha : 1f));
             if (n == "精液") c.Visible = _jijiSemenShown;
             // 雞雞／精液：以雞雞底部中央為錨點微旋轉（男人肚子不轉）
             if (n != "男人肚子")
@@ -1486,7 +1485,7 @@ void fragment() {
         m2 = max(m2, patch * 0.55 * fresh * flush_amt);
         m = clamp(max(m, blot * 0.75) + tint * 0.35, 0.0, 1.0) * blood_amt * (1.0 - 0.7 * blood_blur);   // 原本雞雞上的血慢慢淡掉
         m = max(m, m2);
-        c.rgb = mix(c.rgb, vec3(0.86, 0.07, 0.10), m * 0.9);
+        c.rgb = mix(c.rgb, vec3(0.80, 0.04, 0.07), clamp(m * 1.35, 0.0, 1.0));   // 血：不透明度加強
     }
     {
         // 插入時入口的淡淡紅暈（不論是不是處、持續維持、漸入漸出）
