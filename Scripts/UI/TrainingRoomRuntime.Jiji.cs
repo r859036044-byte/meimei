@@ -148,6 +148,9 @@ public partial class TrainingRoomRuntime
 
     static readonly string[] _jijiLayers = { "雞雞", "男人肚子", "精液" };
     ShaderMaterial _jijiSemMat;
+    float _glansLen, _glansRamp;   // 龜頭白色暈染：長度（貼圖 px）、淡入進度
+    [Export] public float GlansWhiteOuterPx = 130f;   // 外射後：白色暈染從龜頭往下多長（貼圖 px）
+    [Export] public float GlansWhiteInnerPx = 270f;   // 內射後：白色暈染的長度（約半個雞雞）
     public float _semAlpha = 1f;   // 雞雞上精液的殘留程度（用衛生紙擦會降低）
     float _semReveal = 1f, _semPool, _semSpread, _semFlow, _semT = -1f;   // 內射後精液動畫（_semT<0＝沒在播）
     [Export] public float SemRevealSec = 7f;    // 內射後精液從尖端到根部出現的秒數
@@ -156,7 +159,7 @@ public partial class TrainingRoomRuntime
 
     /// <summary>射精時呼叫：雞雞有出現的話，雞雞上的精液圖層跟著出現。</summary>
     /// <summary>內射後呼叫：精液從尖端到根部慢慢出現，銜接處聚集白色後暈開、流開。</summary>
-    public void StartSemenFlow() { if (_jijiPhase > 0) { _jijiSemenShown = true; _semT = 0f; _semReveal = 0f; _semPool = 0f; _semSpread = 0f; _semFlow = 0f; } }
+    public void StartSemenFlow() { if (_jijiPhase > 0) { _glansLen = GlansWhiteInnerPx; _jijiSemenShown = true; _semT = 0f; _semReveal = 0f; _semPool = 0f; _semSpread = 0f; _semFlow = 0f; } }
     void UpdateSemenFlow(float dt)
     {
         if (_semT < 0f) { _semReveal = 1f; _semPool = 0f; return; }
@@ -168,8 +171,8 @@ public partial class TrainingRoomRuntime
         _semFlow   = Mathf.SmoothStep(0.05f, 1f, tt);            // 往下流
         if (_semT > SemFlowSec) { _semT = -1f; _semReveal = 1f; _semPool = 0f; }
     }
-    public void ShowJijiSemen() { if (_jijiPhase > 0) { _jijiSemenShown = true; _semT = -1f; _semReveal = 1f; } }
-    public void HideJijiSemen() { _jijiSemenShown = false; _semAlpha = 1f; _semT = -1f; _semReveal = 1f; _semPool = 0f; SetLayerQuiet("精液", false); }
+    public void ShowJijiSemen() { if (_jijiPhase > 0) { if (!_jijiSemenShown) _glansLen = GlansWhiteOuterPx; _jijiSemenShown = true; _semT = -1f; _semReveal = 1f; } }
+    public void HideJijiSemen() { _jijiSemenShown = false; _semAlpha = 1f; _glansLen = 0f; _glansRamp = 0f; _semT = -1f; _semReveal = 1f; _semPool = 0f; SetLayerQuiet("精液", false); }
 
     /// <summary>開1／洞 跟著插入深度的額外位移，由呼吸迴圈疊加在基準位置上（見 Effects.cs 一般圖層迴圈）。</summary>
     public readonly System.Collections.Generic.Dictionary<string, Vector2> JijiLayerExtraOffset = new();
@@ -663,6 +666,10 @@ void fragment() {
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
             UpdateSemenFlow((float)GetProcessDeltaTime());
+            _glansRamp = Mathf.MoveToward(_glansRamp, _jijiSemenShown ? 1f : 0f, (float)GetProcessDeltaTime() / 1.5f);   // 射完後慢慢染開
+            _jijiClipMat.SetShaderParameter("gw_amt", _glansRamp * _semAlpha * 0.85f);
+            _jijiClipMat.SetShaderParameter("gw_len", Mathf.Max(_glansLen, 1f));
+            _jijiClipMat.SetShaderParameter("gw_from", (_jijiPhase == 3 && _jijiStage >= 1) ? clipLocalY : 1585f);
             if (_jijiSemMat != null)
             {
                 foreach (var u in _jijiClipMat.Shader.GetShaderUniformList())
@@ -1379,6 +1386,9 @@ uniform float circle_rise_px = 0.0;   // 雞雞碰到開1 之後，裁切圓跟�
 uniform float blood_amt = 0.0;        // 第一次（破處）時雞雞上沾的血（0~1）
 uniform float junction_px = 0.0;     // 平滑後的入口線（雞雞本地像素），紅暈／血的定位用
 uniform float flush_amt = 0.0;        // 0~1：插入時入口的淡淡紅暈（不論是不是處），平滑漸入漸出
+uniform float gw_amt = 0.0;            // 射精後龜頭白色暈染的濃度 0~1
+uniform float gw_len = 130.0;          // 白色暈染從龜頭往下的長度（貼圖 px）
+uniform float gw_from = 1585.0;        // 暈染起點（貼圖 px；外射＝龜頭尖端、內射＝插入銜接處）
 uniform float sem_on = 0.0;            // 1＝這是「精液」圖層用的材質（雞雞本體為 0）
 uniform float sem_reveal = 1.0;        // 精液從尖端到根部慢慢出現的進度 0~1
 uniform float sem_len = 520.0;         // 出現範圍的總長度（貼圖 px）
@@ -1503,6 +1513,14 @@ void fragment() {
         float sh_ = (1.0 - smoothstep(0.0, 80.0, sd_)) * smoothstep(-6.0, 6.0, sd_);
         sh_ *= 1.0 - smoothstep(70.0, 150.0, abs(sp_.x - 998.0));
         c.rgb *= 1.0 - 0.16 * sh_ * flush_amt;
+    }
+    if (gw_amt > 0.001 && sem_on < 0.5) {   // 射精後龜頭一帶白色暈染（只染在雞雞本體像素上，不改透明度）
+        vec2 gp_ = UV / TEXTURE_PIXEL_SIZE;
+        float gd_ = gp_.y - gw_from - arch_v * dx * dx / TEXTURE_PIXEL_SIZE.y;
+        float gn_ = 0.75 + 0.25 * bnoise(vec2(gp_.x, gd_) * 0.04 + 21.0);
+        float gm_ = (1.0 - smoothstep(0.0, gw_len, gd_)) * smoothstep(-10.0, 8.0, gd_) * gn_;
+        gm_ *= 1.0 - smoothstep(70.0, 150.0, abs(gp_.x - 998.0)) * 0.6;
+        c.rgb = mix(c.rgb, vec3(0.99, 0.98, 0.95), clamp(gm_ * gw_amt, 0.0, 0.92));
     }
     if (sem_on > 0.5) {   // 內射後雞雞上的精液：從尖端到根部慢慢出現，銜接處先聚集白色，再慢慢暈開、往下流開
         vec2 sq_ = UV / TEXTURE_PIXEL_SIZE;
