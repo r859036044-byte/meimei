@@ -259,7 +259,8 @@ public partial class TrainingRoomRuntime : Node
 
             // 左右頭髮微調（HairUserNudge，X 向右為正，跟 Unity 慣例一致，不用像 Y 一樣翻轉）
             ctrl.Position = basePos + pivotComp + new Vector2(animX + HairUserNudge(s.LayerName).X + braidExpandX, breathY) + BodyShake + HeadLift;
-            ctrl.RotationDegrees = -animRot; // Unity Z 正=逆時針，Godot 正=順時針 → 取負
+            float braidStatic = s.LayerName == "後髮3" ? BraidStaticRotDeg : s.LayerName == "後髮2" ? -BraidStaticRotDeg : 0f;   // 右邊辮子順時針、左邊逆時針，和後面的頭髮接起來，不要縮進去
+            ctrl.RotationDegrees = -animRot + braidStatic; // Unity Z 正=逆時針，Godot 正=順時針 → 取負
             ctrl.Scale = new Vector2(scaleX, scaleY);
 
             // 頭髮尾端呼吸擴張：只在吸氣（sin>0）時往外推，跟身體膨脹（BreathBodyExpand）
