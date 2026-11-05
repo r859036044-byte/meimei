@@ -1327,7 +1327,7 @@ float W_(float y) {
     float uU_ = clamp((y - arc_v.x) / max(1.0, arc_peak - arc_v.x), 0.0, 1.0);
     float wU_ = pow(max(0.0, sin(1.5708 * uU_)), 0.85);                       // 上半：圓滑往右凸（指數越小越圓）
     float uD_ = clamp((y - arc_peak) / max(1.0, arc_v.y - arc_peak), 0.0, 1.0);
-    float wD_ = 1.0 - pow(uD_, 1.2);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
+    float wD_ = 1.0 - pow(uD_, 1.15);                                          // 下半：前面慢、後面快地收回（邊往內凹成圓弧，不是往外凸），到 arc_v.y 剛好是 0，左下角維持固定不會浮空
     float wArc_ = y < arc_peak ? wU_ : wD_;
     return mix(wOld_, wArc_, arc_mix);
 }
