@@ -1313,6 +1313,7 @@ uniform vec2 ol_y = vec2(1334.0, 1414.0);     // 蓋掉腿的粗輪廓線：起�
 uniform float ol_r = 5.0;                     // 蓋輪廓線的右邊界：離腿遮罩左緣往右多少 px（深紅線在遮罩邊緣內側偏左，所以只蓋到這裡，不蓋大腿膚色）
 uniform float ol_w = 4.0;                     // 輪廓線的寬度（從腿遮罩左緣往右多少 px）
 uniform float ol_k = 0.0;                     // 蓋掉輪廓線的程度（0＝不蓋）
+uniform float body_k = 1.0;                   // 插入時窄帶本體不被腿裁切、補成不透明的程度（0＝關，回到以前）
 uniform float clean_k = 1.0;                  // 補的線左邊／下面，露出的腿線條和破圖膚色用白布蓋住的程度（0＝不蓋）
 uniform float clean_dn = 30.0;                // 往下清理到線下端再往下多少 px
 uniform float seg_fade = 0.35;                // 末端淡化：從線的這個位置（0～1，0＝下端、1＝上端）開始往上漸漸變淡到消失
@@ -1697,6 +1698,9 @@ void fragment() {
             // 夾角上端：不要讓內褲左邊那條弧線穿到腿外面（會形成 X 形的角）；只讓最右邊（內褲右緣 redge0_ 附近）那條黑線透出來，往上接到腿的輪廓
             float rightLine_ = dk_ * smoothstep(redge0_ - 12.0, redge0_ - 6.0, px.x) * (1.0 - smoothstep(redge0_ + 2.0, redge0_ + 8.0, px.x)) * smoothstep(1330.0, 1370.0, pj_.y) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * leg_cover * smoothstep(0.3, 0.8, hug_k) * rl_k * smoothstep(0.3, 0.8, hug_k);
             float coverA_ = max(cover_ * (1.0 - upK_), rightLine_ * upK_);
+            // 窄帶的本體（開口左緣 hb ～ 右緣 redge0_ 內側）：內褲在這裡自己決定形狀——不被腿裁切、透明度補成實的，這樣腿的輪廓線不會從半透明的內褲底下透出來（淡淡的斜線）
+            float body_ = smoothstep(hb + 1.0, hb + 4.0, px.x) * (1.0 - smoothstep(redge0_ - 10.0, redge0_ - 6.0, px.x)) * smoothstep(1398.0, 1408.0, pj_.y) * (1.0 - smoothstep(1560.0, 1575.0, pj_.y)) * smoothstep(1.0, 20.0, aside) * body_k * smoothstep(0.3, 0.8, hug_k);
+            coverA_ = max(coverA_, body_);
             float aBefore_ = c.a;
             // 補布的顏色不用固定色塊：取這一列內褲自己左邊內部的布色（亮的那個），陰影和色調才會跟旁邊一樣
             vec3 cc1_ = texture(TEXTURE, vec2((xs - 20.0) / 2000.0, ys_ / 3200.0)).rgb;
@@ -1706,6 +1710,8 @@ void fragment() {
             if (dot(cc2_, vec3(1.0)) > dot(clothcol_, vec3(1.0))) clothcol_ = cc2_;
             if (dot(cc3_, vec3(1.0)) > dot(clothcol_, vec3(1.0))) clothcol_ = cc3_;
             c.a *= 1.0 - la_ * lw_ * (1.0 - coverA_);
+            c.rgb = mix(c.rgb, clothcol_, body_ * (1.0 - c.a));   // 本體裡原本透的地方，補上內褲自己的布色（不是固定色塊）
+            c.a = max(c.a, body_);
             c.a *= 1.0 - smoothstep(redge0_ + 6.0, redge0_ + 14.0, px.x) * smoothstep(0.0, 6.0, d) * la_;
             {   // 清理：補的那條線的左邊和下面，露出來的腿的線條／破圖的膚色，一律用白色內褲布蓋住（只蓋線左邊，線右邊的大腿不動）
                 float st2_ = clamp((seg_b.y - pj_.y) / max(1.0, seg_len), 0.0, 1.0);
