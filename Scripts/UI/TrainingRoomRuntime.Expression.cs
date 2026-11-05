@@ -155,7 +155,7 @@ public partial class TrainingRoomRuntime : Node
         // ExtraOffsetY=3（Godot 座標，正值＝往下），之後如果只想動其中某幾個，
         // 直接在 Inspector 個別調整 ExtraOffsetY 即可，不用改程式碼。
         const float tearExtraOffsetY = 5.3f;   // 3→4.5→5.3：再往下 0.8px
-        const float tearExtraLeft = 3f;        // 左右眼的眼淚都整個向左移 3px
+        const float tearExtraLeft = 8f;        // 左右眼的眼淚都整個向左移 8px（原本 3，再向左 5）
         const float tearExpandX = 30f;         // 閉眼時眼淚拉長的量（原 20）
         // 閉眼時眼淚要停在「睫毛和臉的交界處」：Unity 版眼淚是掛在下睫毛底下的子物件，閉眼時下睫毛往上移 20（CloseOffsetY = +20），
         // 眼淚跟著它一起移；Godot 版眼淚是獨立圖層、OffsetY 原本是 0，所以閉眼後眼淚留在原位，掉到睫毛下面一截。
