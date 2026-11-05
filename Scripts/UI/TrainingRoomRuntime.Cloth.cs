@@ -1308,7 +1308,8 @@ uniform float outline_k = 1.0;               // 拉伸（壓縮）後邊緣變�
 uniform float left_boost = 1.25;              // 左邊往右多縮的倍率（1＝原本；越大左邊越往右）
 uniform float leg_relax = 0.0;               // 撥開時右上角被大腿切進來的部分往回讓多少（U；0.005≈10px；呼吸時腳往內轉會卡進內褲）
 uniform float leg_cover = 1.0;               // 撥開時右腿邊窄帶：減弱腿的裁切、用白色布蓋住膚色的程度（0＝關）
-uniform float cover_y0 = 1400.0;              // 補白色開始的高度（畫布 px）：再往上是內褲和腿夾角，不補（不要多出一塊白色）
+uniform float cover_top = 1.0;               // 夾角（上端 y<1425）只讓「黑線」透出腿外、不補白色：夾角完整、黑線連續，又不會多出一塊白色（0＝上端也補白色）
+uniform float cover_y0 = 1370.0;              // 補白色開始的高度（畫布 px）：再往上是內褲和腿夾角，不補（不要多出一塊白色）
 uniform float cover_in = 14.0;               // 補白色的右邊界：離內褲右緣往內多少 px（中間那條黑線的位置；越大白色越往左縮）
 uniform float leg_grow = 0.004;               // 撥開時大腿輪廓再往左多裁一點（U；0.004≈8px）
 uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」起訖高度（畫布 px）
@@ -1661,11 +1662,13 @@ void fragment() {
             la_ = mix(la_, smoothstep(0.30, 0.65, la_), smoothstep(1.0, 10.0, aside));   // 撥開時大腿的切口要乾淨（不要淡化）
             // 撥開後右腿邊那一段（約 y 1430~1545）：窄帶被腿輪廓裁掉的地方會露出腿的膚色 → 這裡減弱腿的裁切，讓白色布蓋住膚色（右緣黑線 rin_ 照舊保留）
             float cover_ = smoothstep(cover_y0, cover_y0 + 25.0, pj_.y) * (1.0 - smoothstep(1520.0, 1550.0, pj_.y)) * smoothstep(1000.0, 1040.0, pj_.x) * smoothstep(0.0, 6.0, d) * (1.0 - rin_) * leg_cover * (1.0 - smoothstep(redge0_ - cover_in, redge0_ - cover_in + 12.0, px.x));   // 右邊只補到「中間那條黑線」為止（離右緣 cover_in px），線右邊的大腿照常裁切，不要多出白色
+            float upK_ = (1.0 - smoothstep(1385.0, 1425.0, pj_.y)) * cover_top;   // 夾角上端：只留黑線
+            float coverA_ = cover_ * mix(1.0, dk_, upK_);
             float aBefore_ = c.a;
-            c.a *= 1.0 - la_ * lw_ * (1.0 - cover_);   // 順著 M 腿的輪廓裁切
+            c.a *= 1.0 - la_ * lw_ * (1.0 - coverA_);   // 順著 M 腿的輪廓裁切
             {   // 窄帶範圍內（開口左緣 hb ~ 右緣 redge0_）如果還是透出腿的膚色（沒有布），直接補一層白色布
                 float inStrip_ = smoothstep(hb, hb + 3.0, px.x) * (1.0 - smoothstep(redge0_ - 4.0, redge0_, px.x));
-                float fillW_ = cover_ * inStrip_ * (1.0 - c.a) * la_;
+                float fillW_ = cover_ * (1.0 - upK_) * inStrip_ * (1.0 - c.a) * la_;
                 c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), fillW_ / max(c.a + fillW_, 0.001));
                 c.a = max(c.a, fillW_);
             }
