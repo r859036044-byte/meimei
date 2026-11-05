@@ -1564,6 +1564,20 @@ void fragment() {
             c.a = max(c.a, lnI_ * 0.6 * aPJ_);
         }
     }
+    {   // 右上角補洞：這一帶內褲被腿帶動、拉伸後偶爾會出現被切掉、露出底下皮膚色的缺口，周圍有內褲的話就把缺口補上（只補 12px 以內的洞）
+        float gz_ = smoothstep(1500.0, 1440.0, px.y) * smoothstep(XRY_(px.y) - 80.0, XRY_(px.y) - 20.0, px.x) * step(0.5, aside);
+        if (gz_ > 0.01 && c.a < 0.97) {
+            float dil_ = 0.0;
+            for (int gi = 0; gi < 8; gi++) {
+                float ga_ = 6.2831853 * float(gi) / 8.0;
+                vec2 go_ = vec2(cos(ga_), sin(ga_)) * (gi % 2 == 0 ? 7.0 : 13.0);
+                dil_ = max(dil_, texture(TEXTURE, vec2((xs + go_.x) / 2000.0, (ys_ + go_.y) / 3200.0)).a);
+            }
+            float fillA_ = smoothstep(0.4, 0.8, dil_) * gz_;
+            c.rgb = mix(c.rgb, vec3(0.90, 0.87, 0.92), fillA_ * (1.0 - c.a));
+            c.a = max(c.a, fillA_ * 0.97);
+        }
+    }
     if (cc_on > 0.5) {
         vec2 pj4_ = UV * jj_size;
         vec2 cq_ = (jj_x * pj4_.x + jj_y * pj4_.y + jj_o) / vec2(2000.0, 3200.0);

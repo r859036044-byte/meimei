@@ -1,0 +1,51 @@
+using Godot;
+
+/// <summary>
+/// 除錯用：遊戲裡按 F6／F7／F8 逐項關掉／打開最近加的內褲效果，畫面左上會顯示目前狀態，
+/// 用來找出「右上角被切掉露出皮膚」、「細帶梳子紋」是哪一項造成的（不用進 Inspector 調數字）。
+///   F6：內褲邊緣跟著腿平移（MPantyLegOffFollow）
+///   F7：銜接處往右下角推擠（MPantyCornerPush）
+///   F8：雞雞裁切內褲（MPantyJijiClip）
+/// </summary>
+public partial class TrainingRoomRuntime
+{
+    Label _pdLabel;
+    float _pdSavedLeg = 1f, _pdSavedCorner = 1f;
+    bool _pdLegOff, _pdCornerOff;
+
+    bool PantyDebugKeys(InputEvent e)
+    {
+        if (e is not InputEventKey k || !k.Pressed || k.Echo) return false;
+        if (k.Keycode == Key.F6)
+        {
+            _pdLegOff = !_pdLegOff;
+            if (_pdLegOff) { _pdSavedLeg = MPantyLegOffFollow; MPantyLegOffFollow = 0f; } else MPantyLegOffFollow = _pdSavedLeg;
+        }
+        else if (k.Keycode == Key.F7)
+        {
+            _pdCornerOff = !_pdCornerOff;
+            if (_pdCornerOff) { _pdSavedCorner = MPantyCornerPush; MPantyCornerPush = 0f; } else MPantyCornerPush = _pdSavedCorner;
+        }
+        else if (k.Keycode == Key.F8) MPantyJijiClip = !MPantyJijiClip;
+        else return false;
+        PdShow();
+        return true;
+    }
+
+    void PdShow()
+    {
+        var parent = UiRoot; if (parent == null) return;
+        if (_pdLabel == null || !IsInstanceValid(_pdLabel))
+        {
+            _pdLabel = new Label { Name = "PantyDebugLbl", MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 4001 };
+            _pdLabel.Position = new Vector2(12f, 90f);
+            _pdLabel.AddThemeFontSizeOverride("font_size", 18);
+            parent.AddChild(_pdLabel);
+        }
+        _pdLabel.Text = $"F6 跟腿平移：{(_pdLegOff ? "關" : "開")}   F7 銜接處推擠：{(_pdCornerOff ? "關" : "開")}   F8 雞雞裁內褲：{(MPantyJijiClip ? "開" : "關")}";
+        var tw = CreateTween();
+        _pdLabel.Modulate = Colors.White;
+        tw.TweenInterval(4f);
+        tw.TweenProperty(_pdLabel, "modulate:a", 0f, 0.6f);
+    }
+}
