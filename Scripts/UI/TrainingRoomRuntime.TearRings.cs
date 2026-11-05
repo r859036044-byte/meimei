@@ -19,7 +19,7 @@ public partial class TrainingRoomRuntime
     [Export] public float TearRingAccel = 7f;            // 往下越來越快（px/秒²）
     [Export] public float TearRingDrift = 0.55f;         // 斜著流：橫向／縱向的比例（左半臉往左下、右半臉往右下；0＝直直往下）
     [Export] public float TearRingStartOut = 3f;         // 水滴起點再往外移多少（左半臉往左、右半臉往右，畫布 px）
-    [Export] public bool TearHideImages = true;          // 關掉舊的四張眼淚圖（眼淚1～4）：改由水滴取代。只是畫成透明，圖層還在，水滴靠它判斷何時冒、從哪裡冒
+    [Export] public bool TearHideOuterCorner = true;     // 關掉眼角外側兩張小眼淚圖（眼淚3、眼淚4）；眼淚1、2 保留。只是畫成透明，圖層還在
     [Export] public float TearRingSideSpeed = 9f;        // 開頭往左／右的速度（畫布 px/秒）
     [Export] public float TearRingSideDown = 5f;         // 開頭同時往下的速度（畫布 px/秒）：不是純水平，而是很斜的緩降
     [Export] public float TearRingSideTime = 1.2f;       // 這個開頭階段花多久（秒），之後平滑轉成往左下／右下流
@@ -98,15 +98,15 @@ public partial class TrainingRoomRuntime
     {
         if (!TearRingEnabled) { ClearTearRings(); return; }
 
-        foreach (var src in _tearSrc)
-            if (Layers.TryGetValue(src.layer, out var ol) && ol != null)
-                ol.SelfModulate = new Color(1f, 1f, 1f, TearHideImages ? 0f : 1f);   // 每幀設定；不動 Visible／Modulate，那些是表情系統在管，水滴要靠它們判斷
+        for (int k = 2; k < _tearSrc.Length; k++)   // 眼淚3、4
+            if (Layers.TryGetValue(_tearSrc[k].layer, out var ol) && ol != null)
+                ol.SelfModulate = new Color(1f, 1f, 1f, TearHideOuterCorner ? 0f : 1f);   // 每幀設定；不動 Visible／Modulate，那些是表情系統在管，水滴要靠它們判斷
 
         // 1) 生成：整個臉共用一個計時；不痛 5 秒一個，痛苦值越高越快（最快 3 秒一個）
         var visible = new List<int>();
-        for (int i = 0; i < _tearSrc.Length; i++)
+        for (int i = 0; i < 2; i++)   // 水滴只從眼淚1、2（下眼瞼那兩條）冒出
             if (Layers.TryGetValue(_tearSrc[i].layer, out var tl0) && tl0 != null && tl0.GetParent() != null
-                && tl0.IsVisibleInTree() && tl0.Modulate.A > 0.05f) visible.Add(i);   // 不看 SelfModulate（舊圖被我畫成透明了）
+                && tl0.IsVisibleInTree() && tl0.Modulate.A > 0.05f) visible.Add(i);   
         if (visible.Count == 0) { _tearTimer = 0f; }
         else
         {
