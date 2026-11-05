@@ -1312,6 +1312,7 @@ uniform vec2 slash_y = vec2(1400.0, 1470.0);  // 右上「歪進來的黑線」�
 uniform vec2 slash_in = vec2(4.0, 50.0);      // 黑線起點／終點離內褲右緣往內多遠（畫布 px；終點比起點多＝往左下歪進來）
 uniform float slash_k = 0.0;                  // 黑線濃度
 uniform float edge_pad = 8.0;                 // 開口左緣往左多留幾 px，才不會把內褲自己的左邊線切掉
+uniform float jz_mid = 60.0;                    // 插入時中間這一段原本的位移（px）：50＋10
 uniform float jz_arch = 105.0;                  // 銜接處推擠範圍上緣的球形凸起：兩側比中間低多少 px
 uniform float dbg_lines = 0.0;                  // 1＝畫出除錯線
 uniform float jj_arch = 105.0;                   // 雞雞裁內褲的起點弧度：兩側比中間低多少 px
@@ -1402,7 +1403,7 @@ void fragment() {
     float zd_ = jz_arch * (1.0 - sqrt(max(0.0, 1.0 - pow(clamp(abs(px.x - 985.0) / 130.0, 0.0, 1.0), 2.0))));   // 銜接處上緣是球形的凸起（中間高、兩側低）
     float zj_ = smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_)) * step(0.5, aside);   // 銜接處的範圍（兩端平滑）
     float zup_ = smoothstep(jz_rise.x - 70.0, jz_rise.x, ys_ - zd_);   // 銜接處上方的漸層：往上慢慢不位移
-    float xtra_ = 10.0 * smoothstep(1430.0, 1450.0, ys_) * (1.0 - smoothstep(1550.0, 1580.0, ys_)) * step(0.5, aside) * hug_k;   // 插入時，y 1520~1650 這一段原本的位移再額外增加 50px（只動左緣；未插入＝0）
+    float xtra_ = 0.0;   // （已停用）不再額外加位移
     float dA_ = (aside * w * left_boost * lf_ + thrust_j * zj_) * (1.0 + 0.15 * hug_) * (1.0 + ins_left * hug_k);       // 想推的距離（插入後左邊再往右）
     float dB_ = wd * (0.8 + 0.15 * hug_) * lf_;                            // 上限（最多推掉內褲寬度的 8 成；下面依 low_str 降低）
     // 平滑取最小：用硬的 min 時，斜邊接到右邊折角的地方會有一個尖角；改成平滑取最小，交會處變成圓弧
@@ -1414,7 +1415,10 @@ void fragment() {
     }
     float kc_ = hug_k * corner_push * smoothstep(jz_rise.x, jz_rise.y, ys_ - zd_) * (1.0 - smoothstep(jz_fall.x, jz_fall.y, ys_));
     d = mix(d, max(d, wd * 0.95), kc_);   // 插入後：銜接處的內褲整個推擠到右下角（窄窄一條貼在雞雞右緣）
-    d += xtra_;   // 銜接處整段（含上方漸層）整條帶子向右平移：左緣和右緣一起移（之前加在 dA_ 裡會被上限吃掉，所以看不出來）
+    {   // 插入時：中間這一段（1374~1592）原本的位移直接改成 jz_mid（px），上下兩端漸漸接回原本的位移
+        float wz_ = hug_k * smoothstep(1374.0, 1444.0, ys_) * (1.0 - smoothstep(1532.0, 1592.0, ys_)) * step(0.5, aside);
+        d = mix(d, jz_mid, wz_);
+    }
     float dr = d * (right_follow + 0.04 * hug_ + thrust_r * zj_);   // 右緣只跟一點點：之前貼雞雞那一帶跟 0.5×d（上百 px），銜接處下面的最外側折角就被拉出去一大段，露出皮膚色   // 銜接處右邊不動（不外擴）   // 右邊跟著往右移的量（一點點；插入後貼雞雞的那一帶多一些）
     float nw = max(1.0, wd - d + dr);            // 壓縮後的寬度：[xl+d, xr+dr]
     float xs = xl + (px.x - xl - d) * wd / nw;
