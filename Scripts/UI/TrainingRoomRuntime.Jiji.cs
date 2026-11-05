@@ -200,6 +200,7 @@ public partial class TrainingRoomRuntime
     [Export] public float AnusOpenSpeed   = 6f;     // 撐開／收回的跟隨速度
     [Export] public float AnusClipOffsetPx = 10f;     // 肛門目標：裁切線相對「肛門圖層上緣」的位置（螢幕 px，正＝往下、負＝往上）
     [Export(PropertyHint.Range, "0,0.8,0.01")] public float AnusTaperMax = 0.12f;     // 突破後肛門下方雞雞變細的最大比例（0.3＝窄 30%）
+    [Export(PropertyHint.Range, "0,0.8,0.01")] public float PussyTaperMax = 0.12f;   // 插入小穴後，雞雞靠近交接處變細的最大比例（0＝不變細）
     [Export] public float AnusTaperArchPx  = 10f;   // 變細起點的弧形：兩側比中間再往下多少 px（0＝水平）
     [Export] public float AnusTaperStartPx = 5f;    // 變細從裁切線（肛門）往下多少 px 開始
     [Export] public float AnusTaperLenPx   = 40f;   // 變細往下漸層到消失的長度（螢幕 px）；越上面越細
@@ -636,7 +637,7 @@ void fragment() {
             _jijiFlush = Mathf.MoveToward(_jijiFlush, flushOn ? 1f : 0f, (float)GetProcessDeltaTime() * (flushOn ? 0.7f : 0.8f));
             _jijiClipMat.SetShaderParameter("flush_amt", _jijiFlush);
             _jijiClipMat.SetShaderParameter("circle_rise_px", JijiTouchDepth() * JijiClipCircleFollow);
-            _jijiClipMat.SetShaderParameter("taper_k", (_jijiAnus && _jijiPhase == 3 && _jijiStage >= 1) ? AnusTaperMax * aw : 0f);
+            _jijiClipMat.SetShaderParameter("taper_k", (_jijiPhase == 3 && _jijiStage >= 1) ? (_jijiAnus ? AnusTaperMax * aw : PussyTaperMax) : 0f);   // 插入小穴時雞雞和插入物件交接處也往中間收，配合插入物件的寬度
             _jijiClipMat.SetShaderParameter("taper_start_px", clipLocalY + AnusTaperStartPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
