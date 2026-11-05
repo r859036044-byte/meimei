@@ -509,7 +509,7 @@ void fragment() {
     if (jc_on > 0.5) {
         vec2 pj3_ = UV * cl_size;
         vec2 jq3_ = (jc_x * pj3_.x + jc_y * pj3_.y + jc_o) / vec2(2000.0, 3200.0);
-        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.05, 0.40, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 24.0, pj3_.y);
+        if (jq3_.x >= 0.0 && jq3_.x <= 1.0 && jq3_.y >= 0.0 && jq3_.y <= 1.0) c.a *= 1.0 - smoothstep(0.38, 0.52, texture(jc_tex, jq3_).a) * smoothstep(jc_from_y, jc_from_y + 2.0, pj3_.y);
     }
     COLOR = c * vc;
 }
@@ -1521,8 +1521,8 @@ void fragment() {
         if (jq_.x >= 0.0 && jq_.x <= 1.0 && jq_.y >= 0.0 && jq_.y <= 1.0) {
             const vec2 oj_ = vec2(0.0007, 0.0004);   // 遮罩是半解析度，多取幾點平均，切口的線才不會變成一個一個的點
             float jraw_ = 0.25 * (texture(jj_tex, jq_ + oj_).a + texture(jj_tex, jq_ - oj_).a + texture(jj_tex, jq_ + vec2(oj_.x, -oj_.y)).a + texture(jj_tex, jq_ + vec2(-oj_.x, oj_.y)).a);
-            float js_ = smoothstep(0.05, 0.40, jraw_);
-            float jw_ = smoothstep(jj_from_y, jj_from_y + 24.0, px.y);
+            float js_ = smoothstep(0.38, 0.52, jraw_);   // 裁切邊緣要俐落，不要淡出
+            float jw_ = smoothstep(jj_from_y, jj_from_y + 2.0, px.y);
             float aPreJ_ = c.a;
             c.a *= 1.0 - js_ * jw_;   // 只有這條線以下的雞雞蓋在內褲上面；切口收乾淨（不柔化）
             // 沿著雞雞的切口畫一條黑線：插入後折進去的地方，左邊的邊線和右下角快被切掉的地方靠這條線連起來，內褲看起來是連貫的
