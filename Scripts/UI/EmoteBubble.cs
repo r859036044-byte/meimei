@@ -3,11 +3,11 @@ using System;
 
 /// <summary>
 /// 莉奈頭旁的氣泡表情（RPG Maker 風）：全部用程式畫，不需要圖檔。
-///   Heart    好感：幾顆愛心往上飄、左右搖、淡出
+///   Heart    好感：氣泡裡一顆粉紅愛心（會輕輕跳動）
 ///   Tangle   不好：一團毛線（亂麻），彈出來會抖一下
 ///   Exclaim  驚嘆號　　Question  問號
 /// 用法：EmoteBubble.Spawn(parent, EmoteBubble.Kind.Heart, () => 螢幕座標);
-/// 座標＝氣泡「底部中心」（愛心＝飄出的起點）；每幀重新呼叫 Func，所以可以跟著頭走。
+/// 座標＝氣泡「底部中心」；每幀重新呼叫 Func，所以可以跟著頭／對話框走。
 /// </summary>
 public partial class EmoteBubble : Control
 {
@@ -15,7 +15,7 @@ public partial class EmoteBubble : Control
 
     public Kind EmoteKind;
     public Func<Vector2> Anchor;
-    public float HoldSec = 1.2f;      // 表情氣泡停留秒數（愛心不用，飄完就消失）
+    public float HoldSec = 1.2f;      // 表情氣泡停留秒數
 
     static readonly Color Outline = new Color("4a3a4f");
     static readonly Color HeartFill = new Color("ed70a3");
@@ -23,10 +23,6 @@ public partial class EmoteBubble : Control
 
     float _age;
     Vector2[] _scribble;
-    // 愛心
-    HeartDecoration[] _hearts;
-    float[] _hDelay, _hDur, _hX, _hRise, _hSway, _hPhase, _hSize;
-
     public static EmoteBubble Spawn(Node parent, Kind kind, Func<Vector2> anchor, float holdSec = 1.2f)
     {
         var e = new EmoteBubble { EmoteKind = kind, Anchor = anchor, HoldSec = holdSec };
@@ -40,28 +36,6 @@ public partial class EmoteBubble : Control
         ZIndex = 50;
         var rng = new RandomNumberGenerator(); rng.Randomize();
 
-        if (EmoteKind == Kind.Heart)
-        {
-            Size = Vector2.Zero;
-            int n = 5;
-            _hearts = new HeartDecoration[n];
-            _hDelay = new float[n]; _hDur = new float[n]; _hX = new float[n];
-            _hRise = new float[n]; _hSway = new float[n]; _hPhase = new float[n]; _hSize = new float[n];
-            for (int i = 0; i < n; i++)
-            {
-                _hSize[i] = rng.RandfRange(22f, 34f);
-                _hDelay[i] = i * 0.18f + rng.RandfRange(0f, 0.1f);
-                _hDur[i] = rng.RandfRange(1.5f, 2.1f);
-                _hX[i] = rng.RandfRange(-28f, 28f);
-                _hRise[i] = rng.RandfRange(90f, 140f);
-                _hSway[i] = rng.RandfRange(8f, 16f);
-                _hPhase[i] = rng.RandfRange(0f, Mathf.Tau);
-                var h = new HeartDecoration { Size = new Vector2(_hSize[i], _hSize[i]), Visible = false, PivotOffset = new Vector2(_hSize[i], _hSize[i]) * 0.5f };
-                AddChild(h);
-                _hearts[i] = h;
-            }
-        }
-        else
         {
             Size = new Vector2(72f, 76f);
             PivotOffset = new Vector2(36f, 72f);   // 從尾巴尖端彈出來
@@ -86,7 +60,7 @@ public partial class EmoteBubble : Control
     {
         if (Anchor == null) return;
         Vector2 a = Anchor();
-        Position = EmoteKind == Kind.Heart ? a : a - new Vector2(Size.X * 0.5f, Size.Y - 4f);
+        Position = a - new Vector2(Size.X * 0.5f, Size.Y - 4f);
     }
 
     public override void _Process(double delta)
@@ -94,8 +68,6 @@ public partial class EmoteBubble : Control
         float dt = (float)delta;
         _age += dt;
         Reposition();
-
-        if (EmoteKind == Kind.Heart) { ProcessHearts(); return; }
 
         // 彈出：0.3 → 1.15 → 1；停留 HoldSec；最後 0.3 秒淡出並往上飄一點
         float s = _age < 0.16f ? Mathf.Lerp(0.3f, 1.15f, _age / 0.16f)
@@ -111,33 +83,8 @@ public partial class EmoteBubble : Control
         QueueRedraw();
     }
 
-    void ProcessHearts()
-    {
-        bool allDone = true;
-        for (int i = 0; i < _hearts.Length; i++)
-        {
-            float lt = _age - _hDelay[i];
-            var h = _hearts[i];
-            if (lt < 0f) { allDone = false; h.Visible = false; continue; }
-            float p = lt / _hDur[i];
-            if (p >= 1f) { h.Visible = false; continue; }
-            allDone = false;
-            h.Visible = true;
-            float x = _hX[i] + Mathf.Sin(p * Mathf.Tau * 1.2f + _hPhase[i]) * _hSway[i];
-            float y = -p * _hRise[i];
-            h.Position = new Vector2(x, y) - h.Size * 0.5f;
-            float sc = 0.5f + 0.5f * Mathf.Min(1f, p * 6f);
-            h.Scale = new Vector2(sc, sc);
-            float fade = p < 0.12f ? p / 0.12f : 1f - Mathf.SmoothStep(0.55f, 1f, p);
-            h.Modulate = new Color(1, 1, 1, fade);
-        }
-        if (allDone) QueueFree();
-    }
-
     public override void _Draw()
     {
-        if (EmoteKind == Kind.Heart) return;
-
         var c = new Vector2(36f, 32f);
         // 氣泡：白底圓＋深色描邊＋左下小尾巴
         DrawColoredPolygon(new[] { new Vector2(c.X - 10f, 58f), new Vector2(c.X + 6f, 60f), new Vector2(c.X - 14f, 72f) }, Outline);
@@ -166,6 +113,22 @@ public partial class EmoteBubble : Control
                 DrawPolyline(arc, col, 5f, true);
                 DrawLine(arc[^1], new Vector2(c.X, c.Y + 3f), col, 5f, true);
                 DrawCircle(new Vector2(c.X, c.Y + 15f), 3.6f, col);
+                break;
+            }
+            case Kind.Heart:
+            {
+                float pulse = 1f + 0.08f * Mathf.Sin(_age * 14f);   // 輕輕跳動
+                var pts = new Vector2[64];
+                for (int i = 0; i < pts.Length; i++)
+                {
+                    float t = Mathf.Tau * i / pts.Length;
+                    float hx = 16f * Mathf.Pow(Mathf.Sin(t), 3);
+                    float hy = 13f * Mathf.Cos(t) - 5f * Mathf.Cos(2f * t) - 2f * Mathf.Cos(3f * t) - Mathf.Cos(4f * t);
+                    pts[i] = new Vector2(c.X + hx * 1.05f * pulse, c.Y + 1f - hy * 1.05f * pulse);
+                }
+                DrawColoredPolygon(pts, HeartFill);
+                var line = new Vector2[pts.Length + 1]; pts.CopyTo(line, 0); line[^1] = pts[0];
+                DrawPolyline(line, HeartLine, 1.6f, true);
                 break;
             }
             case Kind.Tangle:

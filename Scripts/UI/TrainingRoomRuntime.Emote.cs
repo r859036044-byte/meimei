@@ -13,6 +13,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("氣泡表情")]
     [Export] public bool    EmoteEnabled   = true;
     [Export] public float   EmoteCooldown  = 1.0f;                    // 兩個表情之間最短間隔（愛心可以疊）
+    [Export] public float   EmoteBelowGapPx = 8f;                     // 表情氣泡離對話框下緣的距離（螢幕 px）
     [Export] public float   EmoteGapPx     = 10f;                     // 氣泡離前髮邊緣的距離（螢幕 px）；左右邊由 GirlBubbleSideMode 與對話氣泡決定
     [Export] public float   EmoteMoodStep  = 2f;                      // 心情累積變化多少才冒愛心／毛線團
     [Export] public float   EmoteHoldSec   = 1.2f;                    // 驚嘆號／問號／毛線團停留秒數
@@ -27,19 +28,23 @@ public partial class TrainingRoomRuntime
         if (!EmoteEnabled || UiRoot == null) return;
         if (kind != EmoteBubble.Kind.Heart && _emoteCd > 0f) return;
         if (kind != EmoteBubble.Kind.Heart) _emoteCd = EmoteCooldown;
-        // 表情放頭的左右側；女主對話氣泡正在顯示就放另一邊，免得疊在一起
-        bool girlShown = _bubbleGirl != null && IsInstanceValid(_bubbleGirl) && _bubbleGirl.Visible && _bubbleGirl.Modulate.A > 0.1f;
-        int side = girlShown ? -_girlSide : PickGirlSide();
+        // 有對話框：表情氣泡在對話框正下方（不蓋到字）；沒有對話框：放頭的左右側
+        int side = PickGirlSide();
         EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec);
     }
 
-    /// <summary>表情氣泡底部中心（愛心＝飄出起點）：頭的左／右側，氣泡垂直中心大約對臉中心。</summary>
+    /// <summary>表情氣泡底部中心。對話框顯示中 → 對話框正下方（水平對齊對話框中心）；否則 → 頭的左／右側。</summary>
     Vector2 EmoteAnchor(int side)
     {
         Vector2 vp = GetViewport().GetVisibleRect().Size;
+        if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && _bubbleGirl.Visible && _bubbleGirl.Modulate.A > 0.05f)
+        {
+            Vector2 p = _bubbleGirl.Position + new Vector2(_bubbleGirl.Size.X * 0.5f, _bubbleGirl.Size.Y + EmoteBelowGapPx + 72f);   // 氣泡高 76、底部中心在 y+72
+            return new Vector2(Mathf.Clamp(p.X, 40f, vp.X - 40f), Mathf.Min(p.Y, vp.Y - 8f));
+        }
         Vector2 edge = HeadSideScreen(side) ?? new Vector2(vp.X * 0.5f + side * 220f, vp.Y * 0.3f);
-        Vector2 p = edge + new Vector2(side * (EmoteGapPx + 36f), 38f);   // 氣泡寬 72 → 中心離邊緣 36
-        return new Vector2(Mathf.Clamp(p.X, 40f, vp.X - 40f), Mathf.Clamp(p.Y, 90f, vp.Y - 20f));
+        Vector2 q = edge + new Vector2(side * (EmoteGapPx + 36f), 38f);   // 氣泡寬 72 → 中心離邊緣 36
+        return new Vector2(Mathf.Clamp(q.X, 40f, vp.X - 40f), Mathf.Clamp(q.Y, 90f, vp.Y - 20f));
     }
 
     void UpdateEmotes(float dt)

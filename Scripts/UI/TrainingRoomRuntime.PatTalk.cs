@@ -22,7 +22,8 @@ public partial class TrainingRoomRuntime
     [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
     [Export] public float GirlBubbleYOffset = 0f;    // 氣泡垂直中心相對臉中心的偏移（螢幕 px，負＝往上）
     [Export] public float PlayerBubbleGapPx = 10f;   // 男主氣泡尾巴尖端離雞雞下緣的距離（螢幕 px）
-    const float BubbleTailLen = 26f;
+    [Export(PropertyHint.Range, "0.5,3,0.1")] public float BubbleScale = 2f;   // 對話框整體放大倍率（字、框、尾巴一起；2＝放大一倍）
+    const float BubbleTailLen = 26f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
     // 畫布座標（2000x3200）：前髮左右邊緣、臉中心高度；雞雞中線與下緣（臉.png 735~1197 / 前髮.png 698~1218；雞雞.png 850~1119、1590~2128）
     const float HeadEdgeLeftX = 698f, HeadEdgeRightX = 1218f, HeadCenterY = 602f;
     const float JijiCenterX = 985f, JijiBottomY = 2128f;
@@ -100,15 +101,15 @@ public partial class TrainingRoomRuntime
         if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && HeadSideScreen(_girlSide) is Vector2 edge)
         {
             Vector2 sz = _bubbleGirl.Size;
-            float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen) - (_girlSide < 0 ? sz.X : 0f);
+            float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen * BubbleScale) - (_girlSide < 0 ? sz.X : 0f);
             Vector2 pos = new Vector2(x, edge.Y + GirlBubbleYOffset - sz.Y * 0.5f);
             // 鏡頭放大等原因超出畫面：夾在畫面內（留 8px 邊），被夾動了就把尾巴藏起來（尾巴指不到臉了）
             Vector2 clamped = new Vector2(
                 Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
                 Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - sz.Y - 8f)));
             _bubbleGirl.Position = clamped;
-            var tailG = _bubbleGirl.GetNodeOrNull<Node2D>("Tail");
-            if (tailG != null) tailG.Visible = clamped.IsEqualApprox(pos);
+            var shapeG = _bubbleGirl.GetNodeOrNull<BubbleShape>("Shape");
+            if (shapeG != null) shapeG.TailVisible = clamped.IsEqualApprox(pos);
         }
 
         // 男主氣泡：雞雞正下方（水平對雞雞中線，尾巴在上方指向雞雞）
@@ -119,7 +120,7 @@ public partial class TrainingRoomRuntime
             if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
             {
                 Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));
-                pos = new Vector2(tip.X - sz.X * 0.5f, tip.Y + PlayerBubbleGapPx + BubbleTailLen);
+                pos = new Vector2(tip.X - sz.X * 0.5f, tip.Y + PlayerBubbleGapPx + BubbleTailLen * BubbleScale);
             }
             else
                 pos = new Vector2((vpG.X - sz.X) * 0.5f, vpG.Y - PatPlayerBubbleBottom - 22f - sz.Y);   // 找不到雞雞：回到畫面下方置中
@@ -127,30 +128,18 @@ public partial class TrainingRoomRuntime
                 Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
                 Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - sz.Y - 8f)));
             _bubblePlayer.Position = clamped;
-            var tailP = _bubblePlayer.GetNodeOrNull<Node2D>("Tail");
-            if (tailP != null) tailP.Visible = clamped.IsEqualApprox(pos);
+            var shapeP = _bubblePlayer.GetNodeOrNull<BubbleShape>("Shape");
+            if (shapeP != null) shapeP.TailVisible = clamped.IsEqualApprox(pos);
         }
     }
 
-    /// <summary>尾巴位置／方向：女主＝在靠臉那一側的邊中間、朝向臉；男主＝在上緣中間、朝上指向雞雞。</summary>
+    /// <summary>尾巴在哪一邊：女主＝靠臉那一側的邊（氣泡在右邊→左緣、在左邊→右緣）；男主＝上緣，朝上指向雞雞。</summary>
     void PlaceTail(Control b, bool isPlayer)
     {
         if (b == null || !GodotObject.IsInstanceValid(b)) return;
-        var t = b.GetNodeOrNull<Node2D>("Tail");
-        if (t == null) return;
-        if (isPlayer)
-        {
-            t.Position = new Vector2(b.Size.X * 0.5f, 0f);
-            t.Scale = new Vector2(1f, -1f);   // 原本尾巴朝下，翻成朝上
-            t.Rotation = 0f;
-        }
-        else
-        {
-            // 原本尾巴尖端朝左下（約 125°）；轉成水平朝向臉：氣泡在右邊 → 尾巴在左緣朝左；在左邊 → 鏡像
-            t.Position = new Vector2(_girlSide > 0 ? 0f : b.Size.X, b.Size.Y * 0.5f);
-            t.Scale = new Vector2(_girlSide > 0 ? 1f : -1f, 1f);
-            t.Rotation = Mathf.DegToRad(_girlSide > 0 ? 55f : -55f);
-        }
+        var shape = b.GetNodeOrNull<BubbleShape>("Shape");
+        if (shape == null) return;
+        shape.TailSide = isPlayer ? BubbleShape.Side.Top : (_girlSide > 0 ? BubbleShape.Side.Left : BubbleShape.Side.Right);
     }
 
     string Pick(string[] lines)
@@ -191,53 +180,30 @@ public partial class TrainingRoomRuntime
         tw.TweenCallback(Callable.From(() => { if (IsInstanceValid(b)) b.Visible = false; }));
     }
 
-    /// <summary>圓角白底＋深色描邊的對話氣泡，下方一個小尾巴（主角尾巴在下方中間，對方尾巴在左下指向頭）。</summary>
+    /// <summary>對話氣泡：圓角矩形＋∠ 形尾巴合成同一個外形（BubbleShape.cs），尾巴和氣泡銜接處沒有縫。
+    /// 整體放大 BubbleScale 倍（字、框、圓角、尾巴一起）。</summary>
     (Control, Label) BuildBubble(bool isPlayer)
     {
+        float K = BubbleScale;
         var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
-        var sb = new StyleBoxFlat
-        {
-            BgColor = isPlayer ? new Color(1f, 1f, 1f, 0.90f) : new Color(1f, 0.97f, 0.99f, 0.90f),   // 90% 不透明
-            BorderColor = BarOutline,
-        };
-        sb.SetBorderWidthAll(3); sb.SetCornerRadiusAll(22);
-        sb.ContentMarginLeft = sb.ContentMarginRight = 22; sb.ContentMarginTop = sb.ContentMarginBottom = 12;
-        if (!isPlayer) { sb.ContentMarginLeft = sb.ContentMarginRight = sb.ContentMarginTop = sb.ContentMarginBottom = 0; }   // 粉框緊貼外框，中間不留白
-        box.AddThemeStyleboxOverride("panel", sb);
-
-        // 女主：內側一圈粉紅色細框（跟設定／對話框同一種粉色 e8b5ce）
-        Container textParent = box;
-        if (!isPlayer)
-        {
-            var inner = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            var isb = new StyleBoxFlat { BgColor = new Color(1f, 1f, 1f, 0f), BorderColor = new Color("e8b5ce") };
-            isb.SetBorderWidthAll(3); isb.SetCornerRadiusAll(19);
-            isb.ContentMarginLeft = isb.ContentMarginRight = 17; isb.ContentMarginTop = isb.ContentMarginBottom = 7;
-            inner.AddThemeStyleboxOverride("panel", isb);
-            box.AddChild(inner);
-            textParent = inner;
-        }
+        // 外形由 BubbleShape 畫；容器本身只負責字的邊距（框的粗細已包含在邊距裡）
+        var pad = new StyleBoxEmpty();
+        float mx = (isPlayer ? 22f : 23f) * K, my = (isPlayer ? 12f : 13f) * K;
+        pad.ContentMarginLeft = pad.ContentMarginRight = mx;
+        pad.ContentMarginTop = pad.ContentMarginBottom = my;
+        box.AddThemeStyleboxOverride("panel", pad);
 
         var lbl = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
-        lbl.AddThemeFontSizeOverride("font_size", isPlayer ? 24 : 22);
+        lbl.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt((isPlayer ? 24f : 22f) * K));
         lbl.AddThemeColorOverride("font_color", UiText);
-        textParent.AddChild(lbl);
+        box.AddChild(lbl);
 
-        // 尾巴：描邊三角＋內層白三角（Node2D，不受容器排版影響；位置每幀依氣泡大小更新）
-        var tail = new Node2D { Name = "Tail" };
-        box.AddChild(tail);
-        if (isPlayer)
+        box.AddChild(new BubbleShape
         {
-            tail.AddChild(new Polygon2D { Color = BarOutline, Polygon = new[] { new Vector2(-14, -3), new Vector2(14, -3), new Vector2(0, 22) } });
-            tail.AddChild(new Polygon2D { Color = sb.BgColor, Polygon = new[] { new Vector2(-10, -5), new Vector2(10, -5), new Vector2(0, 16) } });
-        }
-        else
-        {
-            // 女主：深色外框 → 粉紅內框 → 底色，三層三角形，粉框一路包到尾巴尖端
-            tail.AddChild(new Polygon2D { Color = BarOutline,           Polygon = new[] { new Vector2(-15, -3), new Vector2(15, -3), new Vector2(-17, 24) } });
-            tail.AddChild(new Polygon2D { Color = new Color("e8b5ce"), Polygon = new[] { new Vector2(-12, -6), new Vector2(12, -6), new Vector2(-14.5f, 19) } });
-            tail.AddChild(new Polygon2D { Color = sb.BgColor,           Polygon = new[] { new Vector2(-8, -8), new Vector2(8, -8), new Vector2(-11, 13) } });
-        }
+            Name = "Shape", K = K, DoubleBorder = !isPlayer,   // 女主：深色框＋粉紅內框；男主：只有深色框
+            OutlineColor = BarOutline, InnerBorderColor = new Color("e8b5ce"),
+            FillColor = isPlayer ? new Color(1f, 1f, 1f) : new Color(1f, 0.97f, 0.99f),
+        });
 
         UiRoot.AddChild(box);
         return (box, lbl);
