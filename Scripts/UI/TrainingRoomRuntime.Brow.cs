@@ -18,7 +18,7 @@ public partial class TrainingRoomRuntime
     [Export] public float BrowOthersFull     = 150f;    // 小穴沒插入時：嘴＋胸＋尻 加起來到多少算「很舒服」（滿 300）
     [Export] public float BrowUncomfyEnter   = 0.15f;   // 不舒服程度超過這個 → 切到不舒服（反轉）那一側
     [Export] public float BrowUncomfyExit    = 0.05f;   // 低於這個 → 回到舒服那一側（兩個值拉開避免一直來回翻）
-    [Export] public float BrowSmoothSec      = 0.8f;    // 舒服／不舒服程度的平滑時間
+    [Export] public float BrowSmoothSec      = 1.2f;    // 舒服／不舒服程度的平滑時間
 
     float _browLingerT;
     int   _browPrevMask;

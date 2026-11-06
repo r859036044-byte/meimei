@@ -407,7 +407,7 @@ public partial class FaceExpressionController : Node
     BrowForm _browForm = BrowForm.Normal;
     public BrowForm CurrentBrowForm => _browForm;
 
-    [Export] public float BrowMoveSec = 3f;   // 眉毛從一個形態慢慢變到另一個形態要幾秒（例如 2→6）；1.5 → 3 放慢一倍
+    [Export] public float BrowMoveSec = 5f;   // 眉毛從一個形態慢慢變到另一個形態要幾秒（例如 2→6）；1.5 → 3 → 5
 
     // 目前畫面上的狀態（會慢慢追向目標）：傾斜 -1（煩惱）~ 0 ~ +1（生氣）、Y 縮放 +1 正常 ~ -1 反轉
     float _browTiltCur = 0f, _browScaleYCur = 1f;
