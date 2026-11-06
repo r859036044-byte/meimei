@@ -16,7 +16,7 @@ public partial class BubbleShape : Node2D
     public Side  TailSide = Side.None;     // 尾巴在氣泡的哪一邊（Left＝在左緣、朝左）
     public bool  TailVisible = true;
     public float K = 1f;                   // 整體放大倍率（圓角、框、尾巴都跟著放大）
-    public float Radius = 22f, Border = 3f, TailLen = 26f, TailBaseW = 30f;
+    public float Radius = 18f, Border = 3f, TailLen = 16f, TailBaseW = 13f;   // 尾巴小小的：長 16、底 13（再乘 K）
     public bool  DoubleBorder;             // 女主：深色框 ＋ 粉紅內框
     public Color OutlineColor = new Color(0.28f, 0.14f, 0.24f);
     public Color InnerBorderColor = new Color("e8b5ce");

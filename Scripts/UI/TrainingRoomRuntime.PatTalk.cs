@@ -21,9 +21,9 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Enum, "自動(空間大的一邊):0,左邊:1,右邊:2")] public int GirlBubbleSideMode = 0;
     [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
     [Export] public float GirlBubbleYOffset = 0f;    // 氣泡垂直中心相對臉中心的偏移（螢幕 px，負＝往上）
-    [Export] public float PlayerBubbleGapPx = 10f;   // 男主氣泡尾巴尖端離雞雞下緣的距離（螢幕 px）
+    [Export] public float PlayerBubbleBottomPx = 10f;   // 男主氣泡：貼著畫面（房間）最下方，離底邊多遠（螢幕 px）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float BubbleScale = 2f;   // 對話框整體放大倍率（字、框、尾巴一起；2＝放大一倍）
-    const float BubbleTailLen = 26f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
+    const float BubbleTailLen = 16f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
     // 畫布座標（2000x3200）：前髮左右邊緣、臉中心高度；雞雞中線與下緣（臉.png 735~1197 / 前髮.png 698~1218；雞雞.png 850~1119、1590~2128）
     const float HeadEdgeLeftX = 698f, HeadEdgeRightX = 1218f, HeadCenterY = 602f;
     const float JijiCenterX = 985f, JijiBottomY = 2128f;
@@ -117,13 +117,14 @@ public partial class TrainingRoomRuntime
         {
             Vector2 sz = _bubblePlayer.Size;
             Vector2 pos;
+            float bottomY = vpG.Y - sz.Y - PlayerBubbleBottomPx;   // 房間最下方
             if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
             {
-                Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));
-                pos = new Vector2(tip.X - sz.X * 0.5f, tip.Y + PlayerBubbleGapPx + BubbleTailLen * BubbleScale);
+                Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));   // 水平還是對著雞雞，只是整個往下移到最底
+                pos = new Vector2(tip.X - sz.X * 0.5f, bottomY);
             }
             else
-                pos = new Vector2((vpG.X - sz.X) * 0.5f, vpG.Y - PatPlayerBubbleBottom - 22f - sz.Y);   // 找不到雞雞：回到畫面下方置中
+                pos = new Vector2((vpG.X - sz.X) * 0.5f, bottomY);   // 找不到雞雞：畫面最下方置中
             Vector2 clamped = new Vector2(
                 Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
                 Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - sz.Y - 8f)));
