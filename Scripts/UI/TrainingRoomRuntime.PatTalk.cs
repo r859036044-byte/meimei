@@ -17,6 +17,37 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2  PatGirlBubbleOffset   = new Vector2(40f, 10f);    // 對方氣泡尾巴尖端相對頭頂的位置（螢幕 px，越小越靠近頭）
     [Export] public float    PatPlayerBubbleBottom = 12f;    // 主角（第一人稱）氣泡：水平置中、貼畫面最底部，尾巴尖端離底部的距離（螢幕 px）
 
+    // 位置：莉奈的氣泡（對話＋表情）在頭的左右兩側，不擋臉；男主的氣泡在雞雞正下方
+    [Export(PropertyHint.Enum, "自動(空間大的一邊):0,左邊:1,右邊:2")] public int GirlBubbleSideMode = 0;
+    [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
+    [Export] public float GirlBubbleYOffset = 0f;    // 氣泡垂直中心相對臉中心的偏移（螢幕 px，負＝往上）
+    [Export] public float PlayerBubbleGapPx = 10f;   // 男主氣泡尾巴尖端離雞雞下緣的距離（螢幕 px）
+    const float BubbleTailLen = 26f;
+    // 畫布座標（2000x3200）：前髮左右邊緣、臉中心高度；雞雞中線與下緣（臉.png 735~1197 / 前髮.png 698~1218；雞雞.png 850~1119、1590~2128）
+    const float HeadEdgeLeftX = 698f, HeadEdgeRightX = 1218f, HeadCenterY = 602f;
+    const float JijiCenterX = 985f, JijiBottomY = 2128f;
+    int _girlSide = 1;   // 目前女主氣泡在頭的哪一邊：+1 右、-1 左
+
+    Vector2 CanvasToScreen(Control layer, Vector2 canvasPt) => _canvas.Transform * (layer.GetGlobalTransform() * canvasPt);
+
+    /// <summary>頭的左／右側（前髮邊緣、臉中心高度）的螢幕座標；找不到前髮時回傳 null。</summary>
+    Vector2? HeadSideScreen(int side)
+    {
+        if (_canvas == null || !Layers.TryGetValue("前髮", out var hair) || hair == null || !IsInstanceValid(hair)) return null;
+        return CanvasToScreen(hair, new Vector2(side > 0 ? HeadEdgeRightX : HeadEdgeLeftX, HeadCenterY));
+    }
+
+    /// <summary>決定這次氣泡放左還是右（出現的當下決定，不會中途跳邊）。</summary>
+    int PickGirlSide()
+    {
+        if (GirlBubbleSideMode == 1) return -1;
+        if (GirlBubbleSideMode == 2) return 1;
+        var l = HeadSideScreen(-1); var r = HeadSideScreen(1);
+        if (l == null || r == null) return _girlSide;
+        float vpX = GetViewport().GetVisibleRect().Size.X;
+        return (vpX - r.Value.X) >= l.Value.X ? 1 : -1;   // 哪邊空間大放哪邊
+    }
+
     Control _bubblePlayer, _bubbleGirl;
     Label   _bubblePlayerLbl, _bubbleGirlLbl;
     float   _patTalkT = -1f;
@@ -63,34 +94,63 @@ public partial class TrainingRoomRuntime
         AutoHide(_bubblePlayer, dt);
         AutoHide(_bubbleGirl, dt);
 
-        // 對方氣泡跟著頭走
-        if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && Layers.TryGetValue("前髮", out var hair) && hair != null)
+        Vector2 vpG = GetViewport().GetVisibleRect().Size;
+
+        // 女主氣泡：在頭的左右側，垂直中心對臉中心，尾巴朝向臉
+        if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && HeadSideScreen(_girlSide) is Vector2 edge)
         {
-            Vector2 world  = hair.GetGlobalTransform() * HeadPatHairAnchor;
-            Vector2 screen = _canvas.Transform * world;
-            // 尾巴尖端（氣泡左下 x=40-16、y=底+22）對準頭頂＋偏移
-            Vector2 pos = screen + PatGirlBubbleOffset - new Vector2(40f - 17f, _bubbleGirl.Size.Y + 24f);
-            // 鏡頭放大時頭頂可能在畫面外：氣泡夾在畫面內（留 8px 邊），尾巴超出時藏起來
-            Vector2 vpG = GetViewport().GetVisibleRect().Size;
+            Vector2 sz = _bubbleGirl.Size;
+            float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen) - (_girlSide < 0 ? sz.X : 0f);
+            Vector2 pos = new Vector2(x, edge.Y + GirlBubbleYOffset - sz.Y * 0.5f);
+            // 鏡頭放大等原因超出畫面：夾在畫面內（留 8px 邊），被夾動了就把尾巴藏起來（尾巴指不到臉了）
             Vector2 clamped = new Vector2(
-                Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - _bubbleGirl.Size.X - 8f)),
-                Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - _bubbleGirl.Size.Y - 30f)));
+                Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
+                Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - sz.Y - 8f)));
             _bubbleGirl.Position = clamped;
             var tailG = _bubbleGirl.GetNodeOrNull<Node2D>("Tail");
             if (tailG != null) tailG.Visible = clamped.IsEqualApprox(pos);
         }
+
+        // 男主氣泡：雞雞正下方（水平對雞雞中線，尾巴在上方指向雞雞）
         if (_bubblePlayer != null && IsInstanceValid(_bubblePlayer))
         {
-            Vector2 vp = GetViewport().GetVisibleRect().Size;
-            _bubblePlayer.Position = new Vector2((vp.X - _bubblePlayer.Size.X) * 0.5f, vp.Y - PatPlayerBubbleBottom - 22f - _bubblePlayer.Size.Y);
+            Vector2 sz = _bubblePlayer.Size;
+            Vector2 pos;
+            if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
+            {
+                Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));
+                pos = new Vector2(tip.X - sz.X * 0.5f, tip.Y + PlayerBubbleGapPx + BubbleTailLen);
+            }
+            else
+                pos = new Vector2((vpG.X - sz.X) * 0.5f, vpG.Y - PatPlayerBubbleBottom - 22f - sz.Y);   // 找不到雞雞：回到畫面下方置中
+            Vector2 clamped = new Vector2(
+                Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
+                Mathf.Clamp(pos.Y, 8f, Mathf.Max(8f, vpG.Y - sz.Y - 8f)));
+            _bubblePlayer.Position = clamped;
+            var tailP = _bubblePlayer.GetNodeOrNull<Node2D>("Tail");
+            if (tailP != null) tailP.Visible = clamped.IsEqualApprox(pos);
         }
     }
 
-    static void PlaceTail(Control b, bool isPlayer)
+    /// <summary>尾巴位置／方向：女主＝在靠臉那一側的邊中間、朝向臉；男主＝在上緣中間、朝上指向雞雞。</summary>
+    void PlaceTail(Control b, bool isPlayer)
     {
         if (b == null || !GodotObject.IsInstanceValid(b)) return;
         var t = b.GetNodeOrNull<Node2D>("Tail");
-        if (t != null) t.Position = new Vector2(isPlayer ? b.Size.X * 0.5f : 40f, b.Size.Y);
+        if (t == null) return;
+        if (isPlayer)
+        {
+            t.Position = new Vector2(b.Size.X * 0.5f, 0f);
+            t.Scale = new Vector2(1f, -1f);   // 原本尾巴朝下，翻成朝上
+            t.Rotation = 0f;
+        }
+        else
+        {
+            // 原本尾巴尖端朝左下（約 125°）；轉成水平朝向臉：氣泡在右邊 → 尾巴在左緣朝左；在左邊 → 鏡像
+            t.Position = new Vector2(_girlSide > 0 ? 0f : b.Size.X, b.Size.Y * 0.5f);
+            t.Scale = new Vector2(_girlSide > 0 ? 1f : -1f, 1f);
+            t.Rotation = Mathf.DegToRad(_girlSide > 0 ? 55f : -55f);
+        }
     }
 
     string Pick(string[] lines)
@@ -102,6 +162,7 @@ public partial class TrainingRoomRuntime
     void ShowBubble(ref Control bubble, ref Label lbl, string text, bool isPlayer)
     {
         if (string.IsNullOrEmpty(text)) return;
+        if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊
         if (bubble == null || !IsInstanceValid(bubble)) (bubble, lbl) = BuildBubble(isPlayer);
         lbl.Text = text;
         bubble.ResetSize();
