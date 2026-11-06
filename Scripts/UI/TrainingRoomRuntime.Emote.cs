@@ -13,6 +13,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("氣泡表情")]
     [Export] public bool    EmoteEnabled   = true;
     [Export] public float   EmoteCooldown  = 1.0f;                    // 兩個表情之間最短間隔（愛心可以疊）
+    [Export] public float   EmoteNearInsetPx = 10f;                   // 表情氣泡離對話框靠莉奈那一端的內縮（螢幕 px）
     [Export] public float   EmoteBelowGapPx = 8f;                     // 表情氣泡離對話框下緣的距離（螢幕 px）
     [Export] public float   EmoteGapPx     = 10f;                     // 氣泡離前髮邊緣的距離（螢幕 px）；左右邊由 GirlBubbleSideMode 與對話氣泡決定
     [Export] public float   EmoteMoodStep  = 2f;                      // 心情累積變化多少才冒愛心／毛線團
@@ -39,7 +40,10 @@ public partial class TrainingRoomRuntime
         Vector2 vp = GetViewport().GetVisibleRect().Size;
         if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && _bubbleGirl.Visible && _bubbleGirl.Modulate.A > 0.05f)
         {
-            Vector2 p = _bubbleGirl.Position + new Vector2(_bubbleGirl.Size.X * 0.5f, _bubbleGirl.Size.Y + EmoteBelowGapPx + 72f);   // 氣泡高 76、底部中心在 y+72
+            // 在對話框正下方，水平靠「靠近莉奈」那一端（對話框在她左邊 → 靠右端；在她右邊 → 靠左端），不要離她太遠
+            float nearX = _girlSide > 0 ? _bubbleGirl.Position.X + 36f + EmoteNearInsetPx
+                                        : _bubbleGirl.Position.X + _bubbleGirl.Size.X - 36f - EmoteNearInsetPx;
+            Vector2 p = new Vector2(nearX, _bubbleGirl.Position.Y + _bubbleGirl.Size.Y + EmoteBelowGapPx + 72f);   // 氣泡高 76、底部中心在 y+72
             return new Vector2(Mathf.Clamp(p.X, 40f, vp.X - 40f), Mathf.Min(p.Y, vp.Y - 8f));
         }
         Vector2 edge = HeadSideScreen(side) ?? new Vector2(vp.X * 0.5f + side * 220f, vp.Y * 0.3f);

@@ -22,7 +22,14 @@ public partial class TrainingRoomRuntime
     [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
     [Export] public float GirlBubbleYOffset = 0f;    // 氣泡下緣（尾巴尖端）相對臉中心的偏移（螢幕 px，負＝往上、正＝往下）
     [Export] public float PlayerBubbleBottomPx = 10f;   // 男主氣泡：貼著畫面（房間）最下方，離底邊多遠（螢幕 px）
-    [Export(PropertyHint.Range, "0.5,3,0.1")] public float BubbleScale = 2f;   // 對話框整體放大倍率（字、框、尾巴一起；2＝放大一倍）
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleFar  = 1.2f;   // 鏡頭拉最遠時對話框的大小倍率
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleNear = 2.6f;   // 鏡頭拉最近（CamZoomMax）時的倍率；中間平滑過渡
+    /// <summary>現在的對話框倍率：跟著鏡頭縮放（拉遠變小、拉近變大）。</summary>
+    float BubbleK()
+    {
+        float t = Mathf.Clamp((_camZoom - 1.1f) / Mathf.Max(0.01f, CamZoomMax - 1.1f), 0f, 1f);
+        return Mathf.Lerp(BubbleScaleFar, BubbleScaleNear, t * t * (3f - 2f * t));
+    }
     const float BubbleTailLen = 16f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
     // 畫布座標（2000x3200）：前髮左右邊緣、臉中心高度；雞雞中線與下緣（臉.png 735~1197 / 前髮.png 698~1218；雞雞.png 850~1119、1590~2128）
     const float HeadEdgeLeftX = 698f, HeadEdgeRightX = 1218f, HeadCenterY = 602f;
@@ -88,6 +95,8 @@ public partial class TrainingRoomRuntime
     /// <summary>氣泡每幀的排版／自動收起（摸頭台詞和點擊反應共用）。</summary>
     void LayoutBubbles(float dt)
     {
+        RescaleBubble(_bubblePlayer, _bubblePlayerLbl, true);
+        RescaleBubble(_bubbleGirl, _bubbleGirlLbl, false);
         PlaceTail(_bubblePlayer, true);
         PlaceTail(_bubbleGirl, false);
 
@@ -101,7 +110,7 @@ public partial class TrainingRoomRuntime
         if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && HeadSideScreen(_girlSide) is Vector2 edge)
         {
             Vector2 sz = _bubbleGirl.Size;
-            float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen * BubbleScale) - (_girlSide < 0 ? sz.X : 0f);
+            float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen * BubbleK()) - (_girlSide < 0 ? sz.X : 0f);
             Vector2 pos = new Vector2(x, edge.Y + GirlBubbleYOffset - sz.Y);   // 尾巴貼在氣泡下緣 → 氣泡底邊（尖端）對臉中心高度，氣泡在臉的側上方
             // 鏡頭放大等原因超出畫面：夾在畫面內（留 8px 邊），被夾動了就把尾巴藏起來（尾巴指不到臉了）
             Vector2 clamped = new Vector2(
@@ -117,7 +126,7 @@ public partial class TrainingRoomRuntime
         {
             Vector2 sz = _bubblePlayer.Size;
             Vector2 pos;
-            float bottomY = vpG.Y - sz.Y - BubbleTailLen * BubbleScale - PlayerBubbleBottomPx;   // 畫面最下方（尾巴在氣泡下面，要留出尾巴的高度）
+            float bottomY = vpG.Y - sz.Y - BubbleTailLen * BubbleK() - PlayerBubbleBottomPx;   // 畫面最下方（尾巴在氣泡下面，要留出尾巴的高度）
             if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
             {
                 Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));   // 只有 X 跟著雞雞（雞雞的 Y 不管），Y 固定在畫面最下方
@@ -134,6 +143,24 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    /// <summary>鏡頭縮放時對話框跟著放大縮小：字、邊距、外形一起重算（倍率變化 3% 以上才更新）。</summary>
+    void RescaleBubble(Control b, Label lbl, bool isPlayer)
+    {
+        if (b == null || lbl == null || !IsInstanceValid(b) || !IsInstanceValid(lbl)) return;
+        float K = BubbleK();
+        if (b.HasMeta("bk") && Mathf.Abs(K - (float)b.GetMeta("bk")) < 0.03f) return;
+        b.SetMeta("bk", K);
+        lbl.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt((isPlayer ? 24f : 22f) * K));
+        if (b.GetThemeStylebox("panel") is StyleBoxEmpty pad)
+        {
+            pad.ContentMarginLeft = pad.ContentMarginRight = (isPlayer ? 22f : 23f) * K;
+            pad.ContentMarginTop = pad.ContentMarginBottom = (isPlayer ? 12f : 13f) * K;
+        }
+        var shape = b.GetNodeOrNull<BubbleShape>("Shape");
+        if (shape != null) shape.K = K;
+        b.ResetSize();
+    }
+
     /// <summary>尾巴在哪一邊：女主＝靠臉那一側的邊（氣泡在右邊→左緣、在左邊→右緣）；男主＝下緣，朝下。</summary>
     void PlaceTail(Control b, bool isPlayer)
     {
@@ -141,6 +168,8 @@ public partial class TrainingRoomRuntime
         var shape = b.GetNodeOrNull<BubbleShape>("Shape");
         if (shape == null) return;
         shape.TailSide = isPlayer ? BubbleShape.Side.Bottom : (_girlSide > 0 ? BubbleShape.Side.Left : BubbleShape.Side.Right);
+        if (!isPlayer && _canvas != null && Layers.TryGetValue("前髮", out var hair) && hair != null && IsInstanceValid(hair))
+            shape.TailTarget = CanvasToScreen(hair, new Vector2((HeadEdgeLeftX + HeadEdgeRightX) * 0.5f, HeadCenterY));   // 尾巴指向莉奈的臉中心
     }
 
     string Pick(string[] lines)
@@ -185,7 +214,7 @@ public partial class TrainingRoomRuntime
     /// 整體放大 BubbleScale 倍（字、框、圓角、尾巴一起）。</summary>
     (Control, Label) BuildBubble(bool isPlayer)
     {
-        float K = BubbleScale;
+        float K = BubbleK();
         var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
         // 外形由 BubbleShape 畫；容器本身只負責字的邊距（框的粗細已包含在邊距裡）
         var pad = new StyleBoxEmpty();
@@ -206,6 +235,7 @@ public partial class TrainingRoomRuntime
             FillColor = isPlayer ? new Color(1f, 1f, 1f) : new Color(1f, 0.97f, 0.99f),
         });
 
+        box.SetMeta("bk", K);
         UiRoot.AddChild(box);
         return (box, lbl);
     }
