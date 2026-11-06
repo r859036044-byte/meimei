@@ -5,8 +5,8 @@ using Godot;
 /// 所以尾巴和氣泡是一整塊，銜接處沒有縫、沒有多出來的線。
 /// 掛在 PanelContainer（氣泡）底下當 Node2D 子節點（ShowBehindParent），尺寸直接讀父節點 Size。
 ///
-/// ∠ 樣式：尾巴一邊垂直接在氣泡邊上（和氣泡邊成直角），另一邊斜斜收到尖端；
-/// 尖端剛好在氣泡邊的中心線上，所以氣泡的中心對著臉／雞雞，尖端就指在正中央。
+/// ∠ 樣式：一邊是水平的（和氣泡底邊同一條線），另一邊斜斜收回氣泡側邊；
+/// 左右側的尾巴貼在下緣：氣泡底邊直接延伸到尖端（尾巴那一側的下角是直角），斜邊從尖端往上連回氣泡側邊。
 /// 外框顏色層：外框(深色) → [女主：粉紅內框] → 底色；每一層都是上一層往內縮，所以尾巴那一圈也一路包到尖端。
 /// </summary>
 public partial class BubbleShape : Node2D
@@ -42,7 +42,9 @@ public partial class BubbleShape : Node2D
         Vector2 sz = box.Size;
         if (sz.X < 4f || sz.Y < 4f) return;
 
-        Vector2[] outer = RoundedRect(sz, Mathf.Min(Radius * K, Mathf.Min(sz.X, sz.Y) * 0.5f));
+        bool tailShown = TailSide != Side.None && TailVisible;
+        Vector2[] outer = RoundedRect(sz, Mathf.Min(Radius * K, Mathf.Min(sz.X, sz.Y) * 0.5f),
+            squareBL: tailShown && TailSide == Side.Left, squareBR: tailShown && TailSide == Side.Right);
         if (TailSide != Side.None && TailVisible)
         {
             var merged = Geometry2D.MergePolygons(outer, TailPoly(sz));
@@ -67,12 +69,12 @@ public partial class BubbleShape : Node2D
         switch (TailSide)
         {
             case Side.Left:
-            {   float cy = sz.Y * 0.5f;   // 底邊在上方（cy-bw ~ cy），下緣水平＝直角，上緣斜
-                return new[] { new Vector2(ov, cy - bw), new Vector2(-len, cy), new Vector2(ov, cy) };
+            {   // ∠：下緣水平延伸出去到尖端（和氣泡底邊同一條線），斜邊從尖端往上連回氣泡左緣
+                return new[] { new Vector2(ov, sz.Y - bw), new Vector2(-len, sz.Y), new Vector2(ov, sz.Y) };
             }
             case Side.Right:
-            {   float cy = sz.Y * 0.5f;
-                return new[] { new Vector2(sz.X - ov, cy - bw), new Vector2(sz.X + len, cy), new Vector2(sz.X - ov, cy) };
+            {
+                return new[] { new Vector2(sz.X - ov, sz.Y - bw), new Vector2(sz.X + len, sz.Y), new Vector2(sz.X - ov, sz.Y) };
             }
             default:   // Top：尖端在上緣中心，右緣垂直（x＝中心），左緣斜
             {   float cx = sz.X * 0.5f;
@@ -81,7 +83,7 @@ public partial class BubbleShape : Node2D
         }
     }
 
-    static Vector2[] RoundedRect(Vector2 sz, float r)
+    static Vector2[] RoundedRect(Vector2 sz, float r, bool squareBL = false, bool squareBR = false)
     {
         const int seg = 10;
         var pts = new System.Collections.Generic.List<Vector2>();
@@ -94,8 +96,8 @@ public partial class BubbleShape : Node2D
             }
         }
         Corner(new Vector2(sz.X - r, r),        -90f);   // 右上
-        Corner(new Vector2(sz.X - r, sz.Y - r),   0f);   // 右下
-        Corner(new Vector2(r, sz.Y - r),         90f);   // 左下
+        if (squareBR) pts.Add(new Vector2(sz.X, sz.Y)); else Corner(new Vector2(sz.X - r, sz.Y - r),   0f);   // 右下
+        if (squareBL) pts.Add(new Vector2(0f, sz.Y));   else Corner(new Vector2(r, sz.Y - r),         90f);   // 左下
         Corner(new Vector2(r, r),               180f);   // 左上
         return pts.ToArray();
     }

@@ -20,7 +20,7 @@ public partial class TrainingRoomRuntime
     // 位置：莉奈的氣泡（對話＋表情）在頭的左右兩側，不擋臉；男主的氣泡在雞雞正下方
     [Export(PropertyHint.Enum, "自動(空間大的一邊):0,左邊:1,右邊:2")] public int GirlBubbleSideMode = 0;
     [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
-    [Export] public float GirlBubbleYOffset = 0f;    // 氣泡垂直中心相對臉中心的偏移（螢幕 px，負＝往上）
+    [Export] public float GirlBubbleYOffset = 0f;    // 氣泡下緣（尾巴尖端）相對臉中心的偏移（螢幕 px，負＝往上、正＝往下）
     [Export] public float PlayerBubbleBottomPx = 10f;   // 男主氣泡：貼著畫面（房間）最下方，離底邊多遠（螢幕 px）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float BubbleScale = 2f;   // 對話框整體放大倍率（字、框、尾巴一起；2＝放大一倍）
     const float BubbleTailLen = 16f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
@@ -102,7 +102,7 @@ public partial class TrainingRoomRuntime
         {
             Vector2 sz = _bubbleGirl.Size;
             float x = edge.X + _girlSide * (GirlBubbleGapPx + BubbleTailLen * BubbleScale) - (_girlSide < 0 ? sz.X : 0f);
-            Vector2 pos = new Vector2(x, edge.Y + GirlBubbleYOffset - sz.Y * 0.5f);
+            Vector2 pos = new Vector2(x, edge.Y + GirlBubbleYOffset - sz.Y);   // 尾巴貼在氣泡下緣 → 氣泡底邊（尖端）對臉中心高度，氣泡在臉的側上方
             // 鏡頭放大等原因超出畫面：夾在畫面內（留 8px 邊），被夾動了就把尾巴藏起來（尾巴指不到臉了）
             Vector2 clamped = new Vector2(
                 Mathf.Clamp(pos.X, 8f, Mathf.Max(8f, vpG.X - sz.X - 8f)),
