@@ -250,11 +250,24 @@ void fragment() {
         // 現在：右邊緣只准往外錯位（取樣往左＝內容往右）、左邊緣同理，邊緣不會再被吃掉；
         // 右邊的衣服在被拉起的區段整體再往右 pull_rshift。
         float stairX_ = (sideH - 0.5) * 0.014 * sideAmt;
-        float eR_ = smoothstep(right_u - 0.08, right_u - 0.01, P.x);
-        float eL_ = 1.0 - smoothstep(left_u + 0.01, left_u + 0.08, P.x);
-        // 右邊緣：每個橫條只「一點點往右」（pull_rshift 基本量 ＋ 0~pull_rjit 的小起伏），不往左也不大幅外凸
-        float sx_r = mix(stairX_, -(pull_rshift + sideH * pull_rjit) * sideAmt, eR_);
-        P.x += mix(sx_r, max(sx_r, 0.0), eL_);
+        // 「這一列」真正的左右邊緣在哪：直接看貼圖透明度往左右找（right_u／left_u 是整件衣服最寬處，
+        // 其他列的邊緣都比它內側，用它判斷會漏掉，那些列就還是會整段往左錯位）
+        float wR_ = 0.0, wL_ = 0.0;
+        if (sideAmt > 0.001) {
+            float dR_ = 1.0, dL_ = 1.0;
+            for (int i = 8; i >= 1; i--) {
+                float o_ = 0.004 * float(i);
+                if (texture(TEXTURE, vec2(P.x + o_, P.y)).a < 0.1) dR_ = o_;
+                if (texture(TEXTURE, vec2(P.x - o_, P.y)).a < 0.1) dL_ = o_;
+            }
+            wR_ = 1.0 - smoothstep(0.012, 0.032, dR_);   // 離右緣 <12px 完全當邊緣、>32px 不管，中間漸變
+            wL_ = 1.0 - smoothstep(0.012, 0.032, dL_);
+        }
+        // 右緣：只「一點點往右」（pull_rshift ＋ 0~pull_rjit）；左緣：只「一點點往左」（0~pull_rjit）；中間照舊隨機
+        float edgeR_ = -(pull_rshift + sideH * pull_rjit) * sideAmt;
+        float edgeL_ = sideH * pull_rjit * sideAmt;
+        float sx_r = mix(stairX_, edgeR_, wR_);
+        P.x += mix(sx_r, edgeL_, wL_);
     }
     // ───── 上半部：往下拉＝壓縮（跟下擺同一套）；旋轉段只旋轉（左逆時針／右順時針）─────
     float hh_ = hem_end_v - top_v;
