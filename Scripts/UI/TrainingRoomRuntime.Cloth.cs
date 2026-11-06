@@ -234,11 +234,6 @@ void fragment() {
     // 左右邊緣也帶不規則的階梯：被折的區段每隔一小段橫向錯位一點
     float sideH = fract(sin(floor(UV.y * 60.0) * 78.233) * 43758.5453);
     float sideAmt = clamp(wsum / 0.03, 0.0, 1.0) * smoothstep(bt, bt + 0.03, UV.y);   // 漸入：不要在折起區段最上面突然錯位一大塊
-    float stairX_ = (sideH - 0.5) * 0.014 * sideAmt;
-    // 右邊緣附近：階梯錯位只准往外（取樣往左＝內容往右），不准往內，不然右緣那幾列會被切掉一截；
-    // 另外右邊的衣服整體再往右推 pull_rshift（只在被拉起的區段）
-    float rW_ = smoothstep(right_u - 0.08, right_u - 0.01, UV.x);
-    P.x += mix(stairX_, min(stairX_, 0.0) - pull_rshift * sideAmt, rW_);
     // 下擺是金字塔形（底部寬）：往上拉後越靠近邊緣越往內收，避免拉起來的底部變得比上面還寬
     float uR = clamp((UV.y - bt) / max(0.001, hem_end_v - wsum - bt), 0.0, 1.0);
     float uIn = pow(uR, 0.5) * step(bt, UV.y);   // 開根號：上面也會收，不只靠近邊緣
@@ -247,6 +242,17 @@ void fragment() {
     float bump = smoothstep(0.62, 0.72, uR) * (1.0 - smoothstep(0.88, 0.94, uR));
     float sq = 1.0 + inward * pf * uIn - 0.12 * pf * bump;
     P.x = hem_center_u + (P.x - hem_center_u) * sq;   // 邊緣被折時帶不規則的階梯狀
+    {   // 階梯的橫向錯位：放在往內收（sq）之後，用「取樣座標 P.x」判斷是不是衣服邊緣。
+        // 之前放在 sq 之前、用畫面位置 UV.x 判斷：拉起來後邊緣被收到畫面內側很多，根本沒被當成邊緣，
+        // 某一個橫條往內（左）錯位一格，衣服右緣就整段縮進去，後面的身體跑出來。
+        // 現在：右邊緣只准往外錯位（取樣往左＝內容往右）、左邊緣同理，邊緣不會再被吃掉；
+        // 右邊的衣服在被拉起的區段整體再往右 pull_rshift。
+        float stairX_ = (sideH - 0.5) * 0.014 * sideAmt;
+        float eR_ = smoothstep(right_u - 0.08, right_u - 0.01, P.x);
+        float eL_ = 1.0 - smoothstep(left_u + 0.01, left_u + 0.08, P.x);
+        float sx_r = mix(stairX_, min(stairX_, 0.0) - pull_rshift * sideAmt, eR_);
+        P.x += mix(sx_r, max(sx_r, 0.0), eL_);
+    }
     // ───── 上半部：往下拉＝壓縮（跟下擺同一套）；旋轉段只旋轉（左逆時針／右順時針）─────
     float hh_ = hem_end_v - top_v;
     float y10_ = top_v + hh_ * rot_frac;
