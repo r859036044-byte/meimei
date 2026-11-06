@@ -219,6 +219,9 @@ public partial class FaceExpressionController : Node
         foreach (var ov in overrides)
         {
             if (Mathf.IsZeroApprox(ov.OffsetX) && Mathf.IsZeroApprox(ov.OffsetY)) continue;
+            // 最上層圖層（眉毛1／眉毛2 等）的位置由呼吸迴圈管，偏移量已經透過 ExprLayerExtraOffset 疊進去了；
+            // 這裡再用「存檔位置＋偏移」每幀覆蓋，會把呼吸的起伏蓋掉（眉毛不跟著呼吸的原因）
+            if (_runtime?.Layers != null && _runtime.Layers.ContainsKey(ov.LayerPath)) continue;
             var ctrl = GetLayerControl(ov.LayerPath);
             if (ctrl == null) continue;
             if (!_savedTransforms.TryGetValue(ov.LayerPath, out var saved)) continue;

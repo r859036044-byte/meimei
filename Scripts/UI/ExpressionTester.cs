@@ -542,6 +542,22 @@ public partial class ExpressionTester : Control
         AddBrowBtn("6 煩惱(反轉)", FaceExpressionController.BrowForm.WorriedFlip);
         content.AddChild(browGrid);
 
+        // ── 氣泡表情測試 ──────────────
+        content.AddChild(MakeSectionLabel("氣泡表情"));
+        var emoteGrid = new GridContainer { Columns = 4 };
+        emoteGrid.AddThemeConstantOverride("h_separation", 4);
+        void AddEmoteBtn(string text, EmoteBubble.Kind k)
+        {
+            var b = MakeButton(text, () => _trr?.ShowEmote(k));
+            b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            emoteGrid.AddChild(b);
+        }
+        AddEmoteBtn("愛心", EmoteBubble.Kind.Heart);
+        AddEmoteBtn("毛線", EmoteBubble.Kind.Tangle);
+        AddEmoteBtn("！",   EmoteBubble.Kind.Exclaim);
+        AddEmoteBtn("？",   EmoteBubble.Kind.Question);
+        content.AddChild(emoteGrid);
+
         // ── 隱藏綠點（熱點綠圈＋文字藏起來，熱點仍然可以點）──────────────
         Button hideDotsBtn = null;
         hideDotsBtn = MakeButton("", () =>
