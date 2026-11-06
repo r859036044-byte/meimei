@@ -11,7 +11,7 @@ using Godot;
 /// </summary>
 public partial class BubbleShape : Node2D
 {
-    public enum Side { None, Left, Right, Top }
+    public enum Side { None, Left, Right, Top, Bottom }
 
     public Side  TailSide = Side.None;     // 尾巴在氣泡的哪一邊（Left＝在左緣、朝左）
     public bool  TailVisible = true;
@@ -75,6 +75,10 @@ public partial class BubbleShape : Node2D
             case Side.Right:
             {
                 return new[] { new Vector2(sz.X - ov, sz.Y - bw), new Vector2(sz.X + len, sz.Y), new Vector2(sz.X - ov, sz.Y) };
+            }
+            case Side.Bottom:   // ∠：尖端在下緣中心朝下，右緣垂直（x＝中心），左緣斜回氣泡底邊
+            {   float cx = sz.X * 0.5f;
+                return new[] { new Vector2(cx - bw, sz.Y - ov), new Vector2(cx, sz.Y + len), new Vector2(cx, sz.Y - ov) };
             }
             default:   // Top：尖端在上緣中心，右緣垂直（x＝中心），左緣斜
             {   float cx = sz.X * 0.5f;

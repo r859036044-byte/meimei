@@ -112,15 +112,15 @@ public partial class TrainingRoomRuntime
             if (shapeG != null) shapeG.TailVisible = clamped.IsEqualApprox(pos);
         }
 
-        // 男主氣泡：雞雞正下方（水平對雞雞中線，尾巴在上方指向雞雞）
+        // 男主氣泡：X 對雞雞中線、Y 固定在畫面最下方，尾巴在氣泡下方朝下
         if (_bubblePlayer != null && IsInstanceValid(_bubblePlayer))
         {
             Vector2 sz = _bubblePlayer.Size;
             Vector2 pos;
-            float bottomY = vpG.Y - sz.Y - PlayerBubbleBottomPx;   // 房間最下方
+            float bottomY = vpG.Y - sz.Y - BubbleTailLen * BubbleScale - PlayerBubbleBottomPx;   // 畫面最下方（尾巴在氣泡下面，要留出尾巴的高度）
             if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
             {
-                Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));   // 水平還是對著雞雞，只是整個往下移到最底
+                Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));   // 只有 X 跟著雞雞（雞雞的 Y 不管），Y 固定在畫面最下方
                 pos = new Vector2(tip.X - sz.X * 0.5f, bottomY);
             }
             else
@@ -134,13 +134,13 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>尾巴在哪一邊：女主＝靠臉那一側的邊（氣泡在右邊→左緣、在左邊→右緣）；男主＝上緣，朝上指向雞雞。</summary>
+    /// <summary>尾巴在哪一邊：女主＝靠臉那一側的邊（氣泡在右邊→左緣、在左邊→右緣）；男主＝下緣，朝下。</summary>
     void PlaceTail(Control b, bool isPlayer)
     {
         if (b == null || !GodotObject.IsInstanceValid(b)) return;
         var shape = b.GetNodeOrNull<BubbleShape>("Shape");
         if (shape == null) return;
-        shape.TailSide = isPlayer ? BubbleShape.Side.Top : (_girlSide > 0 ? BubbleShape.Side.Left : BubbleShape.Side.Right);
+        shape.TailSide = isPlayer ? BubbleShape.Side.Bottom : (_girlSide > 0 ? BubbleShape.Side.Left : BubbleShape.Side.Right);
     }
 
     string Pick(string[] lines)
