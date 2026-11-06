@@ -51,6 +51,7 @@ public partial class TrainingRoomRuntime
     [Export] public float ClothTopV          = 0.12f;   // 衣服內容頂端（貼圖 V）
     [Export] public float ClothLeftU         = 0.322f;  // 衣服內容左緣（U）
     [Export] public float ClothRightU        = 0.654f;  // 衣服內容右緣（U）
+    [Export(PropertyHint.Range, "0,20,0.5")] public float ClothPullRightShiftPx = 5f;   // 向上拉時，右邊的衣服整體往右幾 px（補右邊階梯被切掉／破圖的地方）
     [Export] public float ClothTopFrac       = 0.36f;    // 上半區佔衣服高度比例
     [Export] public float ClothTopGrabRadius = 170f;    // （已停用）
     // 上半部新規則：最上面一小段（旋轉段）不拉伸、只旋轉——左半逆時針、右半順時針（兩邊往下垂）；
@@ -173,6 +174,7 @@ uniform float top_v = 0.12;
 uniform float top_h = 0.163;
 uniform float left_u = 0.322;
 uniform float right_u = 0.654;
+uniform float pull_rshift = 0.0025;   // 向上拉時右邊的衣服整體往右多少（U；5px/2000）
 uniform vec2 pull_amt2 = vec2(0.0);
 uniform vec2 pull_xs = vec2(0.40, 0.58);
 uniform float pull_w = 0.16;
@@ -232,7 +234,11 @@ void fragment() {
     // 左右邊緣也帶不規則的階梯：被折的區段每隔一小段橫向錯位一點
     float sideH = fract(sin(floor(UV.y * 60.0) * 78.233) * 43758.5453);
     float sideAmt = clamp(wsum / 0.03, 0.0, 1.0) * smoothstep(bt, bt + 0.03, UV.y);   // 漸入：不要在折起區段最上面突然錯位一大塊
-    P.x += (sideH - 0.5) * 0.014 * sideAmt;
+    float stairX_ = (sideH - 0.5) * 0.014 * sideAmt;
+    // 右邊緣附近：階梯錯位只准往外（取樣往左＝內容往右），不准往內，不然右緣那幾列會被切掉一截；
+    // 另外右邊的衣服整體再往右推 pull_rshift（只在被拉起的區段）
+    float rW_ = smoothstep(right_u - 0.08, right_u - 0.01, UV.x);
+    P.x += mix(stairX_, min(stairX_, 0.0) - pull_rshift * sideAmt, rW_);
     // 下擺是金字塔形（底部寬）：往上拉後越靠近邊緣越往內收，避免拉起來的底部變得比上面還寬
     float uR = clamp((UV.y - bt) / max(0.001, hem_end_v - wsum - bt), 0.0, 1.0);
     float uIn = pow(uR, 0.5) * step(bt, UV.y);   // 開根號：上面也會收，不只靠近邊緣
@@ -813,6 +819,7 @@ void fragment() {
         _clothMat.SetShaderParameter("top_h", Mathf.Max(0.01f, (ClothHemEndV - ClothTopV) * ClothTopFrac));
         _clothMat.SetShaderParameter("left_u", ClothLeftU);
         _clothMat.SetShaderParameter("right_u", ClothRightU);
+        _clothMat.SetShaderParameter("pull_rshift", ClothPullRightShiftPx / 2000f);
         _clothMat.SetShaderParameter("pull_amt2", new Vector2(_hemPullA[0], _hemPullA[1]));
         _clothMat.SetShaderParameter("pull_xs", new Vector2(_hemPullXA[0], _hemPullXA[1]));
         _clothMat.SetShaderParameter("pull_w", ClothHemPullWidthU);
