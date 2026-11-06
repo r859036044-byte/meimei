@@ -109,7 +109,10 @@ public partial class TrainingRoomRuntime
                 float py = lp.Y / Mathf.Max(1f, panty.Size.Y) * 3200f;
                 // 開口目前的範圍也算可抓（已經撥開時，抓開口附近的布往左拖放回去）
                 float reach = MPantyAsideGrabHalfW + Mathf.Max(0f, _mpA);
-                if (Mathf.Abs(px - MPantyAsideCenterX) > reach || py < MPantyAsideGrabV.X || py > MPantyAsideGrabV.Y)
+                // 小穴本體（點了會當成「點小穴」的範圍）也一律先當成「可能要撥內褲」：不然按在小穴上、但在
+                // 內褲可抓範圍外，會直接變成點小穴（摸 B／雞雞靠近）。沒拖就放手還是會當成點小穴（下面 _mpMoved 判斷）。
+                bool onPussy = IsMouseOverMLegPussy(w);
+                if (!onPussy && (Mathf.Abs(px - MPantyAsideCenterX) > reach || py < MPantyAsideGrabV.X || py > MPantyAsideGrabV.Y))
                 { if (MPantyAsideDebugLog) GD.Print($"[MPantyDbg] 不能撥：按的位置不在小穴中間範圍（內褲圖座標 x={px:F0} y={py:F0}；要 x≈{MPantyAsideCenterX:F0}±{reach:F0}、y {MPantyAsideGrabV.X:F0}~{MPantyAsideGrabV.Y:F0}）"); return false; }
                 if (MPantyAsideDebugLog) GD.Print($"[MPantyDbg] 抓住內褲（x={px:F0} y={py:F0}）");
                 _mpDrag = true; _mpMoved = false;
