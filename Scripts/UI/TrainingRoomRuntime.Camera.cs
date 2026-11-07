@@ -53,7 +53,7 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    [Export] public float MLegCamZoomMul = 1.48f;   // 進入 M 腿時鏡頭再拉近的倍率（1.48＝再放大 48%）
+    [Export] public float MLegCamZoomMul = 1.3f;   // 進入 M 腿時鏡頭再拉近的倍率（1.3＝再放大 30%；原本 1.48）
     [Export] public float MLegCamUpPx = 120f;   // 進入 M 腿時視角再往上移的螢幕 px（胸部在畫面中會偏下）
     [Export] public float MLegCamSmooth = 1f;   // M 腿拉近／縮回的縮放速度（越小越慢；滾輪縮放仍用 CamZoomSmooth）
     float _camSmoothOverride = -1f;
