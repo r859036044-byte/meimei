@@ -25,8 +25,8 @@ public partial class TrainingRoomRuntime
     [ExportGroup("男主狀態")]
     [Export] public string[] MaleNotHardLines = { "…還沒完全硬起來，稍微等一下", "不行，還沒準備好…", "等等，還差一點…" };      // 勃起度不夠時想叫雞雞出來
     [Export] public string[] MaleSoftLines    = { "（軟掉了1）", "（軟掉了2）", "（軟掉了3）" };      // 勃起度掉到 <30
-    [Export] public string[] EndureOkLines    = { "（忍住了1）", "（忍住了2）", "（忍住了3）" };
-    [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
+    [Export] public string[] EndureOkLines    = { "呼……好險，差點就出來了。", "忍住了…稍微冷靜下來了…" };
+    [Export] public string[] EndureFailLines  = { "不行了……裡面太舒服了，沒辦法啊……|啊啊啊出來了！", "可惡……完全忍不住了|忍不住，射了！", "沒辦法忍了！嗚啊啊啊！|腦袋一片空白……全部都要射出來了！" };   // 「|」＝分兩段，先後出現
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 15f;   // 勃起度 < 這個就軟掉
     [Export(PropertyHint.Range, "0,30,0.1")] public float ErectGain = 6f;       // 有任何互動時每秒增加的勃起度（黃條，基礎；再乘上連續動作的加速倍率）
@@ -127,10 +127,23 @@ public partial class TrainingRoomRuntime
     Button _ejacBtn, _endureBtn;
     Label _timeLbl, _statLbl;
 
+    [Export(PropertyHint.Range, "0.3,4,0.1")] public float MaleSegmentGapSec = 1.4f;   // 男主台詞用「|」分段時，每段間隔幾秒
+
     void SayMale(string[] lines)
     {
         string t = Pick(lines);
-        if (!string.IsNullOrEmpty(t)) ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, t, true);
+        if (string.IsNullOrEmpty(t)) return;
+        var parts = t.Split('|', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);   // 太長的台詞用「|」分成幾段，先後出現
+        if (parts.Length == 0) return;
+        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, parts[0], true);
+        for (int i = 1; i < parts.Length; i++)
+        {
+            string seg = parts[i];
+            GetTree().CreateTimer(MaleSegmentGapSec * i).Timeout += () =>
+            {
+                if (IsInstanceValid(this)) ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, seg, true);
+            };
+        }
     }
 
     int EjacWaves(int n) => Mathf.Max(1, Mathf.RoundToInt(n * _ejacMul));
