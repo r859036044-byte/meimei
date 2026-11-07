@@ -1210,7 +1210,7 @@ void fragment() {
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
     bool _clothTopApplied; bool _clothTopInit;
     static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
-    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "m腿/內褲", "蝴蝶結2" };   // m腿/內褲：在衣服上面，但被 M 腿的輪廓裁切（見 SetMPantyLegClip）   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
+    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "手2", "衣服", "m腿/內褲", "蝴蝶結2" };   // m腿/內褲：在衣服上面，但被 M 腿的輪廓裁切（見 SetMPantyLegClip）   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
     static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
     [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
     SubViewport _legMaskVP; Node2D _legMaskRoot;
