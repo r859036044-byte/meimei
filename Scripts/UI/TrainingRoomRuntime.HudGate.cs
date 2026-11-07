@@ -27,6 +27,13 @@ public partial class TrainingRoomRuntime
     /// 腿底是一大塊平塗的粉色底，如果因為任何原因在一般腿時被打開，就會變成小穴下面一塊粉膚色。</summary>
     void EnforceMLegLayersHidden()
     {
+        // 腿底跟 M 腿「完全同步」：M 腿開著（不在切換中）就一定顯示，M 腿關掉就一定不顯示
+        if (!_mLegTransitioning && Layers.TryGetValue("m腿/腿底", out var floorBase) && floorBase != null && floorBase.Visible != _mLegOpen)
+        {
+            floorBase.Visible = _mLegOpen;
+            if (_mLegOpen) floorBase.Modulate = new Color(1f, 1f, 1f, 1f);
+            GD.Print($"[MLegGuard] 腿底跟 M 腿同步 → {(_mLegOpen ? "顯示" : "隱藏")}（jijiPhase={_jijiPhase} holeLeftOpen={_holeLeftOpen} bTouch={_bTouchRunning}）");
+        }
         if (_mLegOpen || _mLegTransitioning) return;
         foreach (var kv in Layers)
             if (kv.Key.StartsWith("m腿") && kv.Value != null && kv.Value.Visible)
