@@ -629,7 +629,7 @@ public partial class MainMenuRuntime : Control
         {
             // 全屏大小（和背景一樣）
             var slide = MakeIntroTexLayer(_mainPanel, "RandomTitleSlide", fixedTex);
-            SetStretchOffset(slide, SlideStart);
+            SetStretchOffset(slide, DemoMode.Enabled ? SlideEnd : SlideStart);   // 試玩版：一開始就在結束的位置
             slide.Modulate = new Color(1f, 1f, 1f, DemoMode.Enabled ? 1f : 0f); // 初始透明（試玩版：不漸入，一開始就完全顯示）
             // 放在按鈕下面（背景上面）
             _mainPanel.MoveChild(slide, 1);
@@ -724,6 +724,13 @@ public partial class MainMenuRuntime : Control
 
     async Task SlideImage(CancellationToken ct = default)
     {
+        if (DemoMode.Enabled)
+        {   // 試玩版：標題圖不滑動、不漸入，一開始就停在結束的位置
+            ApplySlideOffset(SlideEnd.X);
+            if (_slideImg != null) _slideImg.Modulate = Colors.White;
+            _slideCts = null;
+            return;
+        }
         float elapsed = 0f;
         bool clickedDuringSlide = false;
         // Unity 的 wasPressedThisFrame 需要自行做邊緣偵測
