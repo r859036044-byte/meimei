@@ -131,6 +131,7 @@ public partial class TrainingRoomRuntime
             ClimaxLevel = Mathf.Clamp(ClimaxLevel - pen, 0f, 100f);
             GD.Print($"[Play] 濕度不夠就突破（{w:F0}/{BreakWetNeed:F0}）→ 穴高潮值 -{pen:F0}");
         }
+        PlayTrVoice(enough ? "insert/break_wet.wav" : "insert/break_dry.wav");
         ReactLine(enough ? ReactBreakWet : ReactBreakDry, true);
         ShowEmote(enough ? EmoteBubble.Kind.Exclaim : EmoteBubble.Kind.Tangle);   // 濕度足夠＝驚嘆號；不夠＝毛線團
     }
@@ -210,7 +211,11 @@ public partial class TrainingRoomRuntime
         ReactLine(pool.ToArray(), false);
     }
 
-    void ReactClimax() => ReactLine(ReactClimaxLines, true);
+    void ReactClimax()
+    {
+        PlayTrClimaxVoice();
+        ReactLine(ReactClimaxLines, true);
+    }
 
     void ReactLine(string[] lines, bool force)
     {

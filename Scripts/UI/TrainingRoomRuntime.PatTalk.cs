@@ -87,6 +87,7 @@ public partial class TrainingRoomRuntime
         else if (_patTalkStep == 1 && _patTalkT >= PatTalkGap)
         {
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, Pick(PatGirlLines), false);
+            PlayPartTouchVoice("head");
             _patTalkStep = 2; _patTalkT = 0f;
         }
         else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat)

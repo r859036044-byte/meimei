@@ -234,6 +234,7 @@ public partial class TrainingRoomRuntime
         bool hasReply = reply != null && allowReply;
         _dlgInExchange = true;
         ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
+        PlayGirlVoiceForText(segs[0]);
         _dlgInExchange = false;
         float t = 0f;
         for (int k = 1; k < segs.Length; k++)
@@ -245,6 +246,7 @@ public partial class TrainingRoomRuntime
                 if (!IsInstanceValid(this)) return;
                 _dlgInExchange = true;
                 ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, seg, false);
+                PlayGirlVoiceForText(seg);
                 _dlgInExchange = false;
                 // 回應時間還沒結束時，氣泡留到結束（跟 BratProcess 一致）；有男主回應時要留到回應之後
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl))
