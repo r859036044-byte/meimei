@@ -84,7 +84,7 @@ public partial class TrainingRoomRuntime
         {
             if (!IsInstanceValid(this)) return;
             SpawnSquirtDropPhysics(GetSquirtOrigin(), w.spd * MiniSquirtPower, w.cone, w.dist * MiniSquirtPower);
-            await ToSignal(GetTree().CreateTimer(0.06), SceneTree.SignalName.Timeout);
+            await ToSignal(GetTree().CreateTimer(0.06), SceneTreeTimer.SignalName.Timeout);
         }
     }
 
