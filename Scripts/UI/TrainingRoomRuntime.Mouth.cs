@@ -14,7 +14,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("被碰時的嘴巴")]
     [Export] public bool  MouthReactOnOperate = true;
     [Export] public float MouthBratSmileAt    = 60f;    // 雌小鬼值到多少以上，被碰時是笑臉張嘴1（否則抖動嘴）
-    [Export(PropertyHint.Range, "0.2,1,0.01")] public float MouthMinScaleX = 0.55f;   // 最不舒服時，抖動嘴左右縮到原寬的幾成
+    [Export(PropertyHint.Range, "0.05,1,0.01")] public float MouthMinScaleX = 0.20f;  // 最不舒服時，抖動嘴左右縮到原寬的幾成（0.2＝只剩 20%，像小嘴，位置不動）
     [Export] public float MouthSqueezeSec     = 1.5f;   // 左右內縮的平滑時間（越大越慢）
     [Export] public Vector2 MouthCenterTex    = new Vector2(965.5f, 753.5f);   // 抖動嘴中心（貼圖 2000x3200 像素）：縮放繞著它
 
