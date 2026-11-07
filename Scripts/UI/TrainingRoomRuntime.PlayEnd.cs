@@ -5,7 +5,7 @@ using Godot;
 ///  • 精力（左下精力條，Stamina）＝男主的「感覺」0~120：沒插入最多 40；≥90 才能射（射精按鈕）；抽插累積，
 ///    到 100（溫度計滿）會「破功」：啟動專門的破功倒數（不動 5 秒、抽插約 3 秒），跑滿就自動射精，這段時間可以按忍耐回去。小穴越舒服（高潮值）累積越快；又快又高會「痛」。
 ///  • 勃起度（左下原本的「精液」條，_semenLevel）：≥50 才勃起（雞雞才能出現），<30 軟掉（雞雞收起來）；痛會讓它掉。
-///  • 精液量（SemenStock，右下角顯示）＝男主能射多少：越多每次射越多；射完減少，會慢慢回復。
+///  • 精液量（SemenStock，右下角顯示，總量約 300%）＝男主能射多少：越多每次射越多；射完減少，會慢慢回復；用完（歸零）就會軟。
 ///  • 忍耐按鈕：冷靜下來、停止抽插、精力慢慢下降；精力超過 100 時忍耐有失敗率（超過越多越高），失敗＝破功。
 ///    射的過程中再按忍耐＝少射一點（有機率忍不住全射）。
 ///  • 遊玩時間（PlayTimeLimitSec，預設 5 分鐘，進房間就倒數）：時間到男主停下；精力 ≥ ForcedFeelPct 時改成自動加速停不下來。
@@ -63,9 +63,11 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,120,1")] public float FeelAfterEjac = 20f;   // 射精後精力掉到
     [Export(PropertyHint.Range, "0,100,1")] public float PainStartFeel = 60f;   // 精力超過這個且又快才會痛
     [Export(PropertyHint.Range, "0,1,0.05")] public float PainFeelSlow = 0.3f;  // 痛時精力累積變慢多少
-    [Export(PropertyHint.Range, "0,100,1")] public float SemenStock = 80f;      // 精液量（男主能射多少）
+    [Export(PropertyHint.Range, "0,1000,1")] public float SemenMax = 300f;       // 精液總量上限（300＝300%，約三次滿量射精的份量）
+    [Export(PropertyHint.Range, "0,1000,1")] public float SemenStock = 300f;     // 精液量（男主能射多少；%）
     [Export(PropertyHint.Range, "0,5,0.05")] public float SemenRegen = 0.15f;   // 每秒回復
-    [Export(PropertyHint.Range, "0,100,1")] public float SemenUsePerEjac = 45f; // 滿量射一次消耗
+    [Export(PropertyHint.Range, "0,300,1")] public float SemenUsePerEjac = 100f; // 滿量射一次消耗（100＝一次射掉 100%，所以 300% 大約能射三次；剩不到 100% 時射出的量會變少，見 EjacMulMin）
+    [Export(PropertyHint.Range, "0,300,1")] public float SemenReadyAt = 20f;     // 精液用完（歸零）會軟，要回復到這個量以上才能再硬
     [Export(PropertyHint.Range, "0,1,0.05")] public float EjacMulMin = 0.35f;   // 精液量接近 0 時，射精量的倍率（量 100 時 ×1）
 
     [ExportGroup("忍耐")]
@@ -108,9 +110,11 @@ public partial class TrainingRoomRuntime
     float _erectBase, _erectBoost, _erectIdleT;   // 勃起度：自然上升的底／連續動作的加速倍率
     bool _playForced, _ejacDone;
     bool _erectOn;               // 目前是否勃起（有遲滯）
+    bool _semenEmpty;                // 精液用完了（要回復到 SemenReadyAt 才能再硬）
     bool _breaking, _prevBreaking;   // 破功中（精力滿了，破功倒數在跑）
     float _breakT;                   // 破功倒數：0 ~ BreakWindowSec，跑滿就射
     bool _maleThrusting;             // 這一幀男主有在抽插（StepMale 設定，忍耐判定用）
+    float _maleThrustSpeed;          // 這一幀的抽插速度 0~1（忍耐判定「速度太快」用）
     /// <summary>破功倒數進度 0~1（沒破功＝0）。HUD 用來決定放大震動的強度。</summary>
     public float BreakProgress => _breaking ? Mathf.Clamp(_breakT / Mathf.Max(0.1f, BreakWindowSec), 0f, 1f) : 0f;
     float _pain;                 // 0~1
@@ -172,7 +176,7 @@ public partial class TrainingRoomRuntime
         if (_endureT > 0f) Stamina -= EndureFeelDrop * dt;
 
         if (Stamina >= 100f && _endureT <= 0f) _breaking = true;
-        _maleThrusting = thrusting;
+        _maleThrusting = thrusting; _maleThrustSpeed = thrusting ? sThrust : 0f;
         if (_breaking)
         {
             // 專門的破功倒數：不動 BreakWindowSec 秒後射；抽插時走得更快（速度滿檔約 BreakWindowThrustSec 秒）
@@ -212,10 +216,17 @@ public partial class TrainingRoomRuntime
         }
         if (DuvetState == 1 && er < _erectBase) er = _erectBase;
         er -= PainErectDrain * _pain * dt;
+        // 精液用完就會軟：庫存歸零（射精動作結束後）→ 勃起度壓到 0、雞雞收起來；回復到 SemenReadyAt 以上才能再硬
+        if (!_ejacRunning && !_insertEjacActive)
+        {
+            if (SemenStock <= 0.01f) _semenEmpty = true;
+            else if (SemenStock >= SemenReadyAt) _semenEmpty = false;
+        }
+        if (_semenEmpty) { er = 0f; _erectBase = 0f; _erectBoost = 0f; }
         SetSemenLevel(er / 100f);
         float ep = _semenLevel * 100f;
         if (!_erectOn && ep >= ErectOnPct) _erectOn = true;
-        else if (_erectOn && ep < ErectOffPct && !prep)   // 準備插入時不軟（雞雞不會被收起來）
+        else if (_erectOn && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
         {
             _erectOn = false;
             if (_jijiPhase > 0) { SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
@@ -239,19 +250,20 @@ public partial class TrainingRoomRuntime
         else _maleThrustLineT = MaleThrustLineGap * 0.5f;
 
         // 精液量慢慢回復
-        SemenStock = Mathf.Min(100f, SemenStock + SemenRegen * dt);
+        SemenStock = Mathf.Min(SemenMax, SemenStock + SemenRegen * dt);
     }
 
     // ═══════════════ 射精（按鈕／破功／強制）═══════════════
-    void MaleEjaculate()
+    /// <summary>射精。amountFrac＝這次只射出多少比例（1＝全射；忍耐失敗「漏出」時是 0.3~0.5）；sayLines＝射精當下男主說的話（null＝用 MaleEjacLines）。</summary>
+    void MaleEjaculate(float amountFrac = 1f, string[] sayLines = null)
     {
         if (_ejacRunning || _insertEjacActive) return;
         CloseBreakChoicesKeepBubble();   // 破功選項還在的話先收掉（不然射精台詞會被選項擋住）
         float s01 = Mathf.Clamp(SemenStock / 100f, 0f, 1f);
-        _ejacMul = Mathf.Lerp(EjacMulMin, 1f, s01);
+        _ejacMul = Mathf.Lerp(EjacMulMin, 1f, s01) * Mathf.Clamp(amountFrac, 0.05f, 1f);
         _ejacStop = false;
         SemenStock = Mathf.Max(0f, SemenStock - SemenUsePerEjac * _ejacMul);
-        SayMaleEv(MaleEjacLines, true);
+        SayMaleEv(sayLines ?? MaleEjacLines, true);
         TriggerEjaculation();
         GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this)) SayMaleEv(MaleAfterEjacLines); };
         _ejacDone = true;
@@ -281,8 +293,10 @@ public partial class TrainingRoomRuntime
         float over = Mathf.Max(0f, Stamina - 100f);
         float fail = Stamina >= 100f ? Mathf.Clamp(over / Mathf.Max(1f, EndureFailOver), 0f, 1f) : 0f;
         if (_breaking) fail = Mathf.Max(fail, _maleThrusting ? EndureFailBreakingThrust : EndureFailWhileBreaking);   // 已經在破功了，更難忍；還在抽插更難（機率可在 Inspector 調）
+        if (_breaking && _maleThrusting && _maleThrustSpeed >= EndureTooFastSpeed) fail = 1f;   // 速度太快：一定忍不住
         if (GD.Randf() < fail)
         {
+            if (_breaking && _maleThrusting) { LeakEjaculate(); return; }   // 還在抽插時忍耐失敗：糟糕，還是忍不住 → 漏出一部分（BreakChoice.cs）
             _breaking = true; BreakChoiceSay(EndureFailLines, false); GD.Print($"[Male] 忍耐失敗（失敗率 {fail:P0}）");
             return;
         }
@@ -360,7 +374,7 @@ public partial class TrainingRoomRuntime
         float left = Mathf.Max(0f, PlayTimeLimitSec - _playTime);
         _timeLbl.Text = $"⏳ {(int)(left / 60f)}:{(int)(left % 60f):00}";
         _timeLbl.Modulate = left <= 30f ? new Color(1f, 0.45f, 0.45f) : Colors.White;
-        _statLbl.Text = $"精力 {Stamina:F0}/120{(_pain > 0.25f ? "  痛" : "")}\n勃起 {_semenLevel * 100f:F0}{(_erectOn ? "（硬）" : "（軟）")}\n射量 {SemenStock:F0}";
+        _statLbl.Text = $"精力 {Stamina:F0}/120{(_pain > 0.25f ? "  痛" : "")}\n勃起 {_semenLevel * 100f:F0}{(_erectOn ? "（硬）" : "（軟）")}\n射量 {SemenStock:F0}%";
         bool ok = Stamina >= EjacBtnFeelPct && SemenStock > 0f && !_ejacRunning && !_insertEjacActive;
         _ejacBtn.Disabled = !ok;
         _ejacBtn.Modulate = ok ? Colors.White : new Color(1, 1, 1, 0.45f);

@@ -20,7 +20,21 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,5,0.1")] public float BreakSlowRollbackSec = 1.5f;   // 選「慢下來」：破功倒數退回幾秒
     [Export(PropertyHint.Range, "0,1,0.05")] public float BreakSlowSpeedFrac  = 0.3f;   // 選「慢下來」：抽插速度最多降到最高速的幾成
 
+    [ExportGroup("忍耐失敗（漏出）")]
+    [Export(PropertyHint.Range, "0,1,0.05")] public float EndureTooFastSpeed = 0.7f;   // 破功中按忍耐時，抽插速度（0~1）到這個以上就一定忍不住
+    [Export(PropertyHint.Range, "0.05,1,0.05")] public float EndureLeakMin = 0.3f;     // 忍不住時只射出一部分（漏出）：最少佔平常的幾成
+    [Export(PropertyHint.Range, "0.05,1,0.05")] public float EndureLeakMax = 0.5f;     // 最多佔平常的幾成（每次在最少～最多之間隨機）；剩下的留在庫存
+    [Export] public string[] EndureLeakLines = { "糟糕…還是忍不住！", "糟、糟糕…忍不住了…！", "啊…糟了，漏出來了…！" };
+
     bool _breakChoiceShown;
+
+    /// <summary>忍耐失敗（還在抽插）：男主說「糟糕，還是忍不住」，這次只射出 EndureLeakMin~Max 的量，剩下的留著。</summary>
+    void LeakEjaculate()
+    {
+        float frac = (float)GD.RandRange(Mathf.Min(EndureLeakMin, EndureLeakMax), Mathf.Max(EndureLeakMin, EndureLeakMax));
+        GD.Print($"[Male] 忍耐失敗（速度 {_maleThrustSpeed:F2}）→ 漏出 {frac:P0}");
+        MaleEjaculate(frac, EndureLeakLines);
+    }
 
     /// <summary>破功開始時呼叫：男主說不行了、要射了，同時顯示兩個選項。</summary>
     void ShowBreakChoices()
