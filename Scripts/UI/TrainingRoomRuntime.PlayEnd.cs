@@ -23,7 +23,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,10,0.1")] public float CleanLineDelay = 3.5f;  // 射精後多久說清理台詞
 
     [ExportGroup("男主狀態")]
-    [Export] public string[] MaleNotHardLines = { "（還沒硬1）", "（還沒硬2）", "（還沒硬3）" };      // 勃起度不夠時想叫雞雞出來
+    [Export] public string[] MaleNotHardLines = { "…還沒完全硬起來，稍微等一下", "不行，還沒準備好…", "等等，還差一點…" };      // 勃起度不夠時想叫雞雞出來
     [Export] public string[] MaleSoftLines    = { "（軟掉了1）", "（軟掉了2）", "（軟掉了3）" };      // 勃起度掉到 <30
     [Export] public string[] EndureOkLines    = { "（忍住了1）", "（忍住了2）", "（忍住了3）" };
     [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
@@ -78,17 +78,17 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.05")] public float EndureCutMul = 0.5f;       // 射精中忍耐成功：剩下的量 ×
 
     [ExportGroup("男主台詞（事件）")]
-    [Export] public string[] MaleHardLines     = { "（硬了1）", "（硬了2）", "（硬了3）" };           // 勃起度到 50，勃起
+    [Export] public string[] MaleHardLines     = { "已經硬了，這可都是莉奈的錯。", "準備好了……這根雜魚肉棒，已經等不及了" };           // 勃起度到 50，勃起
     [Export] public string[] MaleShowLines     = { "（雞雞出現1）", "（雞雞出現2）", "（雞雞出現3）" };       // 按 🍆 叫雞雞出來
-    [Export] public string[] MaleInsertLines   = { "（開始插入1）", "（開始插入2）", "（開始插入3）" };       // 按住入口開始插入
-    [Export] public string[] MaleBreakLines    = { "（突破1）", "（突破2）", "（突破3）" };           // 突破進去
+    [Export] public string[] MaleInsertLines   = { "妳已經迫不及待了吧？看我的", "雜魚肉棒要進去了喔。", "雜魚雞雞裝備要把雜魚小穴填滿了哦。" };       // 按住入口開始插入
+    [Export] public string[] MaleBreakLines    = { "喝啊！全部進去了……好緊！", "咕……莉奈的小穴真是太爽了！" };           // 突破進去
     [Export] public string[] MaleAnusLines     = { "（肛門1）", "（肛門2）", "（肛門3）" };           // 點肛門準備插入
     [Export] public string[] MaleAnusLickLines = { "（舔肛門1）", "（舔肛門2）", "（舔肛門3）" };         // 舌頭舔肛門開始
-    [Export] public string[] MaleThrustLines   = { "（抽插中1）", "（抽插中2）", "（抽插中3）" };         // 抽插中隨機間隔說
+    [Export] public string[] MaleThrustLines   = { "呼……哈啊…小穴…夾得真緊啊……", "被雜魚這樣狠狠地插……感覺怎麼樣？", "小穴裡面一直在一縮一縮的，莉奈也很爽吧？" };         // 抽插中隨機間隔說
     [Export] public string[] MaleFastLines     = { "（太快了，痛1）", "（太快了，痛2）", "（太快了，痛3）" };     // 又快又高、痛
-    [Export] public string[] MaleCanEjacLines  = { "（快到了1）", "（快到了2）", "（快到了3）" };         // 精力到 90，可以射
+    [Export] public string[] MaleCanEjacLines  = { "呼……不行了，快到極限了……", "莉奈……我要射了，…我準備射出來了！", "裡面太舒服了……感覺隨時都會射出來……", "莉奈的小穴太棒了……我快不行了……" };         // 精力到 90，可以射
     [Export] public string[] MaleBreakFeelLines= { "不行了…要射了！", "忍、忍不住了…要射了！", "要、要射了…怎麼辦…！" };       // 精力到 100：男主說這句，並出現「慢下來／射進去」選項
-    [Export] public string[] MaleEjacLines     = { "（射精1）", "（射精2）", "（射精3）" };           // 射精開始
+    [Export] public string[] MaleEjacLines     = { "射了……！啊啊啊！", "咕啊！收下吧！全部…的精液…全部射進莉奈的裡面了！", "射出來了……好爽…全都在妳的肚子裡！", "射了！嗚啊啊！精液……全都灌進去了！" };           // 射精開始
     [Export] public string[] MaleAfterEjacLines= { "（射完了1）", "（射完了2）", "（射完了3）" };         // 射精後
     [Export] public string[] MalePullOutLines  = { "（拔出1）", "（拔出2）", "（拔出3）" };           // 拔出
     [Export(PropertyHint.Range, "0,30,0.5")] public float MaleLineCooldown = 2.5f;   // 事件台詞最短間隔（秒）
