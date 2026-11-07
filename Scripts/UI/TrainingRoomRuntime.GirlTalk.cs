@@ -127,6 +127,12 @@ public partial class TrainingRoomRuntime
         "哥哥…不用忍耐也沒關係…", "嗯…我也…一起…", "……好熱。",
     };
 
+    // 男主要射了時，莉奈再依「舒服／不舒服」分開說（有內容時優先於上面兩組；清空就退回上面兩組）
+    [Export] public string[] LinesMaleNearEjacGood =
+        { "啊啊啊……要來了……", "啊、啊啊…要、要來了…" };                       // 舒服
+    [Export] public string[] LinesMaleNearEjacBad =
+        { "不要…不行…", "不要、不可以…快停下…", "不行不行…不要…" };                // 不舒服：一直說不要、不行
+
     /// <summary>現在是哪個狀態。</summary>
     GirlTalkState CurrentGirlTalkState()
     {
@@ -365,6 +371,9 @@ public partial class TrainingRoomRuntime
     /// <summary>依目前狀態回傳要說的那一組台詞。brat＝雌小鬼話（true）或正常話（false）。</summary>
     string[] GirlTalkLines(bool brat)
     {
+        string[] ejacLines = CurrentGirlTalkState() == GirlTalkState.MaleNearEjac
+            ? (GirlFeelsGood() ? LinesMaleNearEjacGood : LinesMaleNearEjacBad) : null;
+        if (ejacLines != null && ejacLines.Length > 0) return DemoMode.Trim(ejacLines);
         var lines = CurrentGirlTalkState() switch
         {
             GirlTalkState.NearClimax   => brat ? BratLinesNearClimax   : BratNormalLinesNearClimax,
