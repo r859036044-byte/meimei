@@ -101,7 +101,7 @@ public partial class MainMenuRuntime : Control
             SetAlpha(txt, 0f);
 
         // ── Logo 淡入（1秒）──
-        float dur = 1f;
+        float dur = DemoMode.Enabled ? 0.6f : 1f;   // 試玩版：LOGO 縮短
         await Lerp(dur, p =>
         {
             float a = p;
@@ -115,7 +115,7 @@ public partial class MainMenuRuntime : Control
         }, ct);
 
         // 停留一下
-        await Wait(1.5f, ct);
+        await Wait(DemoMode.Enabled ? 0.7f : 1.5f, ct);
 
         // ── Logo 淡出（1秒）──
         await Lerp(dur, p =>
@@ -133,7 +133,16 @@ public partial class MainMenuRuntime : Control
         if (DemoMode.Enabled)
         {   // 試玩版：LOGO 播完 → 不播 OP 動畫，直接到標題畫面（音樂慢慢淡入）
             _demoLogoDone = true;
-            TitleDirect(ct, true);
+            var dFlash = MakeIntroFlash(_logoPanel, "WhiteFlash", new Color(1f, 1f, 1f, 0f));
+            await Lerp(0.3f, p => dFlash.Color = new Color(1f, 1f, 1f, p), ct);   // LOGO 淡出後轉成一片白光
+            dFlash.Color = new Color(1f, 1f, 1f, 1f);
+            TitleDirect(ct, true);   // 在白光下面切到標題畫面
+            dFlash.GetParent().RemoveChild(dFlash);
+            _mainPanel.AddChild(dFlash);
+            ApplyStretchAnchor(dFlash, V2(0f, 0f), V2(1f, 1f), V2(0f, 0f), V2(0f, 0f));
+            _mainPanel.MoveChild(dFlash, _mainPanel.GetChildCount() - 1);
+            await Lerp(1.5f, p => dFlash.Color = new Color(1f, 1f, 1f, 1f - p), ct);   // 白光淡出
+            Kill(dFlash);
             return;
         }
 
