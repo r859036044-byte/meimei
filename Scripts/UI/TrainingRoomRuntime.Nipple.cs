@@ -22,6 +22,8 @@ public partial class TrainingRoomRuntime
     NipTouch Nip(string k) => k == "NL" ? _nipL : _nipR;
     static string NipLayer(string k) => k == "NL" ? "奶頭2" : "奶頭1";
     static string NipBreast(string k) => k == "NL" ? "胸2" : "胸1";
+    float _nipSpeedLevel;   // 乳頭自己的撫摸速度等級（跟胸部分開）
+    float NipLevelMult => 1f + _nipSpeedLevel * BreastSpeedPerLevel;
     int NippleHandCount => (_nipL.On ? 1 : 0) + (_nipR.On ? 1 : 0);
 
     bool SlotUsedByNipple(bool left) => (_nipL.On && _nipL.SlotLeft == left) || (_nipR.On && _nipR.SlotLeft == left);
@@ -32,14 +34,25 @@ public partial class TrainingRoomRuntime
     }
 
     /// <summary>由 _Input 呼叫：點在乳頭本體上（沒選 👅）→ 開關摸乳頭，並吃掉這次點擊（避免底下的胸部綠點也觸發）。</summary>
+    string _nipPressK; Vector2 _nipPressPos;   // 乳頭手已經在摸時：按下去先記著，放開時沒拖動才算「再點一次取消」（拖曳＝調速度）
     bool NippleInput(InputEvent e)
     {
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } rel && _nipPressK != null)
+        {
+            string pk = _nipPressK; _nipPressK = null;
+            if (rel.Position.DistanceTo(_nipPressPos) < 8f) CancelNipple(pk);   // 沒拖動＝點一下＝取消
+            return true;
+        }
         if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mb) return false;
         if (_tongueTool || IsPointerOverUi()) return false;
         Vector2 w = ScreenToWorld(mb.Position);
         string k = IsPointOnLayer("奶頭2", w) ? "NL" : IsPointOnLayer("奶頭1", w) ? "NR" : null;
         if (k == null) return false;
-        if (Nip(k).On) CancelNipple(k); else StartNipple(k);
+        if (Nip(k).On) { _nipPressK = k; _nipPressPos = mb.Position; return true; }
+        // 同一顆胸正在被手摸／舔：點在乳頭位置是要拖曳調胸的速度，不是切換成摸乳頭（要先取消胸部再點乳頭）
+        if ((k == "NL" && _touchAnimRunningLeft) || (k == "NR" && _touchAnimRunningRight)) return false;
+        if (_lickOn && _lickTarget == (k == "NL" ? "L" : "R")) return false;
+        StartNipple(k);
         return true;
     }
 
@@ -153,6 +166,7 @@ public partial class TrainingRoomRuntime
         if (n.Hand != null && IsInstanceValid(n.Hand)) n.Hand.QueueFree();
         n.Hand = null;
         if (!(_lickOn && _lickTarget == (k == "NL" ? "L" : "R"))) TouchAnimOffset.Remove(NipLayer(k));
+        if (NippleHandCount == 0) _nipSpeedLevel = 0f;
     }
 
     /// <summary>每幀（HeadPatLate）呼叫：兩顆各自蹭（動作照摸 B）。</summary>
@@ -164,7 +178,7 @@ public partial class TrainingRoomRuntime
             if (!n.On || n.Hand == null || !IsInstanceValid(n.Hand)) continue;
             bool holding = Input.IsMouseButtonPressed(MouseButton.Left);
             float speedMult = holding ? (Mathf.Sin(n.T) > 0f ? HandAnimHoldUpMult : HandAnimHoldDownMult) : 1f;
-            n.T += dt * HandAnimSpeed * speedMult * TouchLevelMult;
+            n.T += dt * HandAnimSpeed * speedMult * NipLevelMult;
 
             string layer = NipLayer(k);
             // 乳頭跟著被蹭的方向小幅動

@@ -100,6 +100,7 @@ public partial class TrainingRoomRuntime
         _touchLastMouse = mouseNow;
 
         int breastHands = (_touchAnimRunningLeft ? 1 : 0) + (_touchAnimRunningRight ? 1 : 0);
+        int realBreastHands = breastHands;
         breastHands += NippleHandCount;   // 摸乳頭也算摸胸（Nipple.cs）
         bool anyTouch = breastHands > 0 || _bTouchRunning;
 
@@ -113,11 +114,20 @@ public partial class TrainingRoomRuntime
             foreach (var h in new[] { _touchHandLeft, _touchHandRight })
                 if (h != null && IsInstanceValid(h) && h.GetGlobalRect().Grow(60f).HasPoint(mouseNow)) nearHand = true;
             _speedOwnerBreast = !thrusting || nearHand;
+            bool nearNip = false;
+            foreach (var nt in new[] { _nipL, _nipR })
+                if (nt.On && nt.Hand != null && IsInstanceValid(nt.Hand) && nt.Hand.GetGlobalRect().Grow(60f).HasPoint(mouseNow)) nearNip = true;
+            _speedOwnerNip = nearNip || realBreastHands == 0;   // 乳頭速度跟胸部速度分開：按在乳頭手附近（或只有乳頭在摸）才調乳頭
+            if (nearNip && realBreastHands > 0) _speedOwnerBreast = false;
         }
         _speedLeftPrev = leftNow;
         if (thrusting && !leftNow) _speedOwnerBreast = false;   // 抽插中沒按著時預設歸抽插，避免一直卡在胸
         if (anyTouch && leftNow && !_patDragOwner && !_tongueDragOwner && (!thrusting || _speedOwnerBreast))   // 在頭上拖曳只調摸頭速度
-            _breastSpeedLevel = Mathf.Clamp(_breastSpeedLevel + upPx * BreastSpeedLevelRate, 0f, BreastSpeedLevelMax);
+        {
+            float d = upPx * BreastSpeedLevelRate;
+            if (NippleHandCount > 0 && _speedOwnerNip) _nipSpeedLevel = Mathf.Clamp(_nipSpeedLevel + d, 0f, BreastSpeedLevelMax);
+            else if (realBreastHands > 0 || _bTouchRunning) _breastSpeedLevel = Mathf.Clamp(_breastSpeedLevel + d, 0f, BreastSpeedLevelMax);
+        }
 
         float rate = UpdatePlayValues(dt, breastHands);   // 濕度／各部位高潮值／穴高潮值（Play.cs）
 
@@ -127,6 +137,7 @@ public partial class TrainingRoomRuntime
 
     /// <summary>手部動畫的速度倍率（等級越高手動得越快，對照 Unity levelMult）。</summary>
     bool _speedLeftPrev = false;
+    bool _speedOwnerNip = true;
     bool _speedOwnerBreast = true;   // 這次左鍵拖曳控制的是胸（true）還是抽插（false）
     float TouchLevelMult => 1f + _breastSpeedLevel * BreastSpeedPerLevel;
 

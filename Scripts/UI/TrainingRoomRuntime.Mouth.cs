@@ -56,7 +56,9 @@ public partial class TrainingRoomRuntime
     float _mouthSmileT;
 
     /// <summary>出現愛心的時候呼叫：嘴巴換成「笑」（去掉虎牙的版本）MouthSmileSec 秒。</summary>
-    public void TriggerMouthSmile() => _mouthSmileT = MouthSmileSec;
+    public void TriggerMouthSmile() { _mouthSmileT = MouthSmileSec; _mouthSmileHold = true; }
+    bool _mouthSmileHold;   // 笑了之後一直維持，直到有其他情況（不舒服／痛／換表情／被舌頭等佔用）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float MouthPatFastAt = 0.6f;   // 摸頭速度（0~1）到這個以上算摸太快：不笑，變抖動嘴
 
     string _mouthShown;      // 目前由這支程式顯示的嘴巴（null＝沒接管）
     float  _mouthScaleX = 1f;
@@ -77,14 +79,16 @@ public partial class TrainingRoomRuntime
         bool busy = _tongueOn || _lickOn || _jijiPhase != 0;   // 舌頭／舔／雞雞出現：嘴巴交給原本的流程
         bool operating = _browLingerT > 0f;                      // 跟眉毛同一個「正在操作」判定
 
-        bool smiling = _mouthSmileT > 0f;   // 剛出現愛心：換成笑（優先於抖動嘴／張嘴1，不用在操作中也會笑）
-        if (!free || busy || (!operating && !smiling))
+        if (_mouthSmileHold && (!free || busy || _browUncomfy && _browLingerT > 0f || CurrentGirlTalkState() == GirlTalkState.Pain)) _mouthSmileHold = false;   // 其他情況：不舒服／痛／換表情／嘴被佔用 → 不再維持笑
+        bool patFast = _patOn && HeadPatSpeedLvMax > 0f && _patSpeedLv / HeadPatSpeedLvMax >= MouthPatFastAt;   // 摸頭摸太快 → 抖動嘴
+        bool smiling = (_mouthSmileT > 0f || _mouthSmileHold) && !patFast;   // 笑一次就一直維持（摸頭時也是笑）；摸太快才變抖動嘴
+        if (!free || busy || (!operating && !smiling && !(_mouthSmileHold && patFast)))
         {
             if (_mouthShown != null) ReleaseMouth(expr);
             return;
         }
 
-        string want = smiling ? "笑" : (BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴");
+        string want = smiling ? "笑" : (!patFast && BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴");
         if (_mouthShown != want) ShowOnlyMouth(want);
 
         // 抖動嘴：不舒服才慢慢左右向內縮（舒服程度的平滑已在 Brow.cs 做好）

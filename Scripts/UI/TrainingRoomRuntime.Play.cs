@@ -73,7 +73,7 @@ public partial class TrainingRoomRuntime
         StepAnusWet(dt, thrust, sTongue);   // 肛門濕潤度（PlayAnus.cs）
 
         StepPart("胸",   breast, lickBreast && !handBreast ? sTongue : sTouch, dt);
-        StepPart("乳頭", nipple, sTouch, dt);
+        StepPart("乳頭", nipple, BreastSpeedLevelMax > 0f ? _nipSpeedLevel / BreastSpeedLevelMax : 0f, dt);
         StepPart("嘴",   mouth,  sTongue, dt);
         StepPart("頭",   head,   sPat, dt);
 
