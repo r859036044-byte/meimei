@@ -764,7 +764,7 @@ void fragment() {
             _jijiGauge = new JijiGauge { Name = "JijiGauge", TooltipText = "雞雞（點擊叫出／收起；叫出後顯示精力）", Visible = false };
             _jijiGauge.AnchorLeft = 0; _jijiGauge.AnchorTop = 1; _jijiGauge.AnchorRight = 0; _jijiGauge.AnchorBottom = 1;
             _jijiGauge.OffsetLeft = gcx - GaugeW / 2f; _jijiGauge.OffsetRight = gcx + GaugeW / 2f;
-            _jijiGauge.OffsetBottom = -20; _jijiGauge.OffsetTop = -20 - H;
+            _jijiGauge.OffsetBottom = -20; _jijiGauge.OffsetTop = -20 - H * JijiGaugeHeightFrac;   // 縮短（HudGate.cs 的 JijiGaugeHeightFrac）
             _jijiGauge.Pressed += () => OnJijiButtonPressed();
             _canvas.AddChild(_jijiGauge);
         }

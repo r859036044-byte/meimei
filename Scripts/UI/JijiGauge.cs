@@ -18,6 +18,9 @@ public partial class JijiGauge : Control
     public Color EmptyColor   = new Color(0.97f, 0.93f, 0.94f);   // 顯示綠條時，空的部分
     public Color GaugeColor   = new Color(0.30f, 0.72f, 0.48f);
     public float Border = 3f;
+    public float ShaftMaxRx = 0.31f;    // 莖最寬處的半寬（相對整體寬度）
+    public float ShaftSplit = 0.40f;    // 最寬的位置（從莖頂往下佔莖長的幾成；越小越靠上＝上面越胖）
+    public float ShaftBottomKeep = 0.45f;   // 莖最底端的寬度，佔最寬處的幾成（越小下面越瘦；1＝不收細）
 
     bool _hover, _down;
     float _lastValue = -1f; bool _lastShow; Vector2 _lastSize; bool _lastHover, _lastDown;
@@ -63,6 +66,31 @@ public partial class JijiGauge : Control
         return pts;
     }
 
+    /// <summary>蛋形（連續曲線）：從 yTop 到 yBot，最寬處在 split（0~1）。
+    /// 最寬處以上是圓頂（橢圓）；以下平滑收細到最底端剩 bottomKeep 倍寬（不收成尖）。左右對稱。</summary>
+    static Vector2[] Egg(float cx, float yTop, float yBot, float split, float rx, float bottomKeep, int n = 40)
+    {
+        float len = yBot - yTop;
+        float Half(float t)   // t：0＝頂、1＝底，回傳該處半寬
+        {
+            if (t <= split) { float u = (split - t) / Mathf.Max(0.001f, split); return rx * Mathf.Sqrt(Mathf.Max(0f, 1f - u * u)); }
+            float v = (t - split) / Mathf.Max(0.001f, 1f - split);
+            return rx * (bottomKeep + (1f - bottomKeep) * Mathf.Pow(Mathf.Max(0f, 1f - Mathf.Pow(v, 1.6f)), 0.9f));
+        }
+        var pts = new Vector2[(n + 1) * 2];
+        for (int i = 0; i <= n; i++)   // 右邊：頂 → 底
+        {
+            float t = i / (float)n;
+            pts[i] = new Vector2(cx + Half(t), yTop + len * t);
+        }
+        for (int i = 0; i <= n; i++)   // 左邊：底 → 頂
+        {
+            float t = 1f - i / (float)n;
+            pts[n + 1 + i] = new Vector2(cx - Half(t), yTop + len * t);
+        }
+        return pts;
+    }
+
     /// <summary>蘑菇頭：上半是大圓頂，下半是比較扁的邊緣（比莖寬）。</summary>
     static Vector2[] Cap(float cx, float cy, float rx, float ryTop, float ryBottom)
     {
@@ -91,15 +119,13 @@ public partial class JijiGauge : Control
         float w = Size.X, h = Size.Y, cx = w * 0.5f;
         float ballR = w * 0.235f, ballY = h - ballR - 2f;
         float capRx = w * 0.40f, capTop = capRx * 1.05f, capBot = capRx * 0.32f, capCy = capTop + 2f;
-        float shaftRx = w * 0.25f;
-        float shaftTop = capCy + capBot * 0.4f, shaftBot = ballY - ballR * 0.2f;
-        float shaftCy = (shaftTop + shaftBot) * 0.5f, shaftRy = (shaftBot - shaftTop) * 0.5f + 8f;   // 兩端各多蓋 8px，和頭、球接在一起
+        float shaftTop = capCy + capBot * 0.4f - 6f, shaftBot = ballY - ballR * 0.2f + 6f;   // 兩端各多蓋 6px，和頭、球接在一起
 
         var parts = new[]
         {
             Ellipse(cx - ballR * 0.95f, ballY, ballR, ballR),   // 左球
             Ellipse(cx + ballR * 0.95f, ballY, ballR, ballR),   // 右球
-            Ellipse(cx, shaftCy, shaftRx, shaftRy),             // 莖（細長橢圓）
+            Egg(cx, shaftTop, shaftBot, ShaftSplit, w * ShaftMaxRx, ShaftBottomKeep),   // 莖：蛋形（上胖下瘦）
             Cap(cx, capCy, capRx, capTop, capBot),              // 蘑菇頭
         };
         var sil = parts[0];

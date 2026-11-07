@@ -15,6 +15,7 @@ public partial class TrainingRoomRuntime
     [Export] public bool  GateJijiHud      = true;    // 🍆 按鈕與精力條：要男主說硬了才顯示（關掉＝一直顯示）
     [Export(PropertyHint.Range, "0.2,1,0.05")] public float StaminaBarHeightFrac = 0.5f;   // 綠色精力條高度（相對按鈕條；只在建立 UI 時套用）
     [Export] public float HudGateFadeSec   = 0.3f;    // 淡入／淡出秒數
+    [Export(PropertyHint.Range, "0.3,1,0.01")] public float JijiGaugeHeightFrac = 0.62f;   // 雞雞造型按鈕高度（相對原本直條；只在建立 UI 時套用）
     [Export] public bool  UseJijiGauge     = true;    // 用程式畫的雞雞造型按鈕（取代 🍆 按鈕與獨立精力條）；關掉＝回到 🍆 按鈕＋精力條
 
     Button  _btnJijiNode;
