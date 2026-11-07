@@ -129,7 +129,7 @@ public partial class TrainingRoomRuntime
 
     // 男主要射了時，莉奈再依「舒服／不舒服」分開說（有內容時優先於上面兩組；清空就退回上面兩組）
     [Export] public string[] LinesMaleNearEjacGood =
-        { "啊啊啊……要來了……", "啊、啊啊…要、要來了…" };                       // 舒服
+        { "啊啊啊……要來了……❤", "啊、啊啊…要、要來了…❤" };                       // 舒服
     [Export] public string[] LinesMaleNearEjacBad =
         { "不要…不行…", "不要、不可以…快停下…", "不行不行…不要…" };                // 不舒服：一直說不要、不行
 
