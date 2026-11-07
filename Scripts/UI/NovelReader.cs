@@ -827,6 +827,7 @@ public partial class NovelReader : Node
             PlayerDataManager.Instance?.SetR18(!on);
             SettingsManager.Instance?.Save();
         };
+        ageCheck.Visible = !DemoMode.Enabled;   // 試玩版：不讓玩家選擇是否全年齡
         vb.AddChild(ageCheck);
 
         vb.AddChild(new HSeparator());
