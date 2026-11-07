@@ -798,7 +798,12 @@ void fragment() {
     void BuildBottomButtons()
     {
         const float Pad = 10f, Gap = 12f, StamW = 18f, StamPanelW = 42f;
-        int count = 6;   // 衣服／左手／右手／🍆／👅／🐭
+        // 由上到下：🐭 滑鼠／衣服／左手／右手／（🍆）／👅。
+        // 用雞雞造型按鈕時（UseJijiGauge），🍆 不顯示，不留空位：按鈕條只有 5 格、舌頭往上補。
+        int count = UseJijiGauge ? 5 : 6;
+        int idxMouse = 0, idxDrag = 1, idxLeft = 2, idxRight = 3;
+        int idxJiji = UseJijiGauge ? count : 4;      // 🍆（隱藏時放在條外，不佔位）
+        int idxTongue = UseJijiGauge ? 4 : 5;
         float W = Pad * 2f + IconBtnSize;
         float H = Pad * 2f + IconBtnSize * count + Gap * (count - 1);
 
@@ -811,8 +816,8 @@ void fragment() {
 
         float Y(int i) => Pad + (IconBtnSize + Gap) * i;
 
-        _btnLeft  = MkIconBtn(bar, "BtnLeft",  "左手", new Color(1.00f, 0.72f, 0.82f), new Vector2(Pad, Y(1)));
-        _btnRight = MkIconBtn(bar, "BtnRight", "右手", new Color(0.80f, 0.72f, 1.00f), new Vector2(Pad, Y(2)));
+        _btnLeft  = MkIconBtn(bar, "BtnLeft",  "左手", new Color(1.00f, 0.72f, 0.82f), new Vector2(Pad, Y(idxLeft)));
+        _btnRight = MkIconBtn(bar, "BtnRight", "右手", new Color(0.80f, 0.72f, 1.00f), new Vector2(Pad, Y(idxRight)));
         _btnLeft.Pressed  += () => ToggleHandMode(HandMode.Left);
         _btnRight.Pressed += () => ToggleHandMode(HandMode.Right);
 
@@ -825,24 +830,24 @@ void fragment() {
             else { b.Text = "✋"; b.AddThemeFontSizeOverride("font_size", 30); }
         }
 
-        var btnJiji = MkIconBtn(bar, "Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), new Vector2(Pad, Y(3)));
+        var btnJiji = MkIconBtn(bar, "Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), new Vector2(Pad, Y(idxJiji)));
         btnJiji.Text = "🍆";
         _btnJijiNode = btnJiji;   // HudGate.cs：男主說硬了才顯示
         btnJiji.AddThemeFontSizeOverride("font_size", 30);
         btnJiji.Pressed += () => OnJijiButtonPressed();
 
-        _btnTongue = MkIconBtn(bar, "BtnTongue", "舌頭（選取後點嘴巴）", Colors.White, new Vector2(Pad, Y(4)));
+        _btnTongue = MkIconBtn(bar, "BtnTongue", "舌頭（選取後點嘴巴）", Colors.White, new Vector2(Pad, Y(idxTongue)));
         _btnTongue.Text = "👅";
         _btnTongue.AddThemeFontSizeOverride("font_size", 30);
         _btnTongue.Pressed += () => ToggleTongueTool();
         RefreshTongueButton();
 
-        _btnDrag = MkIconBtn(bar, "BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, new Vector2(Pad, Y(0)));
+        _btnDrag = MkIconBtn(bar, "BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, new Vector2(Pad, Y(idxDrag)));
         _btnDrag.Icon = MkDressIcon(); _btnDrag.IconAlignment = HorizontalAlignment.Center;   // 白色連衣裙
         _btnDrag.Pressed += () => ToggleDragTool();
         RefreshDragButton();
 
-        _btnMouse = MkIconBtn(bar, "BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, new Vector2(Pad, Y(5)));
+        _btnMouse = MkIconBtn(bar, "BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, new Vector2(Pad, Y(idxMouse)));
         _btnMouse.Icon = MkCursorIcon(); _btnMouse.IconAlignment = HorizontalAlignment.Center;   // 滑鼠游標箭頭
         _btnMouse.Pressed += () => SelectMouseTool();
         RefreshMouseButton();
