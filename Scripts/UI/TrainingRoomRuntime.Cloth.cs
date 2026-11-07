@@ -1190,7 +1190,7 @@ void fragment() {
     [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomPx = 0f;   // 插入物件只有底部額外向右擴張幾 px，讓右下角伸到雞雞的右緣貼齊（雞雞右緣 x≈1119、插入內容右緣 x≈1098）
     [Export(PropertyHint.Range, "0,30,0.5")] public float InsertWidenRightPx = 0f;   // 插入向右擴張幾 px（以內容左緣為基準拉寬）
     [Export(PropertyHint.Range, "0,60,0.5")] public float InsertShrinkBottomLeftPx = 0f;    // 插入物件只有底部的左邊往內（右）縮幾 px，讓左下角貼齊雞雞的左緣（插入內容左緣 x≈880、雞雞接口處左緣約 900~915）
-    [Export(PropertyHint.Range, "0,1.5,0.05")] public float InsertShrinkTaperFollow = 0.5f;   // 插入左下角跟著雞雞變細的縮進量走多少比例（0＝不跟、1＝完全跟；縮太多就調小）
+    [Export(PropertyHint.Range, "0,1.5,0.05")] public float InsertShrinkTaperFollow = 0.2f;   // 插入左下角跟著雞雞變細的縮進量走多少比例（0＝不跟、1＝完全跟；縮太多就調小）
     void UpdateInsertMask()
     {
         if (_insertEdgeMat == null) return;
