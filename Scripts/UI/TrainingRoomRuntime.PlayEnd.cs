@@ -355,7 +355,7 @@ public partial class TrainingRoomRuntime
         }
         if (_endureBtn == null || !IsInstanceValid(_endureBtn))
         {
-            _endureBtn = MakeCornerBtn(parent, "BtnEndure", "🧘 忍耐", -406f, -266f);
+            _endureBtn = MakeCornerBtn(parent, "BtnEndure", "忍耐", -406f, -266f);
             _endureBtn.Pressed += OnEndurePressed;
         }
         if (_timeLbl == null || !IsInstanceValid(_timeLbl))

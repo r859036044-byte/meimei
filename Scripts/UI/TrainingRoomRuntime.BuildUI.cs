@@ -857,8 +857,9 @@ void fragment() {
             _endureBtn.AnchorLeft = 0; _endureBtn.AnchorRight = 0; _endureBtn.AnchorTop = 1; _endureBtn.AnchorBottom = 1;
             _endureBtn.OffsetLeft = gaugeRight + 8f; _endureBtn.OffsetRight = gaugeRight + 8f + IconBtnSize;
             _endureBtn.OffsetBottom = -20f; _endureBtn.OffsetTop = -20f - IconBtnSize;
-            _endureBtn.Text = "🧘";
-            _endureBtn.AddThemeFontSizeOverride("font_size", 30);
+            _endureBtn.Text = "忍耐";   // 文字，不用表情符號
+            _endureBtn.AddThemeFontSizeOverride("font_size", 20);
+            _endureBtn.AddThemeColorOverride("font_color", Colors.Black);
             _endureBtn.Pressed += OnEndurePressed;
             _endureBtn.Visible = false;   // 男主說硬了才出現
         }
