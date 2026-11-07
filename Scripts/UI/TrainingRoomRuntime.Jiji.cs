@@ -364,9 +364,13 @@ void fragment() {
         return off + JijiPhase2Offset / CharScreenScale();
     }
 
+    [Export] public string[] DemoPantyFirstLines = { "先把內褲脫掉吧，不然插不進去。", "內褲還穿著呢，先脫掉吧，不然插不進去。", "等一下，先把內褲脫掉，不然插不進去。" };   // 試玩版：內褲沒脫就叫雞雞，男主說的話
+
     void ShowJiji()
     {
         if (!_erectOn) { SayMale(MaleNotHardLines); GD.Print("[Male] 勃起度不夠，雞雞不出現"); return; }
+        // 試玩版：要先把內褲脫掉（_pantyGone）才能叫出雞雞
+        if (DemoMode.Enabled && !_pantyGone) { SayMale(DemoPantyFirstLines); GD.Print("[Male] 試玩版：內褲還沒脫，雞雞不出現"); return; }
         SayMaleEv(MaleShowLines);
         CancelBTouch();   // 雞雞出現後 B 改當雞雞入口，摸 B 的手收起來
         _jijiPhase = 1; _jijiStage = 0; _jijiInsertY = 0f;
