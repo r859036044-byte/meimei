@@ -863,6 +863,7 @@ void fragment() {
 
         // 射精：蓋在雞雞圖標正下方（雞雞圖標往上抬），跟雞雞一起出現，也是獨立節點可拖動
         {
+            float gaugeRight = 20f + W + Gap + StamPanelW + Gap + StamPanelW / 2f + 48f;   // 雞雞圖標右緣
             _ejacBtn = new Button { Name = "BtnEjac", Text = "💦 射精", FocusMode = Control.FocusModeEnum.None, Visible = false, TooltipText = "射精（精力夠高才能按）" };
             _ejacBtn.AnchorLeft = 0; _ejacBtn.AnchorRight = 0; _ejacBtn.AnchorTop = 1; _ejacBtn.AnchorBottom = 1;
             _ejacBtn.OffsetLeft = gaugeRight - 96f; _ejacBtn.OffsetRight = gaugeRight;
