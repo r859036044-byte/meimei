@@ -363,8 +363,8 @@ public partial class TrainingRoomRuntime
     }
 
     // ── M 腿內褲的濕痕：跟一般內褲一樣，濕度越高、小穴附近越深（顏色／強度／曲線沿用 PantyWet* 設定）──
-    [Export] public Vector2 MPantyWetRadiusUV = new Vector2(0.05f, 0.035f);   // M 腿內褲濕痕大小（內褲貼圖 UV，左右／上下）
-    [Export] public Vector2 MPantyWetOffsetUV = new Vector2(0f, 0f);          // M 腿內褲濕痕位置微調（UV；相對 M 腿小穴中心）
+    [Export] public Vector2 MPantyWetRadiusUV = new Vector2(0.025f, 0.018f);   // M 腿內褲濕痕大小（內褲貼圖 UV，左右／上下）
+    [Export] public Vector2 MPantyWetOffsetUV = new Vector2(0f, 0.012f);         // M 腿內褲濕痕位置微調（UV；相對 M 腿小穴中心）
     float _mPantyWetK;
 
     void MPantyWetApply(TextureRect panty)

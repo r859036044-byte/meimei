@@ -129,7 +129,8 @@ public partial class TrainingRoomRuntime
             nearWant = nearLv >= MouthTongueAt ? "小嘴吐舌" : "小嘴巴";
         }
         string want = nearWant ?? (smiling ? "笑" : (!patFast && BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴"));
-        if (_mouthShown != want) ShowOnlyMouth(want);
+        bool wantVisible = Layers.TryGetValue(want, out var wl) && wl != null && wl.Visible;
+        if (_mouthShown != want || !wantVisible) ShowOnlyMouth(want);   // 表情被別處換掉、把嘴藏起來時，每幀補回來（不會整個看不到嘴）
 
         // 抖動嘴：不舒服才慢慢左右向內縮（舒服程度的平滑已在 Brow.cs 做好）
         float uncomfy = (want == "抖動嘴" && _browUncomfy) ? Mathf.Clamp(_browNeg, 0f, 1f) : 0f;

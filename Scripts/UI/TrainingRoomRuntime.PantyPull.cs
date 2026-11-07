@@ -425,8 +425,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.3,3,0.05")] public float PantyWetCurve = 1.2f;               // 濕度→強度的曲線（>1：低濕度時淡、高濕度才明顯）
     [Export(PropertyHint.Range, "0,0.95,0.01")] public float PantyWetCore = 0.5f;               // 濕痕中心保持滿強度的比例（越大越集中、邊緣越硬）
     [Export] public Color PantyWetColor = new Color(0.70f, 0.74f, 0.88f);                       // 色彩增值的顏色（越暗越深）
-    [Export] public Vector2 PantyWetRadiusUV = new Vector2(0.06f, 0.04f);                       // 濕痕大小（內褲貼圖 UV，左右／上下）
-    [Export] public Vector2 PantyWetOffsetUV = new Vector2(0f, 0f);                             // 濕痕位置微調（內褲貼圖 UV；相對 B 的位置）
+    [Export] public Vector2 PantyWetRadiusUV = new Vector2(0.03f, 0.02f);                       // 濕痕大小（內褲貼圖 UV，左右／上下）
+    [Export] public Vector2 PantyWetOffsetUV = new Vector2(0f, 0.012f);                            // 濕痕位置微調（內褲貼圖 UV；相對 B 的位置）
     [Export(PropertyHint.Range, "0,4,0.05")] public float PantyWetFadeRate = 1.3f;              // 往下拉的進度乘上這個值＝淡掉的程度（1.3＝拉到 77% 就全淡掉；越大淡得越快）
     float _pantyWetK;
 
