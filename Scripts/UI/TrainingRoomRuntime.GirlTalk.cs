@@ -152,7 +152,11 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 10：很濕了（誘惑的話）")]
     // 莉奈濕度 ≥ GirlTalkWetAt（預設 70）時，定時說話改從這一區挑。內容請你自己填（我只先放占位字）。
     // 一樣可以用「|」分段、「=>」接男主回應；舒服時會自動加愛心。優先順序：排在痛／要高潮／男主要射之後、插入中／觸摸中之前。
-    [Export] public string[] BratLinesWet       = { "（很濕了：雌小鬼話 1）", "（很濕了：雌小鬼話 2）", "（很濕了：雌小鬼話 3）" };
+    [Export] public string[] BratLinesWet       =
+    {
+        "哈啊……❤別停下來…雜魚❤|快點滿足我❤",
+        "哈啊……❤…雜魚❤…好舒服❤|快點…我想要……給我❤",
+    };
     [Export] public string[] BratNormalLinesWet = { "（很濕了：正常話 1）", "（很濕了：正常話 2）", "（很濕了：正常話 3）" };
 
     [ExportGroup("莉奈台詞 8：男主選項與回應")]
