@@ -150,7 +150,7 @@ public partial class TrainingRoomRuntime
         // 試玩版沒有射精：第 3 頁最上面加一行提醒
         if (_helpPage == 2 && DemoMode.Enabled)
         {
-            var note = new Label { Text = "※ 試玩版沒有開放射精功能，這一頁只是介紹完整版。", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            var note = new Label { Text = "※ 試玩版：射精的瞬間，試玩就結束了（黑屏顯示「試玩版已結束」）。", AutowrapMode = TextServer.AutowrapMode.WordSmart };
             note.AddThemeFontSizeOverride("font_size", 17);
             note.AddThemeColorOverride("font_color", UiAccent);
             _helpList.AddChild(note);
