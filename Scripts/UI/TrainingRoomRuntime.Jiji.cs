@@ -667,7 +667,7 @@ void fragment() {
             // 雞雞左緣（x≈892）離收縮中線（x≈998）約 106px，變細時左緣被往右縮 taperK_*106；
             // 插入物件的左下角也往內（右）縮同樣的量，跟著雞雞的左緣走（雞雞本身不動）
             if (_insertEdgeMat != null)
-                _insertEdgeMat.SetShaderParameter("wid_lb", (InsertShrinkBottomLeftPx + taperK_ * 106f) / 210f);
+                _insertEdgeMat.SetShaderParameter("wid_lb", (InsertShrinkBottomLeftPx + taperK_ * 106f * InsertShrinkTaperFollow) / 210f);
             _jijiClipMat.SetShaderParameter("taper_start_px", clipLocalY + AnusTaperStartPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
