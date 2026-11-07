@@ -30,7 +30,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayer = 1.7f;   // 男主對話框：固定大小，不跟鏡頭縮放（2.0 縮小 15%）
     float BubbleK(bool isPlayer = false)
     {
-        if (isPlayer) return BubbleScalePlayer;
+        if (isPlayer) return BubbleScalePlayer * _playerFit;   // 男主：固定倍率 × 動態縮小係數（PlayerChoice.cs）
         float t = Mathf.Clamp((_camZoom - 1.1f) / Mathf.Max(0.01f, CamZoomMax - 1.1f), 0f, 1f);
         return Mathf.Lerp(BubbleScaleFar, BubbleScaleNear, Mathf.Pow(t, BubbleZoomCurve));
     }
@@ -70,7 +70,7 @@ public partial class TrainingRoomRuntime
     {
         if (!PatTalkEnabled || !_patOn)
         {
-            if (_patTalkT >= 0f) HideBubble(_bubblePlayer);   // 女主氣泡留給點擊反應用（Play.cs），自己會自動收
+            if (_patTalkT >= 0f && !_playerChoiceActive) HideBubble(_bubblePlayer);   // 女主氣泡留給點擊反應用（Play.cs），自己會自動收
             _patTalkT = -1f; _patTalkStep = 0;
             LayoutBubbles(dt);
             return;
@@ -99,6 +99,7 @@ public partial class TrainingRoomRuntime
     /// <summary>氣泡每幀的排版／自動收起（摸頭台詞和點擊反應共用）。</summary>
     void LayoutBubbles(float dt)
     {
+        UpdatePlayerFit(dt);   // 男主氣泡太大就自動縮小（PlayerChoice.cs）
         RescaleBubble(_bubblePlayer, _bubblePlayerLbl, true);
         RescaleBubble(_bubbleGirl, _bubbleGirlLbl, false);
         PlaceTail(_bubblePlayer, true);
@@ -162,6 +163,7 @@ public partial class TrainingRoomRuntime
         }
         var shape = b.GetNodeOrNull<BubbleShape>("Shape");
         if (shape != null) shape.K = K;
+        if (isPlayer) RescalePlayerChoiceRow(K);   // 選項按鈕跟著縮放
         b.ResetSize();
     }
 
@@ -185,6 +187,7 @@ public partial class TrainingRoomRuntime
     void ShowBubble(ref Control bubble, ref Label lbl, string text, bool isPlayer)
     {
         if (string.IsNullOrEmpty(text)) return;
+        if (isPlayer && _playerChoiceActive && !_playerChoiceSetting) return;   // 選項還在時，男主氣泡不被別的台詞蓋掉
         if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊
         if (bubble == null || !IsInstanceValid(bubble)) (bubble, lbl) = BuildBubble(isPlayer);
         lbl.Text = text;

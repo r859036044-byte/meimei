@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -52,7 +53,6 @@ public partial class TrainingRoomRuntime
     int   _bratLineType;                 // 0 沒有、1 雌小鬼話、2 正常話
     float _lessonT, _headSootheT;
     Label _bratLabel; ProgressBar _bratBar;
-    HBoxContainer _bratChoices;
 
     // ── 外部可呼叫：隔天要不要觸發結局（0 沒有、1 搬走、2 奴隸）──
     public static int PendingBratEnding() => PlayerDataManager.Instance?.GetDialogueVar(BratVarEnd) ?? 0;
@@ -167,22 +167,12 @@ public partial class TrainingRoomRuntime
         BratSave();
     }
 
-    // ── R18 選項（氣泡下面）──
+    // ── R18 選項：做在男主的對話框裡（PlayerChoice.cs）──
     void BratShowChoices()
     {
-        if (_bubbleGirl == null || !IsInstanceValid(_bubbleGirl)) return;
-        var parent = _bubbleGirl.GetParent();
-        if (parent == null) return;
-        if (_bratChoices == null || !IsInstanceValid(_bratChoices))
-        {
-            _bratChoices = new HBoxContainer { Name = "BratChoices", MouseFilter = Control.MouseFilterEnum.Ignore };
-            _bratChoices.AddThemeConstantOverride("separation", 8);
-            _bratChoices.AddChild(BratMakeBtn("教訓她", BratChooseLesson));
-            _bratChoices.AddChild(BratMakeBtn("不理她", BratChooseIgnore));
-            parent.AddChild(_bratChoices);
-        }
-        _bratChoices.Visible = true;
-        BratLayoutChoices();
+        if (_playerChoiceActive) return;
+        ShowPlayerChoices(BratChoicePrompt, new[] { "教訓她", "不理她" },
+            new Action[] { BratChooseLesson, BratChooseIgnore }, BratWindowSec);
     }
 
     static Button BratMakeBtn(string text, System.Action onPress)
@@ -198,18 +188,9 @@ public partial class TrainingRoomRuntime
         return b;
     }
 
-    void BratLayoutChoices()
-    {
-        if (_bratChoices == null || !IsInstanceValid(_bratChoices) || !_bratChoices.Visible) return;
-        if (_bubbleGirl == null || !IsInstanceValid(_bubbleGirl)) { _bratChoices.Visible = false; return; }
-        _bratChoices.Position = _bubbleGirl.Position + new Vector2(0f, _bubbleGirl.Size.Y + 30f);
-        _bratChoices.ZIndex = 50;
-    }
+    void BratLayoutChoices() { }   // 選項在男主氣泡裡，位置由 LayoutBubbles 排，不用另外排
 
-    void BratHideChoices()
-    {
-        if (_bratChoices != null && IsInstanceValid(_bratChoices)) _bratChoices.Visible = false;
-    }
+    void BratHideChoices() => HidePlayerChoices();
 
     void BratChooseLesson()
     {
