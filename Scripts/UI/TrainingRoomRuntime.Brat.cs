@@ -39,10 +39,7 @@ public partial class TrainingRoomRuntime
     [Export] public float BratTwistImpulse = 130f;       // 扭臉：被捏放手時臉往反方向甩的力道
     [Export] public string[] BratBegLines = { "對、對不起～！", "我錯了啦～！", "慢、慢一點…求你了…！" };   // 被教訓時求饒（占位）
     [Export] public string[] BratSootheLines = { "……嗯。", "哼…這次就放過你。", "…呼。" };                       // 被摸頭安撫（占位）
-    [Export] public string[] BratLines =
-        { "哼～弱雞～", "這種程度也敢叫我做事？", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～" };            // 雌小鬼的話：什麼都沒做時用（占位）；其他狀態見 GirlTalk.cs
-    [Export] public string[] BratNormalLines =
-        { "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？" };                                // 正常的話：什麼都沒做時用（占位）；其他狀態見 GirlTalk.cs
+    // 莉奈定時說話的台詞（雌小鬼話／正常話）依狀態分成四個群組，見 TrainingRoomRuntime.GirlTalk.cs
     [Export] public string[] BratPinchReplyLines = { "痛痛痛～！", "嗚…", "放手啦～！" };                     // 被捏時的反應（占位）
     [Export] public string[] BratPinchNormalReplyLines = { "…你幹嘛？", "好痛…", "……" };                    // 正常話被捏時的反應（占位）
 
