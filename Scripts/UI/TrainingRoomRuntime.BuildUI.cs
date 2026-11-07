@@ -757,6 +757,18 @@ void fragment() {
         _canvas.AddChild(panel);
         _vertBarsPanel = panel;   // HudGate.cs：勃起條不顯示（只隱藏，沒刪）
 
+        // 原本黃色精液條的位置：程式畫的雞雞造型按鈕（硬了才出現，點擊＝叫出／收起雞雞，叫出後裡面顯示綠色精力條）
+        {
+            const float GaugeW = 64f;
+            float gcx = left + PanelW / 2f;
+            _jijiGauge = new JijiGauge { Name = "JijiGauge", TooltipText = "雞雞（點擊叫出／收起；叫出後顯示精力）", Visible = false };
+            _jijiGauge.AnchorLeft = 0; _jijiGauge.AnchorTop = 1; _jijiGauge.AnchorRight = 0; _jijiGauge.AnchorBottom = 1;
+            _jijiGauge.OffsetLeft = gcx - GaugeW / 2f; _jijiGauge.OffsetRight = gcx + GaugeW / 2f;
+            _jijiGauge.OffsetBottom = -20; _jijiGauge.OffsetTop = -20 - H;
+            _jijiGauge.Pressed += () => OnJijiButtonPressed();
+            _canvas.AddChild(_jijiGauge);
+        }
+
         _semenBar = new ProgressBar
         {
             Name = "SemenBar", TooltipText = "勃起度（≥30 勃起，<30 軟掉）",

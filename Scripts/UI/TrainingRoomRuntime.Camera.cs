@@ -38,7 +38,7 @@ public partial class TrainingRoomRuntime
     /// <summary>UI（不縮放）要掛的地方。</summary>
     CanvasLayer UiRoot => _uiCanvas ?? _canvas;
 
-    static readonly string[] _uiPanelNames = { "TopHUD", "StatsPanel", "VertBars", "BottomBar", "StaminaPanel", "LeavePanel", "SidePanel" };   // StaminaPanel：精力獨立直條（不跟鏡頭縮放、F2 可拖）
+    static readonly string[] _uiPanelNames = { "TopHUD", "StatsPanel", "VertBars", "BottomBar", "StaminaPanel", "JijiGauge", "LeavePanel", "SidePanel" };   // StaminaPanel：精力獨立直條（不跟鏡頭縮放、F2 可拖）
 
     /// <summary>Build() 完成後呼叫：建立 UI 專用 CanvasLayer，把 HUD／選單搬過去。</summary>
     void SetupCameraLayers()

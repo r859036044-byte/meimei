@@ -15,9 +15,11 @@ public partial class TrainingRoomRuntime
     [Export] public bool  GateJijiHud      = true;    // 🍆 按鈕與精力條：要男主說硬了才顯示（關掉＝一直顯示）
     [Export(PropertyHint.Range, "0.2,1,0.05")] public float StaminaBarHeightFrac = 0.5f;   // 綠色精力條高度（相對按鈕條；只在建立 UI 時套用）
     [Export] public float HudGateFadeSec   = 0.3f;    // 淡入／淡出秒數
+    [Export] public bool  UseJijiGauge     = true;    // 用程式畫的雞雞造型按鈕（取代 🍆 按鈕與獨立精力條）；關掉＝回到 🍆 按鈕＋精力條
 
     Button  _btnJijiNode;
     Control _staminaPanel, _vertBarsPanel;
+    JijiGauge _jijiGauge;   // 程式畫的雞雞造型按鈕（JijiGauge.cs），建立在 BuildUI.cs
     float   _hudGateA = 0f;
 
     void UpdateHudGate(float dt)
@@ -30,7 +32,18 @@ public partial class TrainingRoomRuntime
         var col = new Color(1f, 1f, 1f, _hudGateA);
         bool vis = _hudGateA > 0.01f;
 
-        if (_btnJijiNode != null && IsInstanceValid(_btnJijiNode)) { _btnJijiNode.Visible = vis; _btnJijiNode.Modulate = col; }
-        if (_staminaPanel != null && IsInstanceValid(_staminaPanel)) { _staminaPanel.Visible = vis; _staminaPanel.Modulate = col; }
+        // 舊的 🍆 按鈕和獨立精力條：被雞雞造型按鈕取代，一律不顯示（只隱藏，節點還在）
+        if (_btnJijiNode != null && IsInstanceValid(_btnJijiNode)) _btnJijiNode.Visible = !UseJijiGauge && vis;
+        if (_staminaPanel != null && IsInstanceValid(_staminaPanel)) _staminaPanel.Visible = !UseJijiGauge && vis;
+        if (!UseJijiGauge) { if (_btnJijiNode != null && IsInstanceValid(_btnJijiNode)) _btnJijiNode.Modulate = col; if (_staminaPanel != null && IsInstanceValid(_staminaPanel)) _staminaPanel.Modulate = col; }
+
+        // 雞雞造型按鈕：硬了才出現；叫出雞雞後裡面顯示綠色精力條
+        if (_jijiGauge != null && IsInstanceValid(_jijiGauge))
+        {
+            _jijiGauge.Visible = UseJijiGauge && vis;
+            _jijiGauge.Modulate = col;
+            _jijiGauge.ShowGauge = _jijiPhase != 0;
+            _jijiGauge.Value = Mathf.Clamp(Stamina / 120f, 0f, 1f);
+        }
     }
 }
