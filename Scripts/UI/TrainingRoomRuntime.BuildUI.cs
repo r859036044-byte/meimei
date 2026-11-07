@@ -913,7 +913,7 @@ void fragment() {
     }
 
     /// <summary>圓形圖示按鈕：不顯示文字，tooltip 顯示功能名稱；白色描邊、hover 變亮、按下變暗。</summary>
-    Button MkIconBtn(Control parent, string name, string tooltip, Color bg, Vector2 pos)
+    Button MkIconBtn(Node parent, string name, string tooltip, Color bg, Vector2 pos)
     {
         var btn = new Button
         {
