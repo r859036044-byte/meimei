@@ -16,10 +16,10 @@ public partial class SettingsManager : Node
     // ═══════════════════════════════════════════════════════════
     //  設定值
     // ═══════════════════════════════════════════════════════════
-    public float MasterVolume  { get; private set; } = 1f;
-    public float MusicVolume   { get; private set; } = 0.8f;
-    public float SFXVolume     { get; private set; } = 1f;
-    public float VoiceVolume   { get; private set; } = 1f;
+    public float MasterVolume  { get; private set; } = 0.5f;
+    public float MusicVolume   { get; private set; } = 0.5f;
+    public float SFXVolume     { get; private set; } = 0.5f;
+    public float VoiceVolume   { get; private set; } = 0.5f;
     public int   LanguageIndex { get; private set; } = 0;
     public bool  IsFullscreen  { get; private set; } = true;
     public int   TextSpeed     { get; private set; } = 1;
@@ -196,10 +196,10 @@ public partial class SettingsManager : Node
             return;
         }
 
-        MasterVolume  = (float)cfg.GetValue(Section, "master",  1.0f);
-        MusicVolume   = (float)cfg.GetValue(Section, "music",   0.8f);
-        SFXVolume     = (float)cfg.GetValue(Section, "sfx",     1.0f);
-        VoiceVolume   = (float)cfg.GetValue(Section, "voice",   1.0f);
+        MasterVolume  = (float)cfg.GetValue(Section, "master",  0.5f);
+        MusicVolume   = (float)cfg.GetValue(Section, "music",   0.5f);
+        SFXVolume     = (float)cfg.GetValue(Section, "sfx",     0.5f);
+        VoiceVolume   = (float)cfg.GetValue(Section, "voice",   0.5f);
         LanguageIndex = (int)cfg.GetValue(SectionUI, "language",   0);
         IsFullscreen  = (bool)cfg.GetValue(SectionUI, "fullscreen", true);
         TextSpeed     = (int)cfg.GetValue(SectionUI, "textspeed",  1);
@@ -219,6 +219,9 @@ public partial class SettingsManager : Node
     }
 
     /// <summary>將主音量套用到 Godot 音訊匯流排</summary>
+    /// <summary>整體音量再降 10%（滑桿顯示不變，實際輸出 ×0.9）。</summary>
+    public const float OverallGain = 0.9f;
+
     private void ApplyMasterVolume()
     {
         // 使用 Master 匯流排控制全域音量
@@ -231,7 +234,7 @@ public partial class SettingsManager : Node
             else
             {
                 AudioServer.SetBusMute(busIdx, false);
-                AudioServer.SetBusVolumeDb(busIdx, Mathf.LinearToDb(MasterVolume));
+                AudioServer.SetBusVolumeDb(busIdx, Mathf.LinearToDb(MasterVolume * OverallGain));
             }
         }
     }
