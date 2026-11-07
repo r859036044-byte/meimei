@@ -20,9 +20,7 @@ public partial class JijiGauge : Control
     public float Border = 3f;
     public float ShaftMaxRx = 0.31f;    // 莖最寬處的半寬（相對整體寬度）
     public float ShaftSplit = 0.30f;    // 最寬的位置（從莖頂往下佔莖長的幾成；0.30＝離頂端 30%，也就是從底往上 70% 高；越大越往下）
-    public float ShaftTopFlatFrac  = 0.30f;   // 莖上面這一段（從頂端往下佔莖長的幾成）整體窄一點
-    public float ShaftTopFlatAmt   = 0.10f;   // 這一段整體窄多少（0.10＝窄 10%）
-    public float ShaftTopFlatBlend = 0.16f;   // 窄的這段到最寬處之間的平滑過渡長度（佔莖長的幾成），避免出現落差
+    public float CapWidthScale = 0.90f;       // 蘑菇頭的寬度倍率（0.90＝頭窄 10%）；只影響頭，不影響莖
     public float ShaftNeck  = 0.60f;    // 跟蘑菇頭接合處的寬度，佔最寬處的幾成（越小，上面鼓出來的弧度越明顯；1＝沒有弧度）
     public float ShaftBottomKeep = 0.45f;   // 莖最底端的寬度，佔最寬處的幾成（越小下面越瘦；1＝不收細）
 
@@ -72,19 +70,10 @@ public partial class JijiGauge : Control
 
     /// <summary>蛋形（連續曲線）：從 yTop 到 yBot，最寬處在 split（0~1）。
     /// 最寬處以上是圓頂（橢圓）；以下平滑收細到最底端剩 bottomKeep 倍寬（不收成尖）。左右對稱。</summary>
-    static Vector2[] Egg(float cx, float yTop, float yBot, float split, float rx, float bottomKeep, float neck,
-                         float flatFrac, float flatAmt, float flatBlend, int n = 40)
+    static Vector2[] Egg(float cx, float yTop, float yBot, float split, float rx, float bottomKeep, float neck, int n = 40)
     {
         float len = yBot - yTop;
-        float Half(float t) => BaseHalf(t) * FlatK(t);
-        float FlatK(float t)   // 上面一段整體窄 flatAmt；在 flatFrac 前面 flatBlend 這段平滑回到 1
-        {
-            if (flatAmt <= 0f) return 1f;
-            float s = Mathf.Clamp((t - (flatFrac - flatBlend)) / Mathf.Max(0.001f, flatBlend), 0f, 1f);
-            s = s * s * (3f - 2f * s);
-            return 1f - flatAmt * (1f - s);
-        }
-        float BaseHalf(float t)   // t：0＝頂、1＝底，回傳該處半寬（未套用「上面窄一點」）
+        float Half(float t)   // t：0＝頂、1＝底，回傳該處半寬
         {
             if (t <= split) { float u = (split - t) / Mathf.Max(0.001f, split); return rx * (neck + (1f - neck) * Mathf.Sqrt(Mathf.Max(0f, 1f - u * u))); }   // 頸（接合處）→ 鼓到最寬
             float v = (t - split) / Mathf.Max(0.001f, 1f - split);
@@ -131,14 +120,16 @@ public partial class JijiGauge : Control
     {
         float w = Size.X, h = Size.Y, cx = w * 0.5f;
         float ballR = w * 0.235f, ballY = h - ballR - 2f;
-        float capRx = w * 0.40f, capTop = capRx * 1.05f, capBot = capRx * 0.32f, capCy = capTop + 2f;
+        float capBaseRx = w * 0.40f;
+        float capRx = capBaseRx * CapWidthScale;                                  // 頭的寬度（只有頭會窄）
+        float capTop = capBaseRx * 1.05f, capBot = capBaseRx * 0.32f, capCy = capTop + 2f;   // 頭的高度不變
         float shaftTop = capCy + capBot * 0.4f - 6f, shaftBot = ballY - ballR * 0.2f + 6f;   // 兩端各多蓋 6px，和頭、球接在一起
 
         var parts = new[]
         {
             Ellipse(cx - ballR * 0.95f, ballY, ballR, ballR),   // 左球
             Ellipse(cx + ballR * 0.95f, ballY, ballR, ballR),   // 右球
-            Egg(cx, shaftTop, shaftBot, ShaftSplit, w * ShaftMaxRx, ShaftBottomKeep, ShaftNeck, ShaftTopFlatFrac, ShaftTopFlatAmt, ShaftTopFlatBlend),   // 莖：蛋形（上胖下瘦）
+            Egg(cx, shaftTop, shaftBot, ShaftSplit, w * ShaftMaxRx, ShaftBottomKeep, ShaftNeck),   // 莖：蛋形（上胖下瘦）
             Cap(cx, capCy, capRx, capTop, capBot),              // 蘑菇頭
         };
         var sil = parts[0];
