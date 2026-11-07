@@ -15,9 +15,9 @@ public partial class JijiGauge : Control
     public bool  ShowGauge;                    // 顯示內部的綠色精力條
     public float Value;                        // 0~1
     public Color OutlineColor = new Color(0.28f, 0.14f, 0.24f);
-    public Color BodyColor    = new Color(1.00f, 0.80f, 0.66f);   // 膚色（一律；跟原本 🍆 按鈕同色）
+    public Color BodyColor    = new Color(1.00f, 0.91f, 0.86f);   // 膚色（一律；偏白的淺膚色）
     public Color ThermoFrame  = new Color(0f, 0f, 0f);            // 溫度計黑框
-    public Color ThermoBack   = new Color(0.08f, 0.08f, 0.10f);   // 溫度計黑底
+    public Color ThermoBack   = new Color(0.42f, 0.26f, 0.16f);   // 溫度計底色（棕色）；外框還是黑的
     public Color ThermoFill   = Colors.White;                     // 升上來的白色
     public float ThermoBorder = 2.2f;                             // 黑框粗細
     public float ThermoTubeR  = 0.075f;                           // 管子半徑（相對整體寬度）
@@ -191,10 +191,11 @@ public partial class JijiGauge : Control
     public override void _Draw()
     {
         if (Size.X < 8f || Size.Y < 8f) return;
+        float u = Size.X / 64f;   // 框線粗細跟著整體大小縮放（原本寬 64 時的粗細為基準）
         var sil = BuildSilhouette();
         DrawColoredPolygon(sil, OutlineColor);
 
-        var shrunk = Geometry2D.OffsetPolygon(sil, -Border);
+        var shrunk = Geometry2D.OffsetPolygon(sil, -Border * u);
         if (shrunk.Count == 0) return;
         var inner = Largest(shrunk);
 
@@ -207,7 +208,7 @@ public partial class JijiGauge : Control
         // 溫度計：黑框、黑底，白色液體由下往上慢慢升
         var thermo = BuildThermo();
         DrawColoredPolygon(thermo, ThermoFrame);
-        var thIn = Geometry2D.OffsetPolygon(thermo, -ThermoBorder);
+        var thIn = Geometry2D.OffsetPolygon(thermo, -ThermoBorder * u);
         if (thIn.Count == 0) return;
         var tin = Largest(thIn);
         DrawColoredPolygon(tin, ThermoBack);

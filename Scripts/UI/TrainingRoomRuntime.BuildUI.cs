@@ -759,7 +759,7 @@ void fragment() {
 
         // 原本黃色精液條的位置：程式畫的雞雞造型按鈕（硬了才出現，點擊＝叫出／收起雞雞，叫出後裡面顯示綠色精力條）
         {
-            const float GaugeW = 64f;
+            const float GaugeW = 96f;   // 原本 64，放大 50%
             float gcx = left + PanelW / 2f;
             _jijiGauge = new JijiGauge { Name = "JijiGauge", TooltipText = "雞雞（點擊叫出／收起；叫出後顯示精力）", Visible = false };
             _jijiGauge.AnchorLeft = 0; _jijiGauge.AnchorTop = 1; _jijiGauge.AnchorRight = 0; _jijiGauge.AnchorBottom = 1;
