@@ -664,10 +664,10 @@ void fragment() {
             _jijiClipMat.SetShaderParameter("circle_rise_px", JijiTouchDepth() * JijiClipCircleFollow);
             float taperK_ = (_jijiPhase == 3 && _jijiStage >= 1) ? (_jijiAnus ? AnusTaperMax * aw : PussyTaperMax) : 0f;
             _jijiClipMat.SetShaderParameter("taper_k", taperK_);   // 插入小穴時雞雞和插入物件交接處也往中間收，配合插入物件的寬度
-            // 雞雞左緣（x≈892）離收縮中線（x≈998）約 106px，變細時左緣被往右拉 taperK_*106；
-            // 插入物件的左下角多往左伸同樣的量，跟著補上雞雞縮進去的縫（雞雞本身不動）
+            // 雞雞左緣（x≈892）離收縮中線（x≈998）約 106px，變細時左緣被往右縮 taperK_*106；
+            // 插入物件的左下角也往內（右）縮同樣的量，跟著雞雞的左緣走（雞雞本身不動）
             if (_insertEdgeMat != null)
-                _insertEdgeMat.SetShaderParameter("wid_lb", (InsertWidenBottomLeftPx + taperK_ * 106f) / 210f);
+                _insertEdgeMat.SetShaderParameter("wid_lb", (InsertShrinkBottomLeftPx + taperK_ * 106f) / 210f);
             _jijiClipMat.SetShaderParameter("taper_start_px", clipLocalY + AnusTaperStartPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_len_px", AnusTaperLenPx * s2c);
             _jijiClipMat.SetShaderParameter("taper_arch_px", AnusTaperArchPx * s2c);
@@ -1338,8 +1338,8 @@ uniform float radius = 4.0;
 uniform float wid_l = 0.428;   // 插入內容左緣 U（向右擴張的基準）
 uniform float wid_s = 0.0;     // 向右擴張比例
 uniform float wid_b = 0.0;     // 只有底部額外的向右擴張比例：讓插入物件的右下角伸到雞雞的右緣（貼齊）
-uniform float wid_r = 0.545;   // 插入內容右緣 U（向左擴張的基準）
-uniform float wid_lb = 0.0;    // 只有底部額外的向左擴張比例：讓插入物件的左下角貼齊雞雞的左緣
+uniform float wid_r = 0.545;   // 插入內容右緣 U（左下角內縮的基準）
+uniform float wid_lb = 0.0;    // 只有底部的左邊往內（往右）縮的比例：讓插入物件的左下角縮進來貼齊雞雞的左緣
 varying vec4 vcol;
 void vertex() { vcol = COLOR; }
 void fragment() {
@@ -1352,7 +1352,7 @@ void fragment() {
     float w = side * bottom;
     float wb_ = smoothstep(1330.0 * texel.y, 1430.0 * texel.y, UV.y);   // 越靠底部越多
     float wid_ = wid_s + wid_b * wb_;
-    float ux_ = UV.x < wid_r ? wid_r - (wid_r - UV.x) / (1.0 + wid_lb * wb_) : UV.x;   // 向左擴張（只有底部，越靠底越多）
+    float ux_ = UV.x < wid_r ? wid_r - (wid_r - UV.x) / (1.0 - min(wid_lb * wb_, 0.9)) : UV.x;   // 左邊往內縮（只有底部，越靠底越多）：內容往右壓，左下角離開左邊、靠向雞雞
     vec2 UVw = vec2(ux_ > wid_l ? wid_l + (ux_ - wid_l) / (1.0 + wid_) : ux_, UV.y);   // 向右擴張（底部額外多一些）
     vec4 c = texture(TEXTURE, UVw);
     if (w > 0.001) {
