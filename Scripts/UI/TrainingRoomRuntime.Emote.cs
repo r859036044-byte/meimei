@@ -12,14 +12,15 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("氣泡表情")]
     [Export] public bool    EmoteEnabled   = true;
-    [Export] public float   EmoteCooldown  = 1.0f;                    // 兩個表情之間最短間隔（愛心可以疊）
+    [Export] public float   EmoteCooldown  = 4.0f;                    // 驚嘆號／問號／毛線團：兩個表情之間最短間隔（秒）。想更少就調大
+    [Export] public float   EmoteHeartCooldown = 3.0f;                // 愛心：兩顆愛心之間最短間隔（秒）。0＝不限制（舊行為，可以一直疊）
     [Export] public float   EmoteNearInsetPx = 10f;                   // 表情氣泡離對話框靠莉奈那一端的內縮（螢幕 px）
     [Export] public float   EmoteBelowGapPx = 8f;                     // 表情氣泡離對話框下緣的距離（螢幕 px）
     [Export] public float   EmoteGapPx     = 10f;                     // 氣泡離前髮邊緣的距離（螢幕 px）；左右邊由 GirlBubbleSideMode 與對話氣泡決定
-    [Export] public float   EmoteMoodStep  = 2f;                      // 心情累積變化多少才冒愛心／毛線團
+    [Export] public float   EmoteMoodStep  = 4f;                      // 心情累積變化多少才冒愛心／毛線團（越大越少冒）
     [Export] public float   EmoteHoldSec   = 1.2f;                    // 驚嘆號／問號／毛線團停留秒數
 
-    float _emoteCd;
+    float _emoteCd, _emoteHeartCd;
     float _emoteMoodPrev = float.NaN, _emoteMoodAcc;
     float _emoteWarm = 1.0f;   // 剛進場（讀檔把心情設成存檔值）先不要冒
 
@@ -27,8 +28,16 @@ public partial class TrainingRoomRuntime
     public void ShowEmote(EmoteBubble.Kind kind)
     {
         if (!EmoteEnabled || UiRoot == null) return;
-        if (kind != EmoteBubble.Kind.Heart && _emoteCd > 0f) return;
-        if (kind != EmoteBubble.Kind.Heart) _emoteCd = EmoteCooldown;
+        if (kind == EmoteBubble.Kind.Heart)
+        {
+            if (_emoteHeartCd > 0f) return;
+            _emoteHeartCd = EmoteHeartCooldown;
+        }
+        else
+        {
+            if (_emoteCd > 0f) return;
+            _emoteCd = EmoteCooldown;
+        }
         // 有對話框：表情氣泡在對話框正下方（不蓋到字）；沒有對話框：放頭的左右側
         int side = PickGirlSide();
         EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec, EmoteFaceTarget);
@@ -62,6 +71,7 @@ public partial class TrainingRoomRuntime
     void UpdateEmotes(float dt)
     {
         _emoteCd -= dt;
+        _emoteHeartCd -= dt;
         if (_emoteWarm > 0f) { _emoteWarm -= dt; _emoteMoodPrev = Mood; return; }
         if (float.IsNaN(_emoteMoodPrev)) { _emoteMoodPrev = Mood; return; }
 
