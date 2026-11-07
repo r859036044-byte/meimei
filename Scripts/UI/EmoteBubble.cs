@@ -15,6 +15,7 @@ public partial class EmoteBubble : Control
 
     public Kind EmoteKind;
     public Func<Vector2> Anchor;
+    public Func<Vector2> TailTarget;   // 尾巴要指向的點（螢幕座標，例如莉奈的臉中心）；null＝維持左下 45°
     public float HoldSec = 1.2f;      // 表情氣泡停留秒數
 
     static readonly Color Outline = new Color("4a3a4f");
@@ -23,9 +24,9 @@ public partial class EmoteBubble : Control
 
     float _age;
     Vector2[] _scribble;
-    public static EmoteBubble Spawn(Node parent, Kind kind, Func<Vector2> anchor, float holdSec = 1.2f)
+    public static EmoteBubble Spawn(Node parent, Kind kind, Func<Vector2> anchor, float holdSec = 1.2f, Func<Vector2> tailTarget = null)
     {
-        var e = new EmoteBubble { EmoteKind = kind, Anchor = anchor, HoldSec = holdSec };
+        var e = new EmoteBubble { EmoteKind = kind, Anchor = anchor, HoldSec = holdSec, TailTarget = tailTarget };
         parent.AddChild(e);
         return e;
     }
@@ -56,11 +57,20 @@ public partial class EmoteBubble : Control
         Reposition();
     }
 
+    static readonly Vector2 Center = new Vector2(36f, 32f);   // 圓圈中心（本地座標）
+    Vector2 _tailDir = new Vector2(-0.8f, 0.6f);   // 尾巴方向（單位向量，本地座標系，Y 向下為正）；預設左下 45° 左右
+
     void Reposition()
     {
         if (Anchor == null) return;
         Vector2 a = Anchor();
-        Position = a - new Vector2(Size.X * 0.5f, Size.Y - 4f);
+        Position = a - new Vector2(Size.X * 0.5f, Size.Y - 4f);   // 氣泡底部中心對齊錨點（跟之前一樣）
+
+        if (TailTarget != null)
+        {
+            Vector2 d = TailTarget() - (Position + Center);   // 目標在圓心的哪個方向（螢幕座標，跟本地座標同軸）
+            if (d.LengthSquared() > 1f) _tailDir = d.Normalized();
+        }
     }
 
     public override void _Process(double delta)
@@ -85,10 +95,13 @@ public partial class EmoteBubble : Control
 
     public override void _Draw()
     {
-        var c = new Vector2(36f, 32f);
-        // 氣泡：白底圓＋深色描邊＋左下小尾巴
-        DrawColoredPolygon(new[] { new Vector2(c.X - 10f, 58f), new Vector2(c.X + 6f, 60f), new Vector2(c.X - 14f, 72f) }, Outline);
-        DrawColoredPolygon(new[] { new Vector2(c.X - 8f, 57f), new Vector2(c.X + 4f, 58f), new Vector2(c.X - 11f, 67f) }, Colors.White);
+        var c = Center;
+        // 氣泡：白底圓＋深色描邊＋尾巴（尾巴朝向 TailTarget，例如莉奈的臉；沒有目標就維持左下 45°）
+        Vector2 perp = new Vector2(-_tailDir.Y, _tailDir.X);   // 垂直於尾巴方向，決定尾巴底部的寬度
+        Vector2 baseC = c + _tailDir * 26f;        // 尾巴底邊中心（貼在圓周上）
+        Vector2 tip   = c + _tailDir * 44f;         // 尾巴尖端
+        DrawColoredPolygon(new[] { baseC + perp * 9f, baseC - perp * 9f, tip }, Outline);
+        DrawColoredPolygon(new[] { baseC + perp * 6f, baseC - perp * 6f, c + _tailDir * 38f }, Colors.White);
         DrawCircle(c, 31f, Outline);
         DrawCircle(c, 28f, Colors.White);
 

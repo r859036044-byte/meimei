@@ -31,7 +31,15 @@ public partial class TrainingRoomRuntime
         if (kind != EmoteBubble.Kind.Heart) _emoteCd = EmoteCooldown;
         // 有對話框：表情氣泡在對話框正下方（不蓋到字）；沒有對話框：放頭的左右側
         int side = PickGirlSide();
-        EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec);
+        EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec, EmoteFaceTarget);
+    }
+
+    /// <summary>表情氣泡尾巴要指向的點：莉奈的臉中心（跟對話框尾巴用同一個點）。</summary>
+    Vector2 EmoteFaceTarget()
+    {
+        if (_canvas != null && Layers.TryGetValue("前髮", out var hair) && hair != null && IsInstanceValid(hair))
+            return CanvasToScreen(hair, new Vector2((HeadEdgeLeftX + HeadEdgeRightX) * 0.5f, HeadCenterY));
+        return GetViewport().GetVisibleRect().Size * 0.5f;
     }
 
     /// <summary>表情氣泡底部中心。對話框顯示中 → 對話框正下方（水平對齊對話框中心）；否則 → 頭的左／右側。</summary>

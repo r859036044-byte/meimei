@@ -27,7 +27,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "1,4,0.1")]   public float BubbleZoomCurve = 1.8f;   // 縮放曲線：越大，鏡頭拉遠時對話框縮得越多、而且縮得越早（1＝線性；>1 是先小後大的曲線）
     /// <summary>現在的對話框倍率：跟著鏡頭縮放（拉遠變小、拉近變大），中間走一條曲線。
     /// 背景拉遠被縮小時，對話框在視覺上會顯得特別大（視覺錯覺），所以拉遠時要縮得比線性更多。</summary>
-    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayer = 2.0f;   // 男主對話框：固定大小，不跟鏡頭縮放
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayer = 1.7f;   // 男主對話框：固定大小，不跟鏡頭縮放（2.0 縮小 15%）
     float BubbleK(bool isPlayer = false)
     {
         if (isPlayer) return BubbleScalePlayer;
