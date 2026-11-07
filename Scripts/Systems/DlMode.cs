@@ -12,7 +12,8 @@ using System;
 ///   • 試玩版（DemoMode.Enabled）一律用 DL 版。
 ///   • 匯出時在 Export Preset → Features → Custom 加上自訂 feature tag「dl」。
 ///
-/// 對應關係（圖層名稱 → 圖檔）：雞雞 → 雞雞.png、開1 → xiaoxuekai.png、開上 → xiaoxuekaishang.png、插入 → xiaoxuekai2.png。
+/// 對應關係（圖層名稱 → 圖檔）：雞雞 → 雞雞.png、開1 → xiaoxuekai.png、開上 → xiaoxuekaishang.png、插入 → xiaoxuekai2.png、
+///                              洞 → xiaoxuekaidi.png、m腿/小穴（M 腿小穴）→ 小穴_M.png。
 /// 某張馬賽克圖不存在（例如還沒產生／還沒匯入）時，自動退回載入原圖，不會缺圖。
 /// </summary>
 public static class DlMode
@@ -25,7 +26,7 @@ public static class DlMode
     public static bool Enabled => _cached ??= DefaultEnabled || DemoMode.Enabled || OS.HasFeature("dl");
 
     // 有馬賽克版的圖（Sprites/ 底下的檔名，不含副檔名）
-    static readonly string[] MosaicSprites = { "雞雞", "xiaoxuekai", "xiaoxuekaishang", "xiaoxuekai2" };
+    static readonly string[] MosaicSprites = { "雞雞", "xiaoxuekai", "xiaoxuekaishang", "xiaoxuekai2", "xiaoxuekaidi", "小穴_M" };
 
     static bool HasMosaic(string name) =>
         Array.IndexOf(MosaicSprites, name) >= 0 && ResourceLoader.Exists("res://Resources/Sprites/DL/" + name + ".png");

@@ -2,7 +2,7 @@
 """
 DL 版馬賽克圖產生工具。
 
-把「雞雞、開1、開上、插入」四張圖做成馬賽克版，存到 Resources/Sprites/DL/（檔名跟原圖相同）。
+把「雞雞、開1、開上、插入、洞、M 腿小穴」六張圖做成馬賽克版，存到 Resources/Sprites/DL/（檔名跟原圖相同）。
 原圖完全不動；遊戲在 DL 模式（見 Scripts/Systems/DlMode.cs）才會改載入 DL 資料夾裡的版本。
 
 用法（在專案根目錄）：
@@ -18,8 +18,9 @@ import argparse, os, sys
 import numpy as np
 from PIL import Image
 
-# 檔名（不含 .png）：對應遊戲圖層  雞雞→雞雞、xiaoxuekai→開1、xiaoxuekaishang→開上、xiaoxuekai2→插入
-SOURCES = ["雞雞", "xiaoxuekai", "xiaoxuekaishang", "xiaoxuekai2"]
+# 檔名（不含 .png）：對應遊戲圖層  雞雞→雞雞、xiaoxuekai→開1、xiaoxuekaishang→開上、xiaoxuekai2→插入、
+#                                  xiaoxuekaidi→洞、小穴_M→m腿/小穴（M 腿的小穴）
+SOURCES = ["雞雞", "xiaoxuekai", "xiaoxuekaishang", "xiaoxuekai2", "xiaoxuekaidi", "小穴_M"]
 
 def mosaic(im: Image.Image, block: int) -> Image.Image:
     a = np.asarray(im.convert("RGBA")).astype(np.float32)
