@@ -23,8 +23,18 @@ public partial class TrainingRoomRuntime
     JijiGauge _jijiGauge;   // 程式畫的雞雞造型按鈕（JijiGauge.cs），建立在 BuildUI.cs
     float   _hudGateA = 0f;
 
+    /// <summary>保險：不是 M 腿、也不在 M 腿切換中，「m腿」那一組圖層（腿底、小穴_M、腿1_M…）一律藏起來。
+    /// 腿底是一大塊平塗的粉色底，如果因為任何原因在一般腿時被打開，就會變成小穴下面一塊粉膚色。</summary>
+    void EnforceMLegLayersHidden()
+    {
+        if (_mLegOpen || _mLegTransitioning) return;
+        foreach (var kv in Layers)
+            if (kv.Key.StartsWith("m腿") && kv.Value != null && kv.Value.Visible) kv.Value.Visible = false;
+    }
+
     void UpdateHudGate(float dt)
     {
+        EnforceMLegLayersHidden();
         UpdateBreakChoices();   // 破功結束就收掉「慢下來／射進去」選項（BreakChoice.cs）
         if (_vertBarsPanel != null && IsInstanceValid(_vertBarsPanel)) _vertBarsPanel.Visible = !HideErectBar;
 
