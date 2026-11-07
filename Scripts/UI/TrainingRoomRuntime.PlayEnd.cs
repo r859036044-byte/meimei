@@ -55,6 +55,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,3,0.05")] public float FeelHoleBoost = 0.8f; // 小穴高潮值 100 時累積速度額外 ×(1+這個)：小穴越舒服越容易射
     [Export(PropertyHint.Range, "0,5,0.05")] public float FeelDecay = 0.8f;     // 沒累積時每秒下降
     // 破功倒數：精力到 100（溫度計滿）就開始，有一個專門的計數 _breakT 在跑，跑滿就射。可以在這段時間按「忍耐」回去。
+    [Export(PropertyHint.Range, "0,119,1")] public float DemoStaminaCap = 99f;   // 試玩版：精力最多到這個值（<100＝不會破功、不能射）
     [Export(PropertyHint.Range, "0.5,30,0.5")] public float BreakWindowSec = 5f;        // 什麼都不做：這麼多秒後射
     [Export(PropertyHint.Range, "0.3,30,0.1")] public float BreakWindowThrustSec = 3f;   // 抽插速度滿檔：計數走得比較快，只要這麼多秒（速度越慢越接近上面那個）
     [Export(PropertyHint.Range, "0,1,0.05")] public float EndureFailWhileBreaking = 0.5f;   // 破功倒數中、沒在抽插時按忍耐，忍不住的機率（失敗了還有時間再按）
@@ -175,6 +176,7 @@ public partial class TrainingRoomRuntime
         if (rise <= 0f && !_breaking) Stamina -= FeelDecay * dt;
         if (_endureT > 0f) Stamina -= EndureFeelDrop * dt;
 
+        if (DemoMode.Enabled) Stamina = Mathf.Min(Stamina, DemoStaminaCap);   // 試玩版：精力到不了 100，所以不會破功、不會射
         if (Stamina >= 100f && _endureT <= 0f) _breaking = true;
         _maleThrusting = thrusting; _maleThrustSpeed = thrusting ? sThrust : 0f;
         if (_breaking)
@@ -257,6 +259,7 @@ public partial class TrainingRoomRuntime
     /// <summary>射精。amountFrac＝這次只射出多少比例（1＝全射；忍耐失敗「漏出」時是 0.3~0.5）；sayLines＝射精當下男主說的話（null＝用 MaleEjacLines）。</summary>
     void MaleEjaculate(float amountFrac = 1f, string[] sayLines = null)
     {
+        if (DemoMode.Enabled) return;   // 試玩版：不能射精
         if (_ejacRunning || _insertEjacActive) return;
         CloseBreakChoicesKeepBubble();   // 破功選項還在的話先收掉（不然射精台詞會被選項擋住）
         float s01 = Mathf.Clamp(SemenStock / 100f, 0f, 1f);
@@ -370,6 +373,7 @@ public partial class TrainingRoomRuntime
         {
             _statLbl = MakeCornerLbl(parent, "MaleStatLbl", -230f, -150f, -240f, 16);
         }
+        _ejacBtn.Visible = !DemoMode.Enabled;   // 試玩版：不顯示射精按鈕
         _timeLbl.Visible = PlayTimeLimitOn;
         float left = Mathf.Max(0f, PlayTimeLimitSec - _playTime);
         _timeLbl.Text = $"⏳ {(int)(left / 60f)}:{(int)(left % 60f):00}";

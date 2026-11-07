@@ -806,19 +806,12 @@ void fragment() {
         int idxJiji = UseJijiGauge ? count : 4;      // 🍆（隱藏時放在條外，不佔位）
         int idxTongue = UseJijiGauge ? 4 : 5;
         float W = Pad * 2f + IconBtnSize;
-        float H = Pad * 2f + IconBtnSize * count + Gap * (count - 1);
+        float H = Pad * 2f + IconBtnSize * count + Gap * (count - 1);   // 只用來算旁邊精力條的高度
 
-        var bar = new Panel { Name = "BottomBar" };
-        bar.AnchorLeft = 0; bar.AnchorTop = 1; bar.AnchorRight = 0; bar.AnchorBottom = 1;
-        bar.OffsetLeft = 20; bar.OffsetRight = 20 + W;
-        bar.OffsetBottom = -20; bar.OffsetTop = -20 - H;
-        bar.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(W / 2f)));   // 直的膠囊形
-        _canvas.AddChild(bar);
-
-        float Y(int i) => Pad + (IconBtnSize + Gap) * i;
-
-        _btnLeft  = MkIconBtn(bar, "BtnLeft",  "左手", new Color(1.00f, 0.72f, 0.82f), new Vector2(Pad, Y(idxLeft)));
-        _btnRight = MkIconBtn(bar, "BtnRight", "右手", new Color(0.80f, 0.72f, 1.00f), new Vector2(Pad, Y(idxRight)));
+        // 左邊的按鈕：不再有共用的底板（BottomBar），每顆都是獨立節點（直接掛在畫面上），
+        // 所以版面編輯器（F2）可以一顆一顆自由拖動、縮放（名稱見 Camera.cs 的 _uiPanelNames）。
+        _btnLeft  = MkFloatBtn("BtnLeft",  "左手", new Color(1.00f, 0.72f, 0.82f), idxLeft, count);
+        _btnRight = MkFloatBtn("BtnRight", "右手", new Color(0.80f, 0.72f, 1.00f), idxRight, count);
         _btnLeft.Pressed  += () => ToggleHandMode(HandMode.Left);
         _btnRight.Pressed += () => ToggleHandMode(HandMode.Right);
 
@@ -831,27 +824,41 @@ void fragment() {
             else { b.Text = "✋"; b.AddThemeFontSizeOverride("font_size", 30); }
         }
 
-        var btnJiji = MkIconBtn(bar, "Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), new Vector2(Pad, Y(idxJiji)));
+        var btnJiji = MkFloatBtn("Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), idxJiji, count);
         btnJiji.Text = "🍆";
         _btnJijiNode = btnJiji;   // HudGate.cs：男主說硬了才顯示
         btnJiji.AddThemeFontSizeOverride("font_size", 30);
         btnJiji.Pressed += () => OnJijiButtonPressed();
 
-        _btnTongue = MkIconBtn(bar, "BtnTongue", "舌頭（選取後點嘴巴）", Colors.White, new Vector2(Pad, Y(idxTongue)));
+        _btnTongue = MkFloatBtn("BtnTongue", "舌頭（選取後點嘴巴）", Colors.White, idxTongue, count);
         _btnTongue.Text = "👅";
         _btnTongue.AddThemeFontSizeOverride("font_size", 30);
         _btnTongue.Pressed += () => ToggleTongueTool();
         RefreshTongueButton();
 
-        _btnDrag = MkIconBtn(bar, "BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, new Vector2(Pad, Y(idxDrag)));
+        _btnDrag = MkFloatBtn("BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, idxDrag, count);
         _btnDrag.Icon = MkDressIcon(); _btnDrag.IconAlignment = HorizontalAlignment.Center;   // 白色連衣裙
         _btnDrag.Pressed += () => ToggleDragTool();
         RefreshDragButton();
 
-        _btnMouse = MkIconBtn(bar, "BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, new Vector2(Pad, Y(idxMouse)));
+        _btnMouse = MkFloatBtn("BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, idxMouse, count);
         _btnMouse.Icon = MkCursorIcon(); _btnMouse.IconAlignment = HorizontalAlignment.Center;   // 滑鼠游標箭頭
         _btnMouse.Pressed += () => SelectMouseTool();
         RefreshMouseButton();
+
+        // 忍耐：放在雞雞造型按鈕旁邊（雞雞按鈕建在 BuildStaminaSemenBars，寬 96、中心在 left+PanelW/2）。
+        // 跟雞雞按鈕一起「男主說硬了」才出現（HudGate.cs），也是獨立節點，版面編輯器可以單獨拖動。
+        {
+            float gaugeRight = 20f + W + Gap + StamPanelW + Gap + StamPanelW / 2f + 48f;   // 雞雞按鈕右緣（跟 BuildStaminaSemenBars 的算法一致）
+            _endureBtn = MkIconBtn(_canvas, "BtnEndure", "忍耐（精力快滿時按，可以忍回去；抽插太快會忍不住）", new Color(0.78f, 0.90f, 0.80f), Vector2.Zero);
+            _endureBtn.AnchorLeft = 0; _endureBtn.AnchorRight = 0; _endureBtn.AnchorTop = 1; _endureBtn.AnchorBottom = 1;
+            _endureBtn.OffsetLeft = gaugeRight + 8f; _endureBtn.OffsetRight = gaugeRight + 8f + IconBtnSize;
+            _endureBtn.OffsetBottom = -20f; _endureBtn.OffsetTop = -20f - IconBtnSize;
+            _endureBtn.Text = "🧘";
+            _endureBtn.AddThemeFontSizeOverride("font_size", 30);
+            _endureBtn.Pressed += OnEndurePressed;
+            _endureBtn.Visible = false;   // 男主說硬了才出現
+        }
 
         // 右下角：離開房間（＝結束今天，走 EndToday 流程）
         {
@@ -891,6 +898,18 @@ void fragment() {
         _staminaBar.AddThemeStyleboxOverride("fill", stFill);
         _staminaBar.AddThemeStyleboxOverride("background", stBack);
         stPanel.AddChild(_staminaBar);
+    }
+
+    /// <summary>左下角的獨立圖示按鈕（沒有底板）：由上往下第 slotFromTop 格，共 count 格，直接掛在畫面上。</summary>
+    Button MkFloatBtn(string name, string tooltip, Color bg, int slotFromTop, int count)
+    {
+        const float Gap = 12f;
+        var btn = MkIconBtn(_canvas, name, tooltip, bg, Vector2.Zero);
+        btn.AnchorLeft = 0; btn.AnchorRight = 0; btn.AnchorTop = 1; btn.AnchorBottom = 1;
+        float bottom = -20f - (count - 1 - slotFromTop) * (IconBtnSize + Gap);
+        btn.OffsetLeft = 20f; btn.OffsetRight = 20f + IconBtnSize;
+        btn.OffsetBottom = bottom; btn.OffsetTop = bottom - IconBtnSize;
+        return btn;
     }
 
     /// <summary>圓形圖示按鈕：不顯示文字，tooltip 顯示功能名稱；白色描邊、hover 變亮、按下變暗。</summary>

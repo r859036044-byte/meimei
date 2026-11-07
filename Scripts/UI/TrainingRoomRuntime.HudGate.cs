@@ -39,6 +39,9 @@ public partial class TrainingRoomRuntime
         if (_staminaPanel != null && IsInstanceValid(_staminaPanel)) _staminaPanel.Visible = !UseJijiGauge && vis;
         if (!UseJijiGauge) { if (_btnJijiNode != null && IsInstanceValid(_btnJijiNode)) _btnJijiNode.Modulate = col; if (_staminaPanel != null && IsInstanceValid(_staminaPanel)) _staminaPanel.Modulate = col; }
 
+        // 忍耐按鈕（在雞雞按鈕旁邊）：跟雞雞按鈕一起，硬了才出現
+        if (_endureBtn != null && IsInstanceValid(_endureBtn)) _endureBtn.Visible = vis;
+
         // 雞雞造型按鈕：硬了才出現；叫出雞雞後裡面顯示綠色精力條
         if (_jijiGauge != null && IsInstanceValid(_jijiGauge))
         {
