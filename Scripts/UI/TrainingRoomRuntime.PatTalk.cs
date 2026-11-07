@@ -28,10 +28,11 @@ public partial class TrainingRoomRuntime
     /// <summary>現在的對話框倍率：跟著鏡頭縮放（拉遠變小、拉近變大），中間走一條曲線。
     /// 背景拉遠被縮小時，對話框在視覺上會顯得特別大（視覺錯覺），所以拉遠時要縮得比線性更多。</summary>
     [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayer = 1.7f;   // 男主對話框：固定大小，不跟鏡頭縮放（2.0 縮小 15%）
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayerFar = 1.1f;   // 男主對話框：鏡頭沒拉近時的倍率（拉近到最大是 BubbleScalePlayer）
     float BubbleK(bool isPlayer = false)
     {
-        if (isPlayer) return BubbleScalePlayer * _playerFit;   // 男主：固定倍率 × 動態縮小係數（PlayerChoice.cs）
         float t = Mathf.Clamp((_camZoom - 1.1f) / Mathf.Max(0.01f, CamZoomMax - 1.1f), 0f, 1f);
+        if (isPlayer) return Mathf.Lerp(BubbleScalePlayerFar, BubbleScalePlayer, Mathf.Pow(t, BubbleZoomCurve)) * _playerFit;   // 男主：跟鏡頭縮放（沒拉近較小）× 動態縮小係數
         return Mathf.Lerp(BubbleScaleFar, BubbleScaleNear, Mathf.Pow(t, BubbleZoomCurve));
     }
     const float BubbleTailLen = 16f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致

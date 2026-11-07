@@ -63,6 +63,7 @@ public partial class TrainingRoomRuntime
 
         // 忍耐按鈕（在雞雞按鈕旁邊）：跟雞雞按鈕一起，硬了才出現
         if (_endureBtn != null && IsInstanceValid(_endureBtn)) _endureBtn.Visible = vis;
+        if (_ejacBtn != null && IsInstanceValid(_ejacBtn)) _ejacBtn.Visible = vis;
 
         // 雞雞造型按鈕：硬了才出現；叫出雞雞後裡面顯示綠色精力條
         if (_jijiGauge != null && IsInstanceValid(_jijiGauge))

@@ -765,7 +765,7 @@ void fragment() {
             _jijiGauge = new JijiGauge { Name = "JijiGauge", TooltipText = "雞雞（點擊叫出／收起；叫出後顯示精力）", Visible = false };
             _jijiGauge.AnchorLeft = 0; _jijiGauge.AnchorTop = 1; _jijiGauge.AnchorRight = 0; _jijiGauge.AnchorBottom = 1;
             _jijiGauge.OffsetLeft = gcx - GaugeW / 2f; _jijiGauge.OffsetRight = gcx + GaugeW / 2f;
-            _jijiGauge.OffsetBottom = -20; _jijiGauge.OffsetTop = -20 - H * JijiGaugeHeightFrac;   // 縮短（HudGate.cs 的 JijiGaugeHeightFrac）
+            _jijiGauge.OffsetBottom = -20 - EjacBtnH - 8f; _jijiGauge.OffsetTop = -20 - EjacBtnH - 8f - H * JijiGaugeHeightFrac;   // 縮短（HudGate.cs 的 JijiGaugeHeightFrac）
             _jijiGauge.Pressed += () => OnJijiButtonPressed();
             _canvas.AddChild(_jijiGauge);
         }
@@ -795,6 +795,7 @@ void fragment() {
     //  使用者要求：直的膠囊長條；按鈕只顯示圖案，文字只在滑鼠移過去時（TooltipText）顯示；
     //  精力從左上移過來，做成獨立直條面板 StaminaPanel，放在按鈕條右側，由下往上填。
     const float IconBtnSize = 64f;
+    const float EjacBtnH = 44f;
 
     void BuildBottomButtons()
     {
@@ -858,6 +859,20 @@ void fragment() {
             _endureBtn.AddThemeFontSizeOverride("font_size", 30);
             _endureBtn.Pressed += OnEndurePressed;
             _endureBtn.Visible = false;   // 男主說硬了才出現
+        }
+
+        // 射精：蓋在雞雞圖標正下方（雞雞圖標往上抬），跟雞雞一起出現，也是獨立節點可拖動
+        {
+            _ejacBtn = new Button { Name = "BtnEjac", Text = "💦 射精", FocusMode = Control.FocusModeEnum.None, Visible = false, TooltipText = "射精（精力夠高才能按）" };
+            _ejacBtn.AnchorLeft = 0; _ejacBtn.AnchorRight = 0; _ejacBtn.AnchorTop = 1; _ejacBtn.AnchorBottom = 1;
+            _ejacBtn.OffsetLeft = gaugeRight - 96f; _ejacBtn.OffsetRight = gaugeRight;
+            _ejacBtn.OffsetBottom = -20f; _ejacBtn.OffsetTop = -20f - EjacBtnH;
+            var es = MkRoundBtnStyle(new Color(1f, 0.82f, 0.88f));
+            foreach (var n in new[] { "normal", "hover", "pressed", "disabled" }) _ejacBtn.AddThemeStyleboxOverride(n, es);
+            _ejacBtn.AddThemeColorOverride("font_color", Colors.Black);
+            _ejacBtn.AddThemeColorOverride("font_disabled_color", Colors.Black);
+            _ejacBtn.Pressed += () => { if (Stamina >= EjacBtnFeelPct && SemenStock > 0f) MaleEjaculate(); };
+            _canvas.AddChild(_ejacBtn);
         }
 
         // 右下角：離開房間（＝結束今天，走 EndToday 流程）
