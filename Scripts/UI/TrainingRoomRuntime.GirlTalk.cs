@@ -213,6 +213,8 @@ public partial class TrainingRoomRuntime
     bool GirlSayRich(string raw, bool allowReply = true)
     {
         ParseGirlLine(raw, out var segs, out var reply);
+        _lastGirlLineSoundOnly = IsSoundOnly(string.Join("", segs));
+        if (_lastGirlLineSoundOnly) reply = null;   // 只有「嗯…」「啊哈…」這種聲音：男主不回應
         bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
         if (good) TriggerMouthSmile();   // 舒服＝台詞加愛心：嘴巴也換成笑（Mouth.cs）
         for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
@@ -333,8 +335,19 @@ public partial class TrainingRoomRuntime
 
     /// <summary>莉奈說完定時台詞後，男主在自己的對話框回應。只有「痛」和「莉奈要高潮了」兩種狀態才回。
     /// brat＝剛剛莉奈說的是雌小鬼話（true）或正常話（false）。</summary>
+    bool _lastGirlLineSoundOnly;   // 莉奈剛說的那句只有擬聲詞（不是真的台詞）
+
+    /// <summary>整句只有擬聲詞／語氣詞／標點／愛心（嗯、啊、哈、唔、哼…）＝沒有實際的話，男主不用回應。</summary>
+    static bool IsSoundOnly(string t)
+    {
+        const string sounds = "嗯啊哈唔呀咦哼哦喔欸誒呼嘿噫嗚哇呃…。，、,.!?！？~～♡♥❤ 　-—";
+        foreach (char c in t) if (sounds.IndexOf(c) < 0) return false;
+        return true;
+    }
+
     void GirlTalkMaleReply(bool brat)
     {
+        if (_lastGirlLineSoundOnly) return;   // 莉奈只發出聲音，男主不回應
         var lines = CurrentGirlTalkState() switch
         {
             GirlTalkState.Pain       => brat ? MaleReplyBratPain       : MaleReplyNormalPain,
