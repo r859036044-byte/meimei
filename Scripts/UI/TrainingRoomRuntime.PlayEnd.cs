@@ -223,7 +223,7 @@ public partial class TrainingRoomRuntime
         else if (_erectOn && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
         {
             _erectOn = false;
-            if (_jijiPhase > 0) { SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
+            if (_jijiPhase > 0) { if (!DemoMode.Enabled) SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
         }
 
         // ── 事件台詞 ──
@@ -237,7 +237,7 @@ public partial class TrainingRoomRuntime
         _prevBreaking = _breaking;
         if (thrusting)
         {
-            if (_pain > 0.6f) SayMaleEv(MaleFastLines);
+            // 太快了／痛：由莉奈說（GirlTalk.cs 的「痛」區），男主不說
             _maleThrustLineT -= dt;
             if (_maleThrustLineT <= 0f) { _maleThrustLineT = MaleThrustLineGap * Rf(0.7f, 1.3f); SayMaleEv(MaleThrustLines); }
         }
@@ -260,7 +260,7 @@ public partial class TrainingRoomRuntime
         SemenStock = Mathf.Max(0f, SemenStock - SemenUsePerEjac * _ejacMul);
         SayMaleEv(sayLines ?? MaleEjacLines, true);
         TriggerEjaculation();
-        GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this)) SayMaleEv(MaleAfterEjacLines); };
+        GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this) && !DemoMode.Enabled) SayMaleEv(MaleAfterEjacLines); };
         _ejacDone = true;
         _breaking = false; _breakT = 0f;
         Stamina = Mathf.Min(Stamina, FeelAfterEjac);
@@ -304,7 +304,8 @@ public partial class TrainingRoomRuntime
     /// <summary>在 UpdateStage1Osc（抽插中）每幀呼叫：時間到停下／強制加速／忍耐中停止抽插。</summary>
     void PlayEndTick(float dt)
     {
-        if (!PlayTimeLimitOn)
+        if (!PlayTimeLimitOn || DemoMode.Enabled)   // 試玩版：沒有時間限制
+
         {
             if (_playTimeUp) { _playTimeUp = false; _playForced = false; }
         }
@@ -323,7 +324,7 @@ public partial class TrainingRoomRuntime
         UpdateHoverTip();   // 懸停提示氣泡（HoverTip.cs）
         UpdateBarNumbers(); // 條上的具體數值
         // 倒數：進房間就開始算
-        if (PlayTimeLimitOn && !_playTimeUp)
+        if (PlayTimeLimitOn && !DemoMode.Enabled && !_playTimeUp)
         {
             _playTime += dt;
             if (_playTime >= PlayTimeLimitSec)

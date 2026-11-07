@@ -535,6 +535,7 @@ public partial class TrainingRoomRuntime : Node
             return;
         }
         if (@event is InputEventMouseButton ab && ab.Pressed && ab.ButtonIndex == MouseButton.Left
+            && !DemoMode.Enabled   // 試玩版：不能互動肛門
             && _mLegOpen && _jijiPhase <= 2 && !IsPointerOverUi() && IsMouseOverMLegAnus(ab.Position))
         {
             // M 腿模式：點肛門圖層＝肛門的突破流程（OnAnusClicked，Jiji.cs）；選了 👅 且雞雞沒出現 → 舔肛門（增加肛門濕潤）

@@ -371,7 +371,7 @@ void fragment() {
         if (!_erectOn) { SayMale(MaleNotHardLines); GD.Print("[Male] 勃起度不夠，雞雞不出現"); return; }
         // 試玩版：要先把內褲脫掉（_pantyGone）才能叫出雞雞
         if (DemoMode.Enabled && !_pantyGone) { SayMale(DemoPantyFirstLines); GD.Print("[Male] 試玩版：內褲還沒脫，雞雞不出現"); return; }
-        SayMaleEv(MaleShowLines);
+        // 雞雞出現：男主不再說話（MaleShowLines 不使用）
         CancelBTouch();   // 雞雞出現後 B 改當雞雞入口，摸 B 的手收起來
         _jijiPhase = 1; _jijiStage = 0; _jijiInsertY = 0f;
         _jijiMovingUp = false; _resistBlocking = false; _resistProgress = 0f; _jijiSurgeVel = 0f;
@@ -994,7 +994,7 @@ void fragment() {
     async System.Threading.Tasks.Task PullOutAsync()
     {
         if (_pullOutAnim) return;
-        SayMaleEv(MalePullOutLines, true);
+        if (!DemoMode.Enabled) SayMaleEv(MalePullOutLines, true);   // 試玩版：不說拔出台詞
         _ = PullOutExprSeqAsync();   // 拔出後表情：抖動嘴 2 秒 → 小嘴巴 → 越來越平淡（InsertMouth.cs）
         _pullOutAnim = true;
         _pullActive = false;
