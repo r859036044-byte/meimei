@@ -201,6 +201,8 @@ public partial class TrainingRoomRuntime
         if (isPlayer && _playerChoiceActive && !_playerChoiceSetting) return;   // 選項還在時，男主氣泡不被別的台詞蓋掉
         if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊
         if (bubble == null || !IsInstanceValid(bubble)) (bubble, lbl) = BuildBubble(isPlayer);
+        // 確保所有愛心字元都附帶 Emoji 表現型變體選擇器（VS16 / \uFE0F），避免在 Windows CJK 字型下被著色為黑色文字字形
+        text = text.Replace("❤\uFE0F", "❤").Replace("❤", "❤\uFE0F");
         lbl.Text = text;
         bubble.ResetSize();
         bubble.SetMeta("hide_t", PatTalkShowTime);

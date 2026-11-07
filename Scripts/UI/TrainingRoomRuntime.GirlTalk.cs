@@ -58,13 +58,16 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 3：觸摸中")]
     [Export] public string[] BratLinesTouch =
     {
-        "呼……❤就只有這點本事嗎？哈啊❤…再來…啊哈…❤",
+        "呼……❤\uFE0F就只有這點本事嗎？|哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
+        "呼……❤\uFE0F就只有這點本事嗎？",
+        "哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
     };
     [Export] public string[] BratNormalLinesTouch =
     {
-        "好舒服❤……再來…❤我還想要❤",
-        "嗯❤……感覺身體變得好奇怪❤",
-        "啊❤……那裡❤喜歡❤……",
+        "好舒服❤\uFE0F……再來…❤\uFE0F我還想要❤\uFE0F",
+        "嗯❤\uFE0F……感覺身體變得好奇怪❤\uFE0F",
+        "啊❤\uFE0F……那裡❤\uFE0F喜歡❤\uFE0F……",
+        "哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
     };
 
     [ExportGroup("莉奈台詞 4：插入中")]
@@ -136,14 +139,15 @@ public partial class TrainingRoomRuntime
     GirlTalkState CurrentGirlTalkState()
     {
         var f = _reactFlags;
-        bool touching = f.breast || f.nipple || f.mouth || f.head || f.pussy || f.thrust;
+        bool touching = f.breast || f.nipple || f.mouth || f.head || f.pussy || f.thrust || _bTouchRunning || _patOn || _tongueOn;
         // 優先順序（由高到低）：莉奈要高潮 > 男主要射 > 痛 > 插入中 > 觸摸中 > 衣服脫了 > 什麼都沒做
         if (ClimaxLevel >= GirlTalkNearClimaxAt && (touching || BratInserted)) return GirlTalkState.NearClimax;
         if (BratInserted && (Stamina >= GirlTalkMaleNearEjacAt || _breaking)) return GirlTalkState.MaleNearEjac;
         if (BratInserted && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）；還沒插入不會說「痛」（碰小穴時走「觸摸中」）
         if (Wetness >= GirlTalkWetAt) return GirlTalkState.Wet;                          // 很濕了：誘惑的話（排在插入中／觸摸中前面）
         if (BratInserted) return GirlTalkState.Inserted;
-        if (touching) return GirlTalkState.Touching;
+        // 正在觸摸、或觸摸過且仍有濕度/快感時，維持觸摸狀態，絕不跳到日常「今天辛苦了」等正常話
+        if (touching || (HadBreastTouch && (Wetness > 15f || ClimaxLevel > 5f))) return GirlTalkState.Touching;
         if (ExposureScore() >= GirlTalkUndressAt) return GirlTalkState.Undressed;
         return GirlTalkState.Idle;
     }
@@ -181,7 +185,7 @@ public partial class TrainingRoomRuntime
     //   • 莉奈不舒服的時候（痛、速度不對、太乾）：台詞裡有「啊哈、嗯、唔…」這類擬聲詞，就在後面加上「不要…」之類的拒絕（GirlRefuseWords）。
     [ExportGroup("莉奈台詞 9：分段與加工")]
     [Export] public float GirlSegmentGapSec = 1.4f;   // 分段台詞：下一段幾秒後出現
-    [Export] public string GirlHeart = "❤";            // 舒服時加在台詞後面的愛心
+    [Export] public string GirlHeart = "❤\uFE0F";            // 舒服時加在台詞後面的愛心
     [Export(PropertyHint.Range, "0,100,1")] public float GirlHeartClimaxAt = 35f;   // 穴高潮值到這個以上算「舒服」（也會看眉毛的舒服程度）
     [Export] public string[] GirlRefuseWords = { "不要…", "不、不要…", "不行…", "等、等一下…" };   // 不舒服時，擬聲詞後面加的話（隨機挑一個）
     [Export] public string[] GirlOnomatopoeia = { "啊哈", "哈啊", "嗯", "唔", "啊", "呼", "哈", "嗚" };   // 算擬聲詞的字
@@ -389,6 +393,12 @@ public partial class TrainingRoomRuntime
             _                       => brat ? BratLines        : BratNormalLines,
         };
         // 某個狀態的台詞被清空時，退回「什麼都沒做」那組，不會突然不說話
-        return DemoMode.Trim(lines != null && lines.Length > 0 ? lines : (brat ? BratLines : BratNormalLines));   // 試玩版：每區只留 2 句
+        if (lines == null || lines.Length == 0)
+        {
+            lines = CurrentGirlTalkState() == GirlTalkState.Touching
+                ? (brat ? BratLinesTouch : BratNormalLinesTouch)
+                : (brat ? BratLines : BratNormalLines);
+        }
+        return DemoMode.Trim(lines);
     }
 }

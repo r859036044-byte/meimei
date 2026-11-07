@@ -27,7 +27,7 @@ public static class DemoMode
     public const bool DefaultEnabled = true;
 
     /// <summary>試玩版：莉奈每個台詞分區（什麼都沒做／衣服脫了／觸摸中／插入中…、點擊反應、男主回應）最多只說幾種。</summary>
-    public const int MaxLinesPerZone = 2;
+    public const int MaxLinesPerZone = 6;
 
     /// <summary>試玩版閹割台詞：每個分區只留前 MaxLinesPerZone 句（完整版原樣回傳）。</summary>
     public static string[] Trim(string[] lines)
