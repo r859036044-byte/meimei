@@ -210,6 +210,8 @@ public partial class TrainingRoomRuntime : Node
         // 同時把 Alpha 復原成 1，這樣下次換它淡入時才不會一開始就是透明的。
         HideLayerGroup(fromPrefix);
         SetGroupAlpha(fromPrefix, 1f);
+        // 切回一般腿：M 腿專用、但不在「m腿」群組裡的疊層（洞／開1／開上／插入）也要一起收掉，不然會殘留在一般腿上
+        if (!opening) { HideOpenAndInsertLayers(); _holeLeftOpen = false; }
         _mLegTransitioning = false;
     }
 
@@ -344,8 +346,12 @@ public partial class TrainingRoomRuntime : Node
     int _kneeDragIdx = -1;
     Vector2 _kneeDragStartPos;
 
+    /// <summary>雞雞已經插入（或正在拔出）：M 腿不能收回一般腿（不然 M 腿專用的洞／開1／插入疊層會留在一般腿上，也會露出底色）。</summary>
+    bool MLegLockedByInsert => _mLegOpen && (_jijiPhase == 3 || _pullOutAnim);
+
     void OnKneeDragStart(int idx)
     {
+        if (MLegLockedByInsert) { GD.Print("[MLeg] 插入中：不能用膝蓋收回 M 腿"); return; }   // 插入後不能取消 M 腿
         _kneeDragActive = true;
         _kneeDragIdx = idx;
         _kneeDragStartPos = GetViewport().GetMousePosition();
@@ -447,6 +453,7 @@ public partial class TrainingRoomRuntime : Node
         ApplyMLegDragStretch(0f);
 
         if (!wasActive || _mLegTransitioning) return;
+        if (MLegLockedByInsert) return;   // 插入後不能取消 M 腿（保險：按下之後才插入的情況）
 
         float dx = GetViewport().GetMousePosition().X - _kneeDragStartPos.X;
         bool isLeftKnee = (idx == 6);

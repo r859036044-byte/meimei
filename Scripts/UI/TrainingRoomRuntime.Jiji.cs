@@ -733,6 +733,8 @@ void fragment() {
     {
         if (_jijiAnus) { HideAnusBlockedOverlays(); return; }   // 肛門：沒有開肚子／洞／開1／插入的效果
         UpdateOverlayDrawOrder();
+        // 不是 M 腿（也不在切換中）卻還開著洞／開1：收掉（M 腿專用的疊層不該出現在一般腿上）
+        if (!_mLegOpen && !_mLegTransitioning && _jijiPhase != 3 && _holeLeftOpen) { HideOpenAndInsertLayers(); return; }
         if (_jijiPhase != 3 && _holeLeftOpen)
         {
             // 拔出後／被舔濕：洞最多開到 HoleWetOpenMax（30%），之後隨濕度下降慢慢合起來（Play.cs 的濕度）
