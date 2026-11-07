@@ -622,14 +622,15 @@ public partial class MainMenuRuntime : Control
     void StartTitleSlide(CancellationToken ct)
     {
         // 固定載入 random title image (2)
-        _randomTextures = LoadRandomTitleTextures("CG/random_title_image");
+        // 試玩版：不把整個資料夾的圖都載入（只留固定那張，點擊換圖也就不會有）
+        _randomTextures = DemoMode.Enabled ? System.Array.Empty<Texture2D>() : LoadRandomTitleTextures("CG/random_title_image");
         var fixedTex = LoadTex("CG/random_title_image/random title image (2)");
         if (fixedTex != null)
         {
             // 全屏大小（和背景一樣）
             var slide = MakeIntroTexLayer(_mainPanel, "RandomTitleSlide", fixedTex);
             SetStretchOffset(slide, SlideStart);
-            slide.Modulate = new Color(1f, 1f, 1f, 0f); // 初始透明
+            slide.Modulate = new Color(1f, 1f, 1f, DemoMode.Enabled ? 1f : 0f); // 初始透明（試玩版：不漸入，一開始就完全顯示）
             // 放在按鈕下面（背景上面）
             _mainPanel.MoveChild(slide, 1);
 
@@ -735,7 +736,7 @@ public partial class MainMenuRuntime : Control
             float curX = Mathf.Lerp(SlideStart.X, SlideEnd.X, progress);
             ApplySlideOffset(curX);
             // 淡入效果
-            float alpha = (SlideFadeIn > 0f) ? Mathf.Clamp(elapsed / SlideFadeIn, 0f, 1f) : 1f;
+            float alpha = (SlideFadeIn > 0f && !DemoMode.Enabled) ? Mathf.Clamp(elapsed / SlideFadeIn, 0f, 1f) : 1f;   // 試玩版：不漸入
             if (_slideImg != null) _slideImg.Modulate = new Color(1f, 1f, 1f, alpha);
 
             // 滑動中點擊 → 跳到終點並切換圖片

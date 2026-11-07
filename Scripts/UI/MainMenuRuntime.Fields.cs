@@ -346,12 +346,7 @@ public partial class MainMenuRuntime : Control
         if (SkipIntroOnce || DemoMode.Enabled)   // 試玩版：OP 直接跳到主畫面
         {
             SkipIntroOnce = false;
-            if (DemoMode.Enabled)
-            {   // 省略 LogoIntro 就沒有背景預載，這裡補上，之後進調教室的黑屏才不會太長
-                foreach (var relPath in TrainingRoomRuntime.GetPreloadSpritePaths())
-                    ResourceHelper.PreloadTexAny(relPath);
-                ResourceLoader.LoadThreadedRequest("res://Scenes/TrainingRoom.tscn");
-            }
+            // 試玩版：不預載調教室貼圖／場景（啟動時不要讀那麼多；進調教室時才載入）
             TitleDirect(_lifeCts.Token);
         }
         else
