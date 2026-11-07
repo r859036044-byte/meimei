@@ -132,8 +132,9 @@ public partial class TrainingRoomRuntime
                 _bratLineType = GD.Randf() < p ? 1 : 2;
                 bool hasChoices = r18 && BratInserted;   // 插入中（在做的時候）：莉奈每說一句，男主都有選項（名稱每次不同）
                 // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）；台詞自己帶「=>男主回應」的話，這裡就會播
-                bool lineHasReply = BratSay(GirlTalkLines(_bratLineType == 1), allowReply: !hasChoices);
-                if (!hasChoices && !lineHasReply) GirlTalkMaleReply(_bratLineType == 1);   // 台詞沒帶回應、也沒有選項：用區域的男主回應（痛／要高潮，GirlTalk.cs）
+                bool painNoChoice = !hasChoices && CurrentGirlTalkState() == GirlTalkState.Pain;   // 痛：男主沒有選擇，就不會自己答應「我慢一點」
+                bool lineHasReply = BratSay(GirlTalkLines(_bratLineType == 1), allowReply: !hasChoices && !painNoChoice);
+                if (!hasChoices && !lineHasReply && !painNoChoice) GirlTalkMaleReply(_bratLineType == 1);   // 台詞沒帶回應、也沒有選項：用區域的男主回應（痛／要高潮，GirlTalk.cs）
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;
