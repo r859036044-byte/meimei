@@ -129,11 +129,12 @@ public partial class TrainingRoomRuntime
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
                 _bratLineType = GD.Randf() < p ? 1 : 2;
                 BratSay(GirlTalkLines(_bratLineType == 1));   // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）
-                if (!(_bratLineType == 1 && r18 && BratInserted)) GirlTalkMaleReply(_bratLineType == 1);   // 痛／莉奈要高潮：莉奈先說，男主再回應（有「教訓／不理」選項時，選項就是男主的回應）
+                bool hasChoices = r18 && BratInserted && (_bratLineType == 1 || GirlTalkStateHasChoices());   // 插入中：雌小鬼話、或「痛／莉奈要高潮」都有選項
+                if (!hasChoices) GirlTalkMaleReply(_bratLineType == 1);   // 沒有選項時（例如沒插入）：莉奈先說，男主過一下用文字回應（GirlTalk.cs）
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;
-                if (_bratLineType == 1 && r18 && BratInserted) BratShowChoices();
+                if (hasChoices && !GirlTalkShowStateChoices()) BratShowChoices();   // 痛／莉奈要高潮：專屬選項；其他雌小鬼話：教訓她／不理她
             }
         }
         else
@@ -193,6 +194,12 @@ public partial class TrainingRoomRuntime
     void BratChooseLesson()
     {
         if (_bratLineType != 1) return;
+        ApplyLesson();
+    }
+
+    /// <summary>「教訓」的效果（不檢查莉奈剛剛說的是不是雌小鬼話，給各種選項共用）。</summary>
+    void ApplyLesson()
+    {
         float comfort = Mathf.Clamp((Wetness / 100f) * 0.5f + (ClimaxLevel / 100f) * 0.5f, 0f, 1f);
         float moodLoss = Mathf.Max(5f, LessonMoodBase * (1.6f - 1.2f * comfort));
         BratValue -= LessonBratDown;

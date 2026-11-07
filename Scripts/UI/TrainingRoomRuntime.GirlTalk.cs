@@ -141,6 +141,69 @@ public partial class TrainingRoomRuntime
         return GirlTalkState.Idle;
     }
 
+    [ExportGroup("莉奈台詞 8：男主選項與回應")]
+    // 插入中，莉奈說「痛」或「要高潮了」時，男主在自己的對話框選擇怎麼回。選了之後男主會說出按鈕上那句話。
+    [Export] public string ChoicePromptPain       = "她喊痛了…";
+    [Export] public string ChoicePainPunish       = "小鬼，這就是你的懲罰";     // 效果＝教訓（雌小鬼值↓、心情↓、雞雞快速頂到底；莉奈求饒）
+    [Export] public string ChoicePainSlow         = "慢下來吧";                 // 效果＝放慢抽插、心情↑
+    [Export] public string ChoicePromptNearClimax = "她快要不行了…";
+    [Export] public string ChoiceClimaxKeep       = "別停，就這樣";             // 效果＝維持速度、莉奈回應
+    [Export] public string ChoiceClimaxSlow       = "慢下來吧";                 // 效果＝放慢抽插、心情↑
+    [Export(PropertyHint.Range, "0,20,0.5")] public float SlowDownMoodUp = 3f;        // 選「慢下來」：心情上升
+    [Export(PropertyHint.Range, "0,1,0.05")] public float SlowDownSpeedFrac = 0.3f;   // 選「慢下來」：抽插速度最多降到最高速的幾成
+    [Export] public string[] GirlSlowReplyLines = { "……嗯，謝謝。", "呼…好多了。", "……算你還有點體貼。", "嗯…就這樣…慢慢來。" };   // 莉奈對「慢下來」的回應
+    [Export] public string[] GirlKeepReplyLines = { "啊…不、不要停…♡", "嗯…就、就這樣…", "哈啊…♡", "……笨蛋…別停下來…" };       // 莉奈對「別停」的回應
+
+    /// <summary>目前狀態是不是「痛」或「莉奈要高潮了」（這兩種插入中會給男主專屬選項）。</summary>
+    bool GirlTalkStateHasChoices()
+    {
+        var st = CurrentGirlTalkState();
+        return st == GirlTalkState.Pain || st == GirlTalkState.NearClimax;
+    }
+
+    /// <summary>在男主對話框顯示「痛」或「莉奈要高潮了」的專屬選項。不是這兩種狀態就回傳 false（由呼叫端改用一般選項）。</summary>
+    bool GirlTalkShowStateChoices()
+    {
+        var st = CurrentGirlTalkState();
+        if (st == GirlTalkState.Pain)
+        {
+            ShowPlayerChoices(ChoicePromptPain, new[] { ChoicePainPunish, ChoicePainSlow },
+                new System.Action[] { () => GirlChoose(ChoicePainPunish, ApplyLesson), () => GirlChoose(ChoicePainSlow, ApplySlowDown) }, BratWindowSec);
+            return true;
+        }
+        if (st == GirlTalkState.NearClimax)
+        {
+            ShowPlayerChoices(ChoicePromptNearClimax, new[] { ChoiceClimaxKeep, ChoiceClimaxSlow },
+                new System.Action[] { () => GirlChoose(ChoiceClimaxKeep, ApplyKeepGoing), () => GirlChoose(ChoiceClimaxSlow, ApplySlowDown) }, BratWindowSec);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>選了某個選項：男主說出那句話 → 套用效果（莉奈回應）。</summary>
+    void GirlChoose(string said, System.Action effect)
+    {
+        HidePlayerChoices(false);                       // 選項收掉，但氣泡留著，直接換成男主說的那句
+        SayMale(new[] { said });
+        effect?.Invoke();
+    }
+
+    void ApplySlowDown()
+    {
+        Mood += SlowDownMoodUp;
+        if (BratInserted) _s2SpeedLv = Mathf.Min(_s2SpeedLv, S2SpeedLvMax * SlowDownSpeedFrac);
+        BratSay(GirlSlowReplyLines);
+        GD.Print($"[GirlTalk] 選「慢下來」→ 心情 +{SlowDownMoodUp:F0}、抽插速度降到 {SlowDownSpeedFrac:P0} 以下");
+        BratResolve();
+    }
+
+    void ApplyKeepGoing()
+    {
+        BratSay(GirlKeepReplyLines);
+        GD.Print("[GirlTalk] 選「別停」→ 維持速度");
+        BratResolve();
+    }
+
     /// <summary>莉奈說完定時台詞後，男主在自己的對話框回應。只有「痛」和「莉奈要高潮了」兩種狀態才回。
     /// brat＝剛剛莉奈說的是雌小鬼話（true）或正常話（false）。</summary>
     void GirlTalkMaleReply(bool brat)

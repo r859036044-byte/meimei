@@ -67,7 +67,8 @@ public partial class TrainingRoomRuntime
         RescalePlayerChoiceRow(BubbleK(true));
     }
 
-    void HidePlayerChoices()
+    /// <summary>收掉選項。hideBubble＝false 時氣泡留著（選完馬上要換成男主說的那句話，不能先淡出）。</summary>
+    void HidePlayerChoices(bool hideBubble = true)
     {
         if (!_playerChoiceActive) return;
         _playerChoiceActive = false;
@@ -76,7 +77,7 @@ public partial class TrainingRoomRuntime
         {
             _bubblePlayer.RemoveMeta("bk");
             _bubblePlayer.RemoveMeta("hide_t");
-            HideBubble(_bubblePlayer);
+            if (hideBubble) HideBubble(_bubblePlayer);
         }
     }
 
