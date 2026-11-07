@@ -95,6 +95,7 @@ public partial class TrainingRoomRuntime : Node
 		UpdateClothAlpha();   // 衣物不透明度（Inspector 可即時調）
 		PinchProcess(dt);   // 捏臉回彈＋全年齡鎖（Pinch.cs）
 		UpdateClimaxHud();
+		UpdateHudGate(dt);   // 勃起條隱藏；🍆 與精力條要男主說硬了才顯示（HudGate.cs）
 		UpdatePlayEnd(dt);   // 射精按鈕（PlayEnd.cs）
 		UpdateBreathing(dt);
 		UpdateBrowOperate(dt);   // 男主操作時眉毛上下反轉（Brow.cs）

@@ -755,6 +755,7 @@ void fragment() {
         panel.OffsetBottom = -20; panel.OffsetTop = -20 - H;
         panel.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(PanelW / 2f)));
         _canvas.AddChild(panel);
+        _vertBarsPanel = panel;   // HudGate.cs：勃起條不顯示（只隱藏，沒刪）
 
         _semenBar = new ProgressBar
         {
@@ -814,6 +815,7 @@ void fragment() {
 
         var btnJiji = MkIconBtn(bar, "Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), new Vector2(Pad, Y(3)));
         btnJiji.Text = "🍆";
+        _btnJijiNode = btnJiji;   // HudGate.cs：男主說硬了才顯示
         btnJiji.AddThemeFontSizeOverride("font_size", 30);
         btnJiji.Pressed += () => OnJijiButtonPressed();
 
@@ -852,9 +854,11 @@ void fragment() {
         var stPanel = new Panel { Name = "StaminaPanel", TooltipText = "精力" };
         stPanel.AnchorLeft = 0; stPanel.AnchorTop = 1; stPanel.AnchorRight = 0; stPanel.AnchorBottom = 1;
         stPanel.OffsetLeft = 20 + W + Gap; stPanel.OffsetRight = 20 + W + Gap + StamPanelW;
-        stPanel.OffsetBottom = -20; stPanel.OffsetTop = -20 - H;
+        float Hs = Mathf.Max(StamPanelW * 2f, H * StaminaBarHeightFrac);   // 精力條縮短（原本跟按鈕條一樣長）
+        stPanel.OffsetBottom = -20; stPanel.OffsetTop = -20 - Hs;
         stPanel.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(StamPanelW / 2f)));
         _canvas.AddChild(stPanel);
+        _staminaPanel = stPanel;   // HudGate.cs：男主說硬了才顯示
 
         _staminaBar = new ProgressBar
         {
@@ -863,7 +867,7 @@ void fragment() {
             MinValue = 0, MaxValue = 120, Value = Stamina, ShowPercentage = false,
         };
         _staminaBar.Position = new Vector2((StamPanelW - StamW) / 2f, 14f);
-        _staminaBar.Size = new Vector2(StamW, H - 28f);
+        _staminaBar.Size = new Vector2(StamW, Hs - 28f);
         var stFill = MkBarStyle(new Color(0.30f, 0.72f, 0.48f)); stFill.SetCornerRadiusAll(9);
         var stBack = MkBarStyle(CuteBarBack);                    stBack.SetCornerRadiusAll(9);
         _staminaBar.AddThemeStyleboxOverride("fill", stFill);
