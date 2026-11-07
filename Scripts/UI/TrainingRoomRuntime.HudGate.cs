@@ -29,7 +29,12 @@ public partial class TrainingRoomRuntime
     {
         if (_mLegOpen || _mLegTransitioning) return;
         foreach (var kv in Layers)
-            if (kv.Key.StartsWith("m腿") && kv.Value != null && kv.Value.Visible) kv.Value.Visible = false;
+            if (kv.Key.StartsWith("m腿") && kv.Value != null && kv.Value.Visible)
+            {
+                kv.Value.Visible = false;
+                // 找出是誰把它打開的：把這行（輸出面板）貼給我
+                GD.Print($"[MLegGuard] 非 M 腿卻開著 {kv.Key} → 已藏起來（jijiPhase={_jijiPhase} holeLeftOpen={_holeLeftOpen} bTouch={_bTouchRunning} mLegOpen={_mLegOpen}）");
+            }
     }
 
     void UpdateHudGate(float dt)
