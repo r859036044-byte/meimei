@@ -85,7 +85,7 @@ public partial class TrainingRoomRuntime
     [Export] public string[] MaleThrustLines   = { "（抽插中1）", "（抽插中2）", "（抽插中3）" };         // 抽插中隨機間隔說
     [Export] public string[] MaleFastLines     = { "（太快了，痛1）", "（太快了，痛2）", "（太快了，痛3）" };     // 又快又高、痛
     [Export] public string[] MaleCanEjacLines  = { "（快到了1）", "（快到了2）", "（快到了3）" };         // 精力到 90，可以射
-    [Export] public string[] MaleBreakFeelLines= { "（要破功了1）", "（要破功了2）", "（要破功了3）" };       // 精力超過 100
+    [Export] public string[] MaleBreakFeelLines= { "不行了…要射了！", "忍、忍不住了…要射了！", "要、要射了…怎麼辦…！" };       // 精力到 100：男主說這句，並出現「慢下來／射進去」選項
     [Export] public string[] MaleEjacLines     = { "（射精1）", "（射精2）", "（射精3）" };           // 射精開始
     [Export] public string[] MaleAfterEjacLines= { "（射完了1）", "（射完了2）", "（射完了3）" };         // 射精後
     [Export] public string[] MalePullOutLines  = { "（拔出1）", "（拔出2）", "（拔出3）" };           // 拔出
@@ -228,7 +228,7 @@ public partial class TrainingRoomRuntime
         bool canEj = Stamina >= EjacBtnFeelPct;
         if (canEj && !_prevCanEjac) SayMaleEv(MaleCanEjacLines);
         _prevCanEjac = canEj;
-        if (_breaking && !_prevBreaking) SayMaleEv(MaleBreakFeelLines, true);
+        if (_breaking && !_prevBreaking) ShowBreakChoices();   // 男主說「不行了，要射了」＋選項：慢下來／射進去（BreakChoice.cs）
         _prevBreaking = _breaking;
         if (thrusting)
         {
@@ -246,6 +246,7 @@ public partial class TrainingRoomRuntime
     void MaleEjaculate()
     {
         if (_ejacRunning || _insertEjacActive) return;
+        CloseBreakChoicesKeepBubble();   // 破功選項還在的話先收掉（不然射精台詞會被選項擋住）
         float s01 = Mathf.Clamp(SemenStock / 100f, 0f, 1f);
         _ejacMul = Mathf.Lerp(EjacMulMin, 1f, s01);
         _ejacStop = false;
@@ -282,13 +283,13 @@ public partial class TrainingRoomRuntime
         if (_breaking) fail = Mathf.Max(fail, _maleThrusting ? EndureFailBreakingThrust : EndureFailWhileBreaking);   // 已經在破功了，更難忍；還在抽插更難（機率可在 Inspector 調）
         if (GD.Randf() < fail)
         {
-            _breaking = true; SayMale(EndureFailLines); GD.Print($"[Male] 忍耐失敗（失敗率 {fail:P0}）");
+            _breaking = true; BreakChoiceSay(EndureFailLines, false); GD.Print($"[Male] 忍耐失敗（失敗率 {fail:P0}）");
             return;
         }
         _breaking = false; _breakT = 0f; _endureT = EndureSec;
         Stamina = Mathf.Min(Stamina, EndureBackFeel);   // 忍耐成功：精力退回去，不會一忍完又馬上破功
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
-        SayMale(EndureOkLines);
+        BreakChoiceSay(EndureOkLines, true);
     }
 
     /// <summary>在 UpdateStage1Osc（抽插中）每幀呼叫：時間到停下／強制加速／忍耐中停止抽插。</summary>

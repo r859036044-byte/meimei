@@ -25,6 +25,7 @@ public partial class TrainingRoomRuntime
 
     void UpdateHudGate(float dt)
     {
+        UpdateBreakChoices();   // 破功結束就收掉「慢下來／射進去」選項（BreakChoice.cs）
         if (_vertBarsPanel != null && IsInstanceValid(_vertBarsPanel)) _vertBarsPanel.Visible = !HideErectBar;
 
         bool show = !GateJijiHud || _erectOn || _jijiPhase != 0;
