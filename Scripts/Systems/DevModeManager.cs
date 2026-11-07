@@ -57,6 +57,7 @@ public partial class DevModeManager : Node
 
     public override void _Input(InputEvent @event)
     {
+        if (DemoMode.Enabled) return;   // 試玩版：不能開啟開發者模式（密技、F9 都無效；關掉試玩版開關就恢復）
         if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
 
         // 解鎖後可以直接按 F9 開關視窗
