@@ -22,13 +22,17 @@ public partial class TrainingRoomRuntime
     [Export] public float GirlBubbleGapPx   = 14f;   // 氣泡尾巴尖端離前髮邊緣的距離（螢幕 px）
     [Export] public float GirlBubbleYOffset = 0f;    // 氣泡下緣（尾巴尖端）相對臉中心的偏移（螢幕 px，負＝往上、正＝往下）
     [Export] public float PlayerBubbleBottomPx = 10f;   // 男主氣泡：貼著畫面（房間）最下方，離底邊多遠（螢幕 px）
-    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleFar  = 1.2f;   // 鏡頭拉最遠時對話框的大小倍率
-    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleNear = 2.6f;   // 鏡頭拉最近（CamZoomMax）時的倍率；中間平滑過渡
-    /// <summary>現在的對話框倍率：跟著鏡頭縮放（拉遠變小、拉近變大）。</summary>
-    float BubbleK()
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleFar  = 1.0f;   // 鏡頭拉最遠時對話框的大小倍率
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScaleNear = 2.6f;   // 鏡頭拉最近（CamZoomMax）時的倍率
+    [Export(PropertyHint.Range, "1,4,0.1")]   public float BubbleZoomCurve = 1.8f;   // 縮放曲線：越大，鏡頭拉遠時對話框縮得越多、而且縮得越早（1＝線性；>1 是先小後大的曲線）
+    /// <summary>現在的對話框倍率：跟著鏡頭縮放（拉遠變小、拉近變大），中間走一條曲線。
+    /// 背景拉遠被縮小時，對話框在視覺上會顯得特別大（視覺錯覺），所以拉遠時要縮得比線性更多。</summary>
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float BubbleScalePlayer = 2.0f;   // 男主對話框：固定大小，不跟鏡頭縮放
+    float BubbleK(bool isPlayer = false)
     {
+        if (isPlayer) return BubbleScalePlayer;
         float t = Mathf.Clamp((_camZoom - 1.1f) / Mathf.Max(0.01f, CamZoomMax - 1.1f), 0f, 1f);
-        return Mathf.Lerp(BubbleScaleFar, BubbleScaleNear, t * t * (3f - 2f * t));
+        return Mathf.Lerp(BubbleScaleFar, BubbleScaleNear, Mathf.Pow(t, BubbleZoomCurve));
     }
     const float BubbleTailLen = 16f;   // 未放大時的尾巴長度（螢幕 px），跟 BubbleShape.TailLen 一致
     // 畫布座標（2000x3200）：前髮左右邊緣、臉中心高度；雞雞中線與下緣（臉.png 735~1197 / 前髮.png 698~1218；雞雞.png 850~1119、1590~2128）
@@ -126,7 +130,7 @@ public partial class TrainingRoomRuntime
         {
             Vector2 sz = _bubblePlayer.Size;
             Vector2 pos;
-            float bottomY = vpG.Y - sz.Y - BubbleTailLen * BubbleK() - PlayerBubbleBottomPx;   // 畫面最下方（尾巴在氣泡下面，要留出尾巴的高度）
+            float bottomY = vpG.Y - sz.Y - BubbleTailLen * BubbleK(true) - PlayerBubbleBottomPx;   // 畫面最下方（尾巴在氣泡下面，要留出尾巴的高度）
             if (_canvas != null && Layers.TryGetValue("雞雞", out var jj) && jj != null && IsInstanceValid(jj))
             {
                 Vector2 tip = CanvasToScreen(jj, new Vector2(JijiCenterX, JijiBottomY));   // 只有 X 跟著雞雞（雞雞的 Y 不管），Y 固定在畫面最下方
@@ -147,7 +151,7 @@ public partial class TrainingRoomRuntime
     void RescaleBubble(Control b, Label lbl, bool isPlayer)
     {
         if (b == null || lbl == null || !IsInstanceValid(b) || !IsInstanceValid(lbl)) return;
-        float K = BubbleK();
+        float K = BubbleK(isPlayer);
         if (b.HasMeta("bk") && Mathf.Abs(K - (float)b.GetMeta("bk")) < 0.03f) return;
         b.SetMeta("bk", K);
         lbl.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt((isPlayer ? 24f : 22f) * K));
@@ -214,7 +218,7 @@ public partial class TrainingRoomRuntime
     /// 整體放大 BubbleScale 倍（字、框、圓角、尾巴一起）。</summary>
     (Control, Label) BuildBubble(bool isPlayer)
     {
-        float K = BubbleK();
+        float K = BubbleK(isPlayer);
         var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
         // 外形由 BubbleShape 畫；容器本身只負責字的邊距（框的粗細已包含在邊距裡）
         var pad = new StyleBoxEmpty();
