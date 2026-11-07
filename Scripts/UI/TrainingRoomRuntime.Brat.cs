@@ -138,7 +138,8 @@ public partial class TrainingRoomRuntime
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;
-                if (hasChoices && !GirlTalkShowStateChoices()) { if (_bratLineType == 1) BratShowChoices(); else BratShowChoicesNormal(); }   // 痛／莉奈要高潮：專屬選項；雌小鬼話：教訓／不理；正常話：溫柔／繼續
+                if (hasChoices && _lastGirlLineSoundOnly) BratResolve();   // 只是「嗯…」「啊哈…」這種聲音：不用男主選擇，也不算被無視
+                else if (hasChoices && !GirlTalkShowStateChoices()) { if (_bratLineType == 1) BratShowChoices(); else BratShowChoicesNormal(); }   // 痛／莉奈要高潮：專屬選項；雌小鬼話：教訓／不理；正常話：溫柔／繼續
             }
         }
         else

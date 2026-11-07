@@ -185,7 +185,7 @@ public partial class TrainingRoomRuntime
     //   • 莉奈不舒服的時候（痛、速度不對、太乾）：台詞裡有「啊哈、嗯、唔…」這類擬聲詞，就在後面加上「不要…」之類的拒絕（GirlRefuseWords）。
     [ExportGroup("莉奈台詞 9：分段與加工")]
     [Export] public float GirlSegmentGapSec = 1.4f;   // 分段台詞：下一段幾秒後出現
-    [Export] public string GirlHeart = "❤\uFE0F";            // 舒服時加在台詞後面的愛心
+    [Export] public string GirlHeart = "❤";            // 舒服時加在台詞後面的愛心
     [Export(PropertyHint.Range, "0,100,1")] public float GirlHeartClimaxAt = 35f;   // 穴高潮值到這個以上算「舒服」（也會看眉毛的舒服程度）
     [Export] public string[] GirlRefuseWords = { "不要…", "不、不要…", "不行…", "等、等一下…" };   // 不舒服時，擬聲詞後面加的話（隨機挑一個）
     [Export] public string[] GirlOnomatopoeia = { "啊哈", "哈啊", "嗯", "唔", "啊", "呼", "哈", "嗚" };   // 算擬聲詞的字
@@ -195,6 +195,13 @@ public partial class TrainingRoomRuntime
 
     /// <summary>莉奈現在舒服：穴高潮值夠高，或眉毛判定很舒服（而且不是不舒服）。</summary>
     bool GirlFeelsGood() => !GirlFeelsBad() && (ClimaxLevel >= GirlHeartClimaxAt || (_browLingerT > 0f && _browPos >= 0.5f));
+
+    /// <summary>所有愛心統一成同一個字（去掉 emoji 變體，♥／♡ 也換成 GirlHeart），台詞裡的愛心看起來才一樣。</summary>
+    string NormalizeHearts(string seg)
+    {
+        if (string.IsNullOrEmpty(seg)) return seg;
+        return seg.Replace("\uFE0F", "").Replace("♥", GirlHeart).Replace("♡", GirlHeart).Replace("❤", GirlHeart);
+    }
 
     string DressGirlSegment(string seg, bool good, bool bad)
     {
@@ -230,7 +237,7 @@ public partial class TrainingRoomRuntime
         if (_lastGirlLineSoundOnly) reply = null;   // 只有「嗯…」「啊哈…」這種聲音：男主不回應
         bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
         if (good) TriggerMouthSmile();   // 舒服＝台詞加愛心：嘴巴也換成笑（Mouth.cs）
-        for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
+        for (int k = 0; k < segs.Length; k++) segs[k] = NormalizeHearts(DressGirlSegment(segs[k], good, bad));
         bool hasReply = reply != null && allowReply;
         _dlgInExchange = true;
         ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
