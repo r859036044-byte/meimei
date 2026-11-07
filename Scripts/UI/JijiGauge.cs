@@ -19,7 +19,7 @@ public partial class JijiGauge : Control
     public Color GaugeColor   = new Color(0.30f, 0.72f, 0.48f);
     public float Border = 3f;
     public float ShaftMaxRx = 0.31f;    // 莖最寬處的半寬（相對整體寬度）
-    public float ShaftSplit = 0.40f;    // 最寬的位置（從莖頂往下佔莖長的幾成；越小越靠上＝上面越胖）
+    public float ShaftSplit = 0.04f;    // 最寬的位置（從莖頂往下佔莖長的幾成；0.04＝就在跟蘑菇頭接合處，往下一路收細；越大越往下移）
     public float ShaftBottomKeep = 0.45f;   // 莖最底端的寬度，佔最寬處的幾成（越小下面越瘦；1＝不收細）
 
     bool _hover, _down;
