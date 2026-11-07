@@ -24,7 +24,7 @@ using Godot;
 public static class DemoMode
 {
     /// <summary>試玩版預設開關：true＝開啟。</summary>
-    public const bool DefaultEnabled = false;
+    public const bool DefaultEnabled = true;
 
     /// <summary>試玩版：莉奈每個台詞分區（什麼都沒做／衣服脫了／觸摸中／插入中…、點擊反應、男主回應）最多只說幾種。</summary>
     public const int MaxLinesPerZone = 2;
