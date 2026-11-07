@@ -41,6 +41,18 @@ public partial class TrainingRoomRuntime
     [Export] public Rect2   HeadPatZone         = new Rect2(696f, 285f, 523f, 332f);   // 前髮內容框上半部
 
     static readonly string[] _patHairNames = { "前髮", "後髮1", "後髮2", "後髮3", "後發辮子1", "後發辮子2" };
+    [Export] public float   TearPatSwayPx       = 3f;      // 摸頭時眼淚（和水滴）跟著手左右晃的幅度（畫布 px）；0＝只跟著頭轉、不另外晃
+    static readonly string[] _patTearNames = { "表情/眼淚1", "表情/眼淚2", "表情/眼淚3", "表情/眼淚4" };
+
+    /// <summary>摸頭時，畫布上某一點（例如眼淚水滴）要跟著頭多移動多少：頭繞脖子轉的位移＋左右晃。</summary>
+    Vector2 PatOffsetForPoint(Vector2 p)
+    {
+        if (_patCur == 0f) return Vector2.Zero;
+        var rh = new Transform2D(Mathf.DegToRad(_patCur * HeadPatHeadRotDeg), Vector2.Zero);
+        Vector2 n = HeadPatNeckPivot;
+        return (n + rh.BasisXform(p - n)) - p + new Vector2(_patCur * TearPatSwayPx, 0f);
+    }
+
     static readonly string[] _patHeadExtra =
     {
         "表情/眼白","表情/眼白2","表情/眼球1","表情/眼球2","表情/眼皮","表情/眼皮2",
@@ -215,6 +227,7 @@ public partial class TrainingRoomRuntime
         UpdateTongue(dt);    // 舌頭（Tongue.cs）：放在摸頭之後，才能跟著臉的最終位置
         foreach (var name in _headLayerSet)  PatLayer(name, headDeg, 0f, Vector2.Zero);
         foreach (var name in _patHeadExtra)  PatLayer(name, headDeg, 0f, Vector2.Zero);
+        foreach (var name in _patTearNames)  PatLayer(name, headDeg, 0f, new Vector2(_patCur * TearPatSwayPx, 0f));   // 眼淚：跟著頭轉，再隨手左右晃一點
         UpdateInsertMouth(dt);   // 插入時嘴巴放大、越舒服越小（InsertMouth.cs）
         if (_patCur == 0f) _patApplied.Clear();
     }

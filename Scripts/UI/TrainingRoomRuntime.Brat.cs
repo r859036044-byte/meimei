@@ -90,6 +90,7 @@ public partial class TrainingRoomRuntime
 
     void BratSay(string[] lines)
     {
+        lines = DemoMode.Trim(lines);   // 試玩版：每區只留 2 句
         if (lines == null || lines.Length == 0) return;
         string t = Pick(lines);
         if (!string.IsNullOrEmpty(t)) ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, t, false);

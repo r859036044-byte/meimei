@@ -214,6 +214,7 @@ public partial class TrainingRoomRuntime
             GirlTalkState.NearClimax => brat ? MaleReplyBratNearClimax : MaleReplyNormalNearClimax,
             _ => null,
         };
+        lines = DemoMode.Trim(lines);   // 試玩版：每區只留 2 句
         if (lines == null || lines.Length == 0) return;
         GetTree().CreateTimer(GirlTalkReplyDelay).Timeout += () =>
         {
@@ -235,6 +236,6 @@ public partial class TrainingRoomRuntime
             _                       => brat ? BratLines        : BratNormalLines,
         };
         // 某個狀態的台詞被清空時，退回「什麼都沒做」那組，不會突然不說話
-        return lines != null && lines.Length > 0 ? lines : (brat ? BratLines : BratNormalLines);
+        return DemoMode.Trim(lines != null && lines.Length > 0 ? lines : (brat ? BratLines : BratNormalLines));   // 試玩版：每區只留 2 句
     }
 }

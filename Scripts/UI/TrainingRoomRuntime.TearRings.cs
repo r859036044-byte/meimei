@@ -143,7 +143,7 @@ public partial class TrainingRoomRuntime
             r.Pos += vel * rdt;
             var pos = r.Pos + new Vector2(TearRingSway * Mathf.Sin(r.T * TearRingSwayHz * Mathf.Tau + r.Phase) * u, 0f);
             var heading = vel.Normalized();                                         // 前進方向
-            r.Node.Position = pos;
+            r.Node.Position = pos + PatOffsetForPoint(pos);   // 摸頭時水滴也跟著頭晃（HeadPat.cs）
             r.Node.Rotation = Mathf.Atan2(-heading.X, heading.Y);                 // 水滴尖端朝來的方向
 
             if (r.Dead < 0f)

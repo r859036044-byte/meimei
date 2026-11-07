@@ -191,7 +191,7 @@ public partial class TrainingRoomRuntime
     {
         if (kissing) { ReactLine(ReactKiss, false); return; }
         var pool = new List<string>();
-        void Add(string[] a, int weight = 1) { if (a == null) return; for (int i = 0; i < weight; i++) pool.AddRange(a); }
+        void Add(string[] a, int weight = 1) { a = DemoMode.Trim(a); if (a == null) return; for (int i = 0; i < weight; i++) pool.AddRange(a); }   // 試玩版：每區只留 2 句
 
         float c = ClimaxLevel, w = Wetness;
         bool sleeping = FaceController != null && FaceController.CurrentExpression == "ZZZ";
@@ -214,6 +214,7 @@ public partial class TrainingRoomRuntime
     void ReactLine(string[] lines, bool force)
     {
         if (!ReactEnabled || (!force && _reactCd > 0f)) return;
+        lines = DemoMode.Trim(lines);   // 試玩版：每區只留 2 句
         string t = Pick(lines);
         for (int i = 0; i < 4 && t == _reactLast && lines.Length > 1; i++) t = Pick(lines);   // 避免連續同一句
         if (string.IsNullOrEmpty(t)) return;
