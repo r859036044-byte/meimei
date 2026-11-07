@@ -12,6 +12,8 @@ public partial class TrainingRoomRuntime
     [Export] public bool  MiniClimaxEnabled = true;
     [Export(PropertyHint.Range, "0,100,1")] public float MiniClimaxWetAt = 70f;          // 濕度到多少以上，被摸時偶爾會小高潮
     [Export] public Vector2 MiniClimaxInterval = new Vector2(6f, 12f);                  // 兩次小高潮的間隔（秒，隨機）
+    [Export(PropertyHint.Range, "1,6,0.1")] public float MiniFastMul = 3.5f;          // 摸到最快時，倒數加速的倍率（越大越容易觸發）
+    [Export(PropertyHint.Range, "1,4,0.1")] public float MiniWetMul  = 1.6f;          // 濕度到 100 時，再加速的倍率
     [Export] public float MiniShakeSec     = 0.7f;                                      // 身體小抖幾秒
     [Export(PropertyHint.Range, "0,1,0.05")] public float MiniShakeAmpK = 0.35f;        // 小抖的幅度＝大高潮的幾成
     [Export] public int   MiniSquirtDrops  = 7;                                         // 噴一點水：水滴數
@@ -31,7 +33,7 @@ public partial class TrainingRoomRuntime
     TextureRect _leakStain;
 
     /// <summary>每幀由 UpdatePlayValues 呼叫。pussy＝摸 B／舔 B 進行中。</summary>
-    void UpdateMiniClimax(float dt, bool pussy)
+    void UpdateMiniClimax(float dt, bool pussy, float speed01 = 0f)
     {
         bool wet = Wetness >= MiniClimaxWetAt;
         bool can = MiniClimaxEnabled && pussy && wet && !BratInserted && !_spasmsRunning && _jijiPhase < 3;
@@ -51,7 +53,9 @@ public partial class TrainingRoomRuntime
         if (can)
         {
             if (_miniT < 0f) _miniT = (float)GD.RandRange(MiniClimaxInterval.X, MiniClimaxInterval.Y);
-            _miniT -= dt;
+            // 摸得越快、越濕，倒數越快（機率越高）
+            float rush = Mathf.Lerp(1f, MiniFastMul, Mathf.Clamp(speed01, 0f, 1f)) * Mathf.Lerp(1f, MiniWetMul, Mathf.InverseLerp(MiniClimaxWetAt, 100f, Wetness));
+            _miniT -= dt * rush;
             if (_miniT <= 0f) { _miniT = -1f; TriggerMiniClimax(); }
         }
         else _miniT = -1f;

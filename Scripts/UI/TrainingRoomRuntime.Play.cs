@@ -115,7 +115,7 @@ public partial class TrainingRoomRuntime
         }
 
         UpdateReactions(dt, breast, nipple, mouth, head, bTouch || lickB, thrust);
-        UpdateMiniClimax(dt, bTouch || lickB);   // 濕了被摸偶爾小高潮；內褲慢慢濕開（MiniClimax.cs）
+        UpdateMiniClimax(dt, bTouch || lickB, lickB ? sTongue : sTouch);   // 濕了被摸偶爾小高潮；內褲慢慢濕開（MiniClimax.cs）
         return rate;
     }
 
