@@ -944,6 +944,12 @@ void fragment() {
 
     static Vector2 lpt_(Vector2 lp, float sx, float sy) => lp / new Vector2(sx, sy);
 
+    /// <summary>拉衣服要用一隻手：畫面左邊的衣服用左手、右邊用右手。只有「兩隻手都被佔用」時，才把那隻手原本在做的動作停下來；有空的手就不影響任何動作。</summary>
+    void ClothTakeHand(bool left)
+    {
+        if (SlotBusy(true, "C") && SlotBusy(false, "C")) CancelSlot(left, "C");
+    }
+
     bool ClothHemInput(InputEvent e)
     {
         if (!Layers.TryGetValue("衣服", out var cloth) || cloth == null || !cloth.IsVisibleInTree()) { _hemDrag = false; return false; }
@@ -980,7 +986,7 @@ void fragment() {
                             {
                                 int slotH = Mathf.Abs(uxh - _hemPullXA[0]) <= Mathf.Abs(uxh - _hemPullXA[1]) ? 0 : 1;
                                 if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→已拉起的下擺（優先） v={vm:F3} 邊緣={edgeH:F3}");
-                                _hemDrag = true; _hemStartLocalY = lm.Y; _hemSlot = slotH; _hemStartTarget = _hemTargetA[slotH];
+                                ClothTakeHand(slotH == 0); _hemDrag = true; _hemStartLocalY = lm.Y; _hemSlot = slotH; _hemStartTarget = _hemTargetA[slotH];
                                 return true;
                             }
                         }
@@ -991,6 +997,7 @@ void fragment() {
                     if (srcY_ > midTop_ && vm < midBot_ && StrapHitSide(lm) < 0 && IsPointOnLayer("衣服", wm))
                     {
                         if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→中間區（往下=放回下面，往上=放回上面） v={vm:F3} 上半結束={topEnd:F3} 下擺抓取起點={midBot_:F3} 下擺終點={ClothHemEndV:F3}");
+                        ClothTakeHand(lm.X / sx < ClothHemCenterU);
                         _midDrag = true; _midStartY = lm.Y; _midRotS[0] = _rotT[0]; _midRotS[1] = _rotT[1]; _midStS[0] = _stT[0]; _midStS[1] = _stT[1]; _midHemS0 = _hemTargetA[0]; _midHemS1 = _hemTargetA[1];
                         return true;
                     }
@@ -1126,7 +1133,7 @@ void fragment() {
                 float bandTop = lifted > 0.01f ? Mathf.Min(ClothHemEndV - ClothHemPullBandV, edge - ClothHemGrabBandV) : (edge - ClothHemGrabBandV);   // 已經拉起來時，整段被壓縮的範圍都能抓，方便拉回去
                 if (v < bandTop || v > edge + 0.01f) return false;
                 if (ClothDebugLog) GD.Print($"[ClothDbg] 按下→下擺拉起 v={v:F3} 抓取起點={bandTop:F3} 邊緣={edge:F3}");
-                _hemDrag = true; _hemStartLocalY = lp.Y; _hemSlot = slot; _hemStartTarget = _hemTargetA[slot];
+                ClothTakeHand(slot == 0); _hemDrag = true; _hemStartLocalY = lp.Y; _hemSlot = slot; _hemStartTarget = _hemTargetA[slot];
                 if (_hemPullA[slot] < 0.01f) _hemPullXA[slot] = ux;
                 return true;
             }
