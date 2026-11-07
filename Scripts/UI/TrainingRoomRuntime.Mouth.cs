@@ -26,6 +26,19 @@ public partial class TrainingRoomRuntime
     [Export] public float MouthClimaxShakeSec = 1.5f;  // 高潮瞬間：先抖動嘴幾秒，之後換小嘴吐舌
     float _mouthClimaxShakeT, _mouthNearTarget = 1f;
 
+    /// <summary>「快高潮」程度 0~100：穴高潮值，和現在正在被碰的部位（胸／乳頭／嘴／頭）自己的舒服度，取最大。
+    /// 單摸胸、乳頭、摸頭不會增加穴高潮值，所以也要看各部位的舒服度，不然永遠不會進小嘴巴／小嘴吐舌。</summary>
+    float MouthNearLevel()
+    {
+        float v = ClimaxLevel;
+        var f = _reactFlags;
+        if (f.breast) v = Mathf.Max(v, PartArousal["胸"]);
+        if (f.nipple) v = Mathf.Max(v, PartArousal["乳頭"]);
+        if (f.mouth)  v = Mathf.Max(v, PartArousal["嘴"]);
+        if (f.head)   v = Mathf.Max(v, PartArousal["頭"]);
+        return v;
+    }
+
     static readonly string[] _mouthFreeExprs =
         { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌" };
 
@@ -108,11 +121,12 @@ public partial class TrainingRoomRuntime
 
         // 快高潮：被摸時高潮值越高，小嘴巴慢慢放大；到 MouthTongueAt 換成小嘴吐舌
         string nearWant = null;
-        if (operating && !BratInserted && ClimaxLevel >= MouthNearStart)
+        float nearLv = MouthNearLevel();
+        if (operating && !BratInserted && nearLv >= MouthNearStart)
         {
-            float tN = Mathf.Clamp((ClimaxLevel - MouthNearStart) / Mathf.Max(1f, MouthTongueAt - MouthNearStart), 0f, 1f);
+            float tN = Mathf.Clamp((nearLv - MouthNearStart) / Mathf.Max(1f, MouthTongueAt - MouthNearStart), 0f, 1f);
             _mouthNearTarget = Mathf.Lerp(1f, MouthNearMaxScale, tN);
-            nearWant = ClimaxLevel >= MouthTongueAt ? "小嘴吐舌" : "小嘴巴";
+            nearWant = nearLv >= MouthTongueAt ? "小嘴吐舌" : "小嘴巴";
         }
         string want = nearWant ?? (smiling ? "笑" : (!patFast && BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴"));
         if (_mouthShown != want) ShowOnlyMouth(want);

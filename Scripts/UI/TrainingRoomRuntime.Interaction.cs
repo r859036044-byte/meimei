@@ -508,7 +508,7 @@ public partial class TrainingRoomRuntime : Node
         TongueInput(@event);
         if (PantyBedInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 床上的內褲：拖動／往上拖穿回去（PantyPull.cs）
         if (DuvetInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 抓被子上緣往下拉（Bedding.cs）
-        if (ClothHemInput(@event) || PantyInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 抓衣擺往上拉、捲起來（Cloth.cs）
+        if (!ChestHasClickPriority(@event) && (ClothHemInput(@event) || PantyInput(@event))) { GetViewport().SetInputAsHandled(); return; }   // 抓衣擺往上拉、捲起來（Cloth.cs）；胸部露出來後，點在胸／乳頭上優先給胸
         NippleHoverInput(@event);   // 滑鼠停在奶頭上：游標換成碰奶頭用的食指手
         if (NippleInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 摸乳頭（Nipple.cs）    // 舌頭：從嘴巴開始的拖曳＝調速度   // 摸頭：前髮上半部按住左鍵（不吃掉事件）
         if (HandleCameraInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 滾輪縮放 / 中鍵平移（Camera.cs）
@@ -549,6 +549,25 @@ public partial class TrainingRoomRuntime : Node
         // 只有沒開 M 腿、且正在拖膝蓋熱點時才需要追蹤滑鼠移動。
         else if (@event is InputEventMouseMotion mm && _kneeDragActive && !_mLegOpen)
             UpdateKneeDragRotationFeedback(mm.Position);
+    }
+
+    [Export] public float ChestExposedStretch = 0.01f;   // 上衣往下拉超過這個量（或肩帶拉到解鎖角度）就算胸露出來：點胸／乳頭優先於衣服
+
+    /// <summary>衣服脫之前，點擊優先給衣服；胸露出來之後，點在胸／乳頭上優先給胸（跳過衣服的判定，讓熱點／乳頭收到點擊）。
+    /// 只攔「按下」，而且正在拖衣服時不攔。</summary>
+    bool ChestHasClickPriority(InputEvent e)
+    {
+        if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mb) return false;
+        if (_hemDrag || _midDrag || _topDrag != 0 || IsPointerOverUi()) return false;
+        Vector2 w = ScreenToWorld(mb.Position);
+        for (int s = 0; s < 2; s++)
+        {
+            bool exposed = _stT[s] > ChestExposedStretch || _rotT[s] >= StrapUnlockDeg;
+            if (!exposed) continue;
+            string nip = s == 0 ? "奶頭2" : "奶頭1", br = s == 0 ? "胸2" : "胸1";   // 左半（畫面左）＝奶頭2／胸2
+            if (IsPointOnLayer(nip, w) || IsPointOnLayer(br, w)) return true;
+        }
+        return false;
     }
 
     // ── 手肘/手腕連接點除錯圓點（紅=ArmElbow／橘=HandJoint，兩點該重疊）───
