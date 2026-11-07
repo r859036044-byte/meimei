@@ -5,7 +5,8 @@ using System;
 /// 程式畫出來的雞雞造型直條按鈕（不用貼圖）：
 ///   下面兩個圓（睪丸）、中間一條細長橢圓（莖）、上面蘑菇頭（龜頭）。
 ///   整個造型合成同一個輪廓（外框深色、內部填色），可以點擊（Pressed）。
-///   ShowGauge＝true 時，內部由下往上填綠色（Value 0~1），當成精力條；false 時是空的造型按鈕。
+///   ShowGauge＝true 時，莖的中間出現一根溫度計（黑框黑底，白色由下往上慢慢升，Value 0~1）；false 時只有膚色造型。
+///   Full＝true（精力滿了）時，整個造型從底部中心放大並震動。
 /// 放在原本黃色「勃起度」直條的位置，硬了之後才出現（見 TrainingRoomRuntime.HudGate.cs）。
 /// </summary>
 public partial class JijiGauge : Control
@@ -14,9 +15,16 @@ public partial class JijiGauge : Control
     public bool  ShowGauge;                    // 顯示內部的綠色精力條
     public float Value;                        // 0~1
     public Color OutlineColor = new Color(0.28f, 0.14f, 0.24f);
-    public Color BodyColor    = new Color(1.00f, 0.80f, 0.66f);   // 還沒顯示綠條時的底色（跟原本 🍆 按鈕同色）
-    public Color EmptyColor   = new Color(0.97f, 0.93f, 0.94f);   // 顯示綠條時，空的部分
-    public Color GaugeColor   = new Color(0.30f, 0.72f, 0.48f);
+    public Color BodyColor    = new Color(1.00f, 0.80f, 0.66f);   // 膚色（一律；跟原本 🍆 按鈕同色）
+    public Color ThermoFrame  = new Color(0f, 0f, 0f);            // 溫度計黑框
+    public Color ThermoBack   = new Color(0.08f, 0.08f, 0.10f);   // 溫度計黑底
+    public Color ThermoFill   = Colors.White;                     // 升上來的白色
+    public float ThermoBorder = 2.2f;                             // 黑框粗細
+    public float ThermoTubeR  = 0.075f;                           // 管子半徑（相對整體寬度）
+    public float ThermoTopFrac = 0.10f, ThermoBottomFrac = 0.82f; // 溫度計在莖上的範圍（從莖頂往下佔莖長的幾成）
+    public bool  Full;                                            // 滿了：整個放大並震動
+    public float FullScale = 1.22f;                               // 滿了放大的倍率（從底部中心放大）
+    public float ShakeAmp  = 0.07f;                               // 滿了震動的角度（弧度，約 4°）
     public float Border = 3f;
     public float ShaftMaxRx = 0.31f;    // 莖最寬處的半寬（相對整體寬度）
     public float ShaftSplit = 0.30f;    // 最寬的位置（從莖頂往下佔莖長的幾成；0.30＝離頂端 30%，也就是從底往上 70% 高；越大越往下）
@@ -25,6 +33,7 @@ public partial class JijiGauge : Control
     public float ShaftBottomKeep = 0.45f;   // 莖最底端的寬度，佔最寬處的幾成（越小下面越瘦；1＝不收細）
 
     bool _hover, _down;
+    float _scaleCur = 1f, _rotCur = 0f, _time;
     float _lastValue = -1f; bool _lastShow; Vector2 _lastSize; bool _lastHover, _lastDown;
 
     public override void _Ready()
@@ -35,6 +44,16 @@ public partial class JijiGauge : Control
 
     public override void _Process(double delta)
     {
+        float dt = (float)delta; _time += dt;
+        // 滿了：從底部中心放大並震動；沒滿就回到原樣
+        PivotOffset = new Vector2(Size.X * 0.5f, Size.Y);
+        float k = 1f - Mathf.Exp(-dt * 10f);
+        _scaleCur = Mathf.Lerp(_scaleCur, Full ? FullScale : 1f, k);
+        float rot = Full ? (Mathf.Sin(_time * 70f) + 0.5f * Mathf.Sin(_time * 113f)) * ShakeAmp * 0.67f : 0f;
+        _rotCur = Mathf.Lerp(_rotCur, rot, Full ? 0.6f : k);
+        Scale = new Vector2(_scaleCur, _scaleCur);
+        Rotation = _rotCur;
+
         if (!Mathf.IsEqualApprox(Value, _lastValue) || ShowGauge != _lastShow || Size != _lastSize || _hover != _lastHover || _down != _lastDown)
         {
             _lastValue = Value; _lastShow = ShowGauge; _lastSize = Size; _lastHover = _hover; _lastDown = _down;
@@ -116,6 +135,16 @@ public partial class JijiGauge : Control
         return best;
     }
 
+    /// <summary>莖的上下範圍（跟蘑菇頭、球接起來的位置）。輪廓和溫度計都用它。</summary>
+    void ShaftSpan(out float shaftTop, out float shaftBot)
+    {
+        float w = Size.X, h = Size.Y;
+        float ballR = w * 0.235f, ballY = h - ballR - 2f;
+        float capBaseRx = w * 0.40f, capTop = capBaseRx * 1.05f, capBot = capBaseRx * 0.32f, capCy = capTop + 2f;
+        shaftTop = capCy + capBot * 0.4f - 6f;          // 兩端各多蓋 6px，和頭、球接在一起
+        shaftBot = ballY - ballR * 0.2f + 6f;
+    }
+
     Vector2[] BuildSilhouette()
     {
         float w = Size.X, h = Size.Y, cx = w * 0.5f;
@@ -123,7 +152,7 @@ public partial class JijiGauge : Control
         float capBaseRx = w * 0.40f;
         float capRx = capBaseRx * CapWidthScale;                                  // 頭的寬度（只有頭會窄）
         float capTop = capBaseRx * 1.05f, capBot = capBaseRx * 0.32f, capCy = capTop + 2f;   // 頭的高度不變
-        float shaftTop = capCy + capBot * 0.4f - 6f, shaftBot = ballY - ballR * 0.2f + 6f;   // 兩端各多蓋 6px，和頭、球接在一起
+        ShaftSpan(out float shaftTop, out float shaftBot);
 
         var parts = new[]
         {
@@ -141,6 +170,22 @@ public partial class JijiGauge : Control
         return sil;
     }
 
+    /// <summary>溫度計外形：上面圓頭的細管＋下面一顆圓球，放在莖的中間。</summary>
+    Vector2[] BuildThermo()
+    {
+        ShaftSpan(out float st, out float sb);
+        float len = sb - st, cx = Size.X * 0.5f;
+        float tubeR = Size.X * ThermoTubeR, bulbR = tubeR * 1.65f;
+        float yTop = st + len * ThermoTopFrac;
+        float yBulb = st + len * ThermoBottomFrac - bulbR;                 // 球心
+        var cap = Ellipse(cx, yTop + tubeR, tubeR, tubeR, 20, Mathf.Pi, Mathf.Tau);   // 管上端半圓
+        var tube = new Vector2[cap.Length + 2];
+        cap.CopyTo(tube, 0);
+        tube[cap.Length] = new Vector2(cx + tubeR, yBulb); tube[cap.Length + 1] = new Vector2(cx - tubeR, yBulb);
+        var merged = Geometry2D.MergePolygons(tube, Ellipse(cx, yBulb, bulbR, bulbR, 32));
+        return merged.Count > 0 ? Largest(merged) : tube;
+    }
+
     public override void _Draw()
     {
         if (Size.X < 8f || Size.Y < 8f) return;
@@ -151,17 +196,28 @@ public partial class JijiGauge : Control
         if (shrunk.Count == 0) return;
         var inner = Largest(shrunk);
 
-        Color baseCol = ShowGauge ? EmptyColor : BodyColor;
+        Color baseCol = BodyColor;   // 一律膚色
         if (_down) baseCol = baseCol.Darkened(0.12f); else if (_hover) baseCol = baseCol.Lightened(0.12f);
         DrawColoredPolygon(inner, baseCol);
 
-        if (ShowGauge && Value > 0.001f)
+        if (!ShowGauge) return;
+
+        // 溫度計：黑框、黑底，白色液體由下往上慢慢升
+        var thermo = BuildThermo();
+        DrawColoredPolygon(thermo, ThermoFrame);
+        var thIn = Geometry2D.OffsetPolygon(thermo, -ThermoBorder);
+        if (thIn.Count == 0) return;
+        var tin = Largest(thIn);
+        DrawColoredPolygon(tin, ThermoBack);
+
+        float minY = float.MaxValue, maxY = float.MinValue;
+        foreach (var p in tin) { minY = Mathf.Min(minY, p.Y); maxY = Mathf.Max(maxY, p.Y); }
+        float v = Mathf.Clamp(Value, 0f, 1f);
+        if (v > 0.001f)
         {
-            float v = Mathf.Clamp(Value, 0f, 1f);
-            float top = Size.Y - Size.Y * v;
+            float top = maxY - (maxY - minY) * v;
             var rect = new[] { new Vector2(-4f, top), new Vector2(Size.X + 4f, top), new Vector2(Size.X + 4f, Size.Y + 4f), new Vector2(-4f, Size.Y + 4f) };
-            var fill = Geometry2D.IntersectPolygons(inner, rect);
-            foreach (var poly in fill) if (poly.Length >= 3) DrawColoredPolygon(poly, GaugeColor);
+            foreach (var poly in Geometry2D.IntersectPolygons(tin, rect)) if (poly.Length >= 3) DrawColoredPolygon(poly, ThermoFill);
         }
     }
 }

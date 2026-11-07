@@ -44,7 +44,8 @@ public partial class TrainingRoomRuntime
             _jijiGauge.Visible = UseJijiGauge && vis;
             _jijiGauge.Modulate = col;
             _jijiGauge.ShowGauge = _jijiPhase != 0;
-            _jijiGauge.Value = Mathf.Clamp(Stamina / 120f, 0f, 1f);
+            _jijiGauge.Value = Mathf.Clamp(Stamina / 100f, 0f, 1f);   // 溫度計滿格＝精力 100（破功線）
+            _jijiGauge.Full = _breaking || Stamina >= 100f;           // 滿了：放大並震動，這段時間可以按忍耐回去
         }
     }
 }

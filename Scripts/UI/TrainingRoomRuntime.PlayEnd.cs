@@ -54,7 +54,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,30,0.1")] public float FeelRatePerSpeed = 3f; // 速度滿檔時額外每秒增加
     [Export(PropertyHint.Range, "0,3,0.05")] public float FeelHoleBoost = 0.8f; // 小穴高潮值 100 時累積速度額外 ×(1+這個)：小穴越舒服越容易射
     [Export(PropertyHint.Range, "0,5,0.05")] public float FeelDecay = 0.8f;     // 沒累積時每秒下降
-    [Export(PropertyHint.Range, "0,200,1")] public float FeelBreakRate = 45f;   // 破功（超過 100）後每秒衝多少
+    [Export(PropertyHint.Range, "0.5,200,0.5")] public float FeelBreakRate = 4f;   // 破功（超過 100）後每秒衝多少。從 100 衝到 120 要 20÷這個秒＝可以按忍耐回去的時間（4＝約 5 秒；以前是 45＝不到半秒就射）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float EndureFailWhileBreaking = 0.5f;   // 已經破功（滿了）時按忍耐，忍不住的最低機率（失敗了還有時間再按）
     [Export(PropertyHint.Range, "0,120,1")] public float FeelAfterEjac = 20f;   // 射精後精力掉到
     [Export(PropertyHint.Range, "0,100,1")] public float PainStartFeel = 60f;   // 精力超過這個且又快才會痛
     [Export(PropertyHint.Range, "0,1,0.05")] public float PainFeelSlow = 0.3f;  // 痛時精力累積變慢多少
@@ -152,6 +153,7 @@ public partial class TrainingRoomRuntime
         float rise = 0f;
         if (thrusting) rise = (FeelRateBase + FeelRatePerSpeed * sThrust) * (1f + FeelHoleBoost * hole01) * (1f - PainFeelSlow * _pain) * (_erectOn ? 1f : 0.5f);
         else if (anything && !inserted) rise = FeelRateTouch;
+        if (_breaking) rise = 0f;   // 破功中只靠 FeelBreakRate 衝，窗口才會是固定秒數（不會因為還在抽插而更快射）
         if (!inserted)
         {
             if (Stamina > FeelCapNoInsert) Stamina = Mathf.Max(FeelCapNoInsert, Stamina - FeelDecay * 3f * dt);
@@ -263,7 +265,7 @@ public partial class TrainingRoomRuntime
         }
         float over = Mathf.Max(0f, Stamina - 100f);
         float fail = Stamina >= 100f ? Mathf.Clamp(over / Mathf.Max(1f, EndureFailOver), 0f, 1f) : 0f;
-        if (_breaking) fail = Mathf.Max(fail, 0.5f);   // 已經在破功了，更難忍
+        if (_breaking) fail = Mathf.Max(fail, EndureFailWhileBreaking);   // 已經在破功了，更難忍（機率可在 Inspector 調）
         if (GD.Randf() < fail)
         {
             _breaking = true; SayMale(EndureFailLines); GD.Print($"[Male] 忍耐失敗（失敗率 {fail:P0}）");
