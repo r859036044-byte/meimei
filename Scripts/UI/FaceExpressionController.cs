@@ -302,6 +302,15 @@ public partial class FaceExpressionController : Node
         SetExpression(Expressions[index].ExpressionName);
     }
 
+    /// <summary>查某個表情指定的嘴巴圖層名稱（沒有指定回傳 null）。</summary>
+    public string GetExpressionMouth(string expressionName)
+    {
+        if (string.IsNullOrEmpty(expressionName) || !_exprMap.TryGetValue(expressionName, out var def) || def.Parts == null) return null;
+        foreach (var part in def.Parts)
+            if (part.GroupName == "嘴巴" && !string.IsNullOrEmpty(part.LayerName)) return part.LayerName;
+        return null;
+    }
+
     public void HideGroup(string groupName)
     {
         if (!_groupLayerSets.TryGetValue(groupName, out var set)) return;
