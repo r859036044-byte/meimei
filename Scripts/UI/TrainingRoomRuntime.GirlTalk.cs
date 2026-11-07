@@ -141,7 +141,7 @@ public partial class TrainingRoomRuntime
         // 優先順序（由高到低）：莉奈要高潮 > 男主要射 > 痛 > 插入中 > 觸摸中 > 衣服脫了 > 什麼都沒做
         if (ClimaxLevel >= GirlTalkNearClimaxAt && (touching || BratInserted)) return GirlTalkState.NearClimax;
         if (BratInserted && (Stamina >= GirlTalkMaleNearEjacAt || _breaking)) return GirlTalkState.MaleNearEjac;
-        if ((BratInserted || f.pussy) && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）
+        if (BratInserted && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）；還沒插入不會說「痛」（碰小穴時走「觸摸中」）
         if (Wetness >= GirlTalkWetAt) return GirlTalkState.Wet;                          // 很濕了：誘惑的話（排在插入中／觸摸中前面）
         if (BratInserted) return GirlTalkState.Inserted;
         if (touching) return GirlTalkState.Touching;
