@@ -216,7 +216,10 @@ public partial class TrainingRoomRuntime
         bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
         if (good) TriggerMouthSmile();   // 舒服＝台詞加愛心：嘴巴也換成笑（Mouth.cs）
         for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
+        bool hasReply = reply != null && allowReply;
+        _dlgInExchange = true;
         ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
+        _dlgInExchange = false;
         float t = 0f;
         for (int k = 1; k < segs.Length; k++)
         {
@@ -225,18 +228,29 @@ public partial class TrainingRoomRuntime
             GetTree().CreateTimer(t).Timeout += () =>
             {
                 if (!IsInstanceValid(this)) return;
+                _dlgInExchange = true;
                 ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, seg, false);
-                // 回應時間還沒結束時，氣泡留到結束（跟 BratProcess 一致）
+                _dlgInExchange = false;
+                // 回應時間還沒結束時，氣泡留到結束（跟 BratProcess 一致）；有男主回應時要留到回應之後
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl))
                     _bubbleGirl.SetMeta("hide_t", Mathf.Max(PatTalkShowTime, _bratLineType != 0 ? Mathf.Max(_bratWindow, 0.5f) : 0f));
             };
         }
-        if (reply != null && allowReply)
+        if (hasReply)
         {
+            float total = t + GirlTalkReplyDelay + PatTalkShowTime;
+            _dlgLockEnd = Time.GetTicksMsec() / 1000.0 + total;   // 這組對話播完前，別的台詞不能蓋掉
+            // 莉奈的氣泡要撐到男主回應之後（不能先消失）
+            if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", Mathf.Max(PatTalkShowTime, t + GirlTalkReplyDelay + PatTalkShowTime));
             string r = reply;
             GetTree().CreateTimer(t + GirlTalkReplyDelay).Timeout += () =>
             {
-                if (IsInstanceValid(this) && !_playerChoiceActive) SayMale(new[] { r });   // 選項還在時不蓋掉
+                if (!IsInstanceValid(this)) return;
+                if (_playerChoiceActive) { _dlgLockEnd = 0; return; }   // 選項還在時不蓋掉
+                _dlgInExchange = true;
+                SayMale(new[] { r });
+                _dlgInExchange = false;
+                HoldBothBubbles(PatTalkShowTime);   // 兩邊一起消失
             };
         }
         return reply != null;

@@ -185,9 +185,19 @@ public partial class TrainingRoomRuntime
         return lines[_patRng.RandiRange(0, lines.Length - 1)];
     }
 
+    double _dlgLockEnd;          // 對話鎖：這個時間（秒）之前，別的台詞不能蓋掉進行中的一來一往
+    bool   _dlgInExchange;       // 目前正在播這組對話自己的台詞（不被鎖擋）
+    /// <summary>兩個氣泡一起消失：都改成再留 sec 秒。</summary>
+    void HoldBothBubbles(float sec)
+    {
+        if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl) && _bubbleGirl.Visible) _bubbleGirl.SetMeta("hide_t", sec);
+        if (_bubblePlayer != null && IsInstanceValid(_bubblePlayer) && _bubblePlayer.Visible) _bubblePlayer.SetMeta("hide_t", sec);
+    }
+
     void ShowBubble(ref Control bubble, ref Label lbl, string text, bool isPlayer)
     {
         if (string.IsNullOrEmpty(text)) return;
+        if (!_dlgInExchange && !_playerChoiceSetting && Time.GetTicksMsec() / 1000.0 < _dlgLockEnd) return;   // 莉奈和男主一來一往的對話進行中：別的台詞不能蓋掉
         if (isPlayer && _playerChoiceActive && !_playerChoiceSetting) return;   // 選項還在時，男主氣泡不被別的台詞蓋掉
         if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊
         if (bubble == null || !IsInstanceValid(bubble)) (bubble, lbl) = BuildBubble(isPlayer);
