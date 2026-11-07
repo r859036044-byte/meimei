@@ -14,13 +14,14 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("眉毛")]
     [Export] public bool  BrowReactOnOperate = true;
-    [Export] public float BrowLingerSec      = 0.8f;    // 操作停止後多久才回到 1 號
+    [Export] public float BrowLingerSec      = 2.5f;    // 操作停止後多久才回到 1 號（越大越不會一停手就彈回）
     [Export] public float BrowOthersFull     = 150f;    // 小穴沒插入時：嘴＋胸＋尻 加起來到多少算「很舒服」（滿 300）
     [Export] public float BrowUncomfyEnter   = 0.15f;   // 不舒服程度超過這個 → 切到不舒服（反轉）那一側
     [Export] public float BrowUncomfyExit    = 0.05f;   // 低於這個 → 回到舒服那一側（兩個值拉開避免一直來回翻）
-    [Export] public float BrowSmoothSec      = 1.2f;    // 舒服／不舒服程度的平滑時間
+    [Export] public float BrowSmoothSec      = 2.5f;    // 舒服／不舒服程度的平滑時間（越大眉毛變化越慢）
+    [Export] public float BrowTouchCooldownSec = 3.0f;  // 「剛觸碰就跳到 3／2 號」最短間隔（秒）；0＝每碰到新部位都跳（舊行為）
 
-    float _browLingerT;
+    float _browLingerT, _browTouchCd;
     int   _browPrevMask;
     float _browPos, _browNeg;     // 平滑後的舒服／不舒服程度（0~1）
     bool  _browUncomfy;
@@ -47,6 +48,7 @@ public partial class TrainingRoomRuntime
             Input.IsMouseButtonPressed(MouseButton.Right) ||
             Input.IsMouseButtonPressed(MouseButton.Middle));
 
+        _browTouchCd -= dt;
         bool wasOn = _browLingerT > 0f;
         _browLingerT = operating ? BrowLingerSec : Mathf.Max(0f, _browLingerT - dt);
         bool isOn = _browLingerT > 0f;
@@ -78,8 +80,9 @@ public partial class TrainingRoomRuntime
         bool justTouched = (mask & ~_browPrevMask) != 0 || !wasOn;   // 有新物件被碰到（或一開始就碰）
         _browPrevMask = mask;
 
-        if (justTouched)
+        if (justTouched && _browTouchCd <= 0f)
         {
+            _browTouchCd = BrowTouchCooldownSec;
             // 剛觸碰：舒服側先是 3（生氣角度）再往 4 移；不舒服側先是 2（反轉、水平）再往 6 移
             if (_browUncomfy) FaceController.SetBrowPose(0f, true, instant: true);
             else              FaceController.SetBrowPose(1f, false, instant: true);
