@@ -1289,6 +1289,11 @@ void fragment() {
     // ── M 腿內褲：跟衣服一樣被 M 腿（腿／腳／足）裁切；被衣服蓋住的部分靠圖層順序（衣服在它上面）──
     ShaderMaterial _mPantyMat;
     const string MPantyShaderCode = @"shader_type canvas_item;
+uniform float wet_k = 0.0;       // 濕痕強度 0~1（M 腿內褲，跟一般內褲同一套）
+uniform vec2 wet_c = vec2(0.5, 0.5);   // 濕痕中心（內褲貼圖 UV）
+uniform vec2 wet_r = vec2(0.06, 0.04); // 濕痕半徑（UV）
+uniform float wet_core = 0.5;
+uniform vec3 wet_col = vec3(0.7, 0.74, 0.88);
 uniform sampler2D leg_tex : filter_linear;
 uniform vec2 lg_x = vec2(1.0, 0.0);
 uniform vec2 lg_y = vec2(0.0, 1.0);
@@ -1845,6 +1850,12 @@ void fragment() {
         float sk_ = (1.0 - smoothstep(0.5, 1.5, sd_)) * syk_ * smoothstep(1.0, 20.0, aside) * seg_k * smoothstep(0.3, 0.8, hug_k) * (1.0 - smoothstep(seg_fade, 1.0, u_));   // 上端淡化（只顯示這條線，不被腿裁切）
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
+    }
+    if (wet_k > 0.001 && c.a > 0.01) {   // 濕度：小穴附近的內褲被色彩增值蓋上一塊深色濕痕（跟一般內褲一樣）
+        vec2 wd_ = (UV - wet_c) / max(wet_r, vec2(0.001));
+        float wn_ = fract(sin(dot(floor(UV * 70.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        float wm_ = 1.0 - smoothstep(wet_core, 1.0, length(wd_) + wn_ * 0.18);
+        c.rgb = mix(c.rgb, c.rgb * wet_col, clamp(wet_k * wm_, 0.0, 1.0));
     }
     COLOR = c * vc;
 }
