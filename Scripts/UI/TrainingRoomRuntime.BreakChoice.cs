@@ -26,6 +26,10 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.05,1,0.05")] public float EndureLeakMax = 0.5f;     // 最多佔平常的幾成（每次在最少～最多之間隨機）；剩下的留在庫存
     [Export] public string[] EndureLeakLines = { "糟糕…還是忍不住！", "糟、糟糕…忍不住了…！", "啊…糟了，漏出來了…！" };
 
+    [Export] public string[] ChoiceBreakSlowNames = { "慢下來", "先慢下來一點", "緩一緩" };       // 破功選項：慢下來（每次隨機挑一個）
+    [Export] public string[] ChoiceBreakCumNames  = { "射進去", "就這樣射給你", "忍不住了，全給你" };  // 破功選項：射進去（每次隨機挑一個）
+    string _breakSlowLabel = "慢下來", _breakCumLabel = "射進去";
+
     bool _breakChoiceShown;
 
     /// <summary>忍耐失敗（還在抽插）：男主說「糟糕，還是忍不住」，這次只射出 EndureLeakMin~Max 的量，剩下的留著。</summary>
@@ -40,7 +44,8 @@ public partial class TrainingRoomRuntime
     void ShowBreakChoices()
     {
         _breakChoiceShown = true;
-        ShowPlayerChoices(Pick(MaleBreakFeelLines), new[] { ChoiceBreakSlow, ChoiceBreakCum },
+        _breakSlowLabel = PickName(ChoiceBreakSlowNames, ChoiceBreakSlow); _breakCumLabel = PickName(ChoiceBreakCumNames, ChoiceBreakCum);   // 名稱每次不同
+        ShowPlayerChoices(Pick(MaleBreakFeelLines), new[] { _breakSlowLabel, _breakCumLabel },
             new Action[] { OnBreakChooseSlow, OnBreakChooseCum }, BreakWindowSec);
     }
 
@@ -64,7 +69,7 @@ public partial class TrainingRoomRuntime
         CloseBreakChoicesKeepBubble();
         _breakT = Mathf.Max(0f, _breakT - BreakSlowRollbackSec);
         if (_jijiPhase == 3 && _jijiStage >= 1) _s2SpeedLv = Mathf.Min(_s2SpeedLv, S2SpeedLvMax * BreakSlowSpeedFrac);
-        SayMale(new[] { ChoiceBreakSlow });
+        SayMale(new[] { _breakSlowLabel });
         GD.Print($"[Male] 選「慢下來」→ 破功倒數退回 {BreakSlowRollbackSec:F1} 秒、抽插降速（還能再按忍耐）");
     }
 
@@ -72,7 +77,7 @@ public partial class TrainingRoomRuntime
     {
         if (!_breaking) return;
         CloseBreakChoicesKeepBubble();
-        SayMale(new[] { ChoiceBreakCum });
+        SayMale(new[] { _breakCumLabel });
         MaleEjaculate();   // 射精過程中還能按忍耐少射（OnEndurePressed 的射精中分支）
         GD.Print("[Male] 選「射進去」→ 直接射精");
     }

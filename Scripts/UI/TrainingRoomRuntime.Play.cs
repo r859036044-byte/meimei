@@ -219,7 +219,7 @@ public partial class TrainingRoomRuntime
         for (int i = 0; i < 4 && t == _reactLast && lines.Length > 1; i++) t = Pick(lines);   // 避免連續同一句
         if (string.IsNullOrEmpty(t)) return;
         _reactLast = t;
-        ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, t, false);
+        GirlSayRich(t);   // 支援「|」分段、「=>」男主回應；舒服加愛心、不舒服加「不要…」（GirlTalk.cs）
         _reactCd = ReactCooldown;
     }
 }

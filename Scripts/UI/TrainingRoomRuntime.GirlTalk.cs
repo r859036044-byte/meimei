@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 1：什麼都沒做")]
     [Export] public string[] BratLines =
     {
-        "哼～弱雞～", "這種程度也敢叫我做事？", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～",
+        "哼～雜魚❤～|～弱雞❤～=>又開始了嗎…你才是嘴上不饒人的那個吧。", "這種雜魚也敢命令我嗎？=>我哪有命令你，只是問問你要不要而已。", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～",
         "喂～我都等好久了耶～", "你是不是在發呆啊～？", "真是的，一點用都沒有～", "要我誇你嗎？才不要～",
         "大叔的臉好呆喔～", "哼，別以為我會乖乖聽話～",
     };                                                                                        // 雌小鬼的話（占位）
@@ -83,12 +83,12 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 5：痛／不舒服")]
     [Export] public string[] BratLinesPain =
     {
-        "痛、痛啦～你不會輕一點嗎～", "笨蛋～弄得人家好痛～", "哼…這樣一點都不舒服～", "速度不對啦～大叔真的很笨～",
+        "痛、痛啦～你不會輕一點嗎～", "笨蛋雜魚～弄得人家好痛～=>好好好，我慢一點，別生氣。", "哼…這樣一點都不舒服～", "速度不對啦～大叔真的很笨～",
         "好痛…你是故意的吧～", "嗚…別、別那麼用力啦～", "這種技術也敢上場喔～？", "痛痛痛…我要生氣囉～",
     };
     [Export] public string[] BratNormalLinesPain =
     {
-        "唔…有點痛…", "等、等一下…太快了…", "……慢一點，拜託。", "嗚…好痛…", "那裡…不舒服…",
+        "唔…有點痛…", "等、等一下…啊哈……|太快了…慢一點=>抱歉，我放慢一點。", "……慢一點，拜託。", "嗚…好痛…", "那裡…不舒服…",
         "不要…這樣會痛…", "請、請輕一點…", "……我有點受不了。",
     };
     // 莉奈說完之後，男主回應（在男主的對話框）。分「回雌小鬼話」和「回正常話」
@@ -154,6 +154,108 @@ public partial class TrainingRoomRuntime
     [Export] public string[] GirlSlowReplyLines = { "……嗯，謝謝。", "呼…好多了。", "……算你還有點體貼。", "嗯…就這樣…慢慢來。" };   // 莉奈對「慢下來」的回應
     [Export] public string[] GirlKeepReplyLines = { "啊…不、不要停…♡", "嗯…就、就這樣…", "哈啊…♡", "……笨蛋…別停下來…" };       // 莉奈對「別停」的回應
 
+    // ════════ 莉奈台詞的語法與加工 ════════════════════════════════════
+    //   「|」  分段：一句台詞拆成幾段，依序顯示在莉奈的對話框（每段間隔 GirlSegmentGapSec 秒）。
+    //   「=>」 男主回應：「=>」後面是男主在他的對話框回的話（最後一段出現後 GirlTalkReplyDelay 秒）。
+    //   例："等、等一下…啊哈……|太快了…慢一點=>抱歉，我放慢一點。"
+    //   沒有寫「=>」的台詞，維持原本的行為（例如「痛」「要高潮」區會用 MaleReply* 那組男主回應）。
+    // 加工（說出口之前自動處理每一段）：
+    //   • 莉奈舒服的時候：台詞後面加愛心（GirlHeart）。已經有 ♡／❤ 的不重複加。
+    //   • 莉奈不舒服的時候（痛、速度不對、太乾）：台詞裡有「啊哈、嗯、唔…」這類擬聲詞，就在後面加上「不要…」之類的拒絕（GirlRefuseWords）。
+    [ExportGroup("莉奈台詞 9：分段與加工")]
+    [Export] public float GirlSegmentGapSec = 1.4f;   // 分段台詞：下一段幾秒後出現
+    [Export] public string GirlHeart = "❤";            // 舒服時加在台詞後面的愛心
+    [Export(PropertyHint.Range, "0,100,1")] public float GirlHeartClimaxAt = 35f;   // 穴高潮值到這個以上算「舒服」（也會看眉毛的舒服程度）
+    [Export] public string[] GirlRefuseWords = { "不要…", "不、不要…", "不行…", "等、等一下…" };   // 不舒服時，擬聲詞後面加的話（隨機挑一個）
+    [Export] public string[] GirlOnomatopoeia = { "啊哈", "哈啊", "嗯", "唔", "啊", "呼", "哈", "嗚" };   // 算擬聲詞的字
+
+    /// <summary>莉奈現在不舒服：痛，或眉毛判定不舒服（速度不對／太乾）。</summary>
+    bool GirlFeelsBad() => CurrentGirlTalkState() == GirlTalkState.Pain || (_browUncomfy && _browLingerT > 0f);
+
+    /// <summary>莉奈現在舒服：穴高潮值夠高，或眉毛判定很舒服（而且不是不舒服）。</summary>
+    bool GirlFeelsGood() => !GirlFeelsBad() && (ClimaxLevel >= GirlHeartClimaxAt || (_browLingerT > 0f && _browPos >= 0.5f));
+
+    string DressGirlSegment(string seg, bool good, bool bad)
+    {
+        if (string.IsNullOrEmpty(seg)) return seg;
+        if (good)
+        {
+            if (seg.Contains("♡") || seg.Contains("❤") || seg.Contains("♥")) return seg;
+            return seg + GirlHeart;
+        }
+        if (bad && GirlOnomatopoeia != null && GirlRefuseWords != null && GirlRefuseWords.Length > 0)
+        {
+            foreach (var w in new[] { "不要", "不行", "等一下", "等、等一下", "停" }) if (seg.Contains(w)) return seg;   // 已經在拒絕了
+            foreach (var o in GirlOnomatopoeia) if (!string.IsNullOrEmpty(o) && seg.Contains(o)) return seg + Pick(GirlRefuseWords);
+        }
+        return seg;
+    }
+
+    static void ParseGirlLine(string raw, out string[] segs, out string reply)
+    {
+        reply = null; string main = raw ?? "";
+        int i = main.IndexOf("=>", System.StringComparison.Ordinal);
+        if (i >= 0) { reply = main.Substring(i + 2).Trim(); main = main.Substring(0, i); }
+        segs = main.Split('|', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        if (segs.Length == 0) segs = new[] { main.Trim() };
+        if (string.IsNullOrEmpty(reply)) reply = null;
+    }
+
+    /// <summary>莉奈說一句台詞：支援「|」分段、「=>」男主回應，並依舒服／不舒服加工。allowReply＝false 時不播男主回應（例如這時男主對話框已經是選項）。回傳這句有沒有帶男主回應。</summary>
+    bool GirlSayRich(string raw, bool allowReply = true)
+    {
+        ParseGirlLine(raw, out var segs, out var reply);
+        bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
+        for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
+        ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
+        float t = 0f;
+        for (int k = 1; k < segs.Length; k++)
+        {
+            t += GirlSegmentGapSec;
+            string seg = segs[k];
+            GetTree().CreateTimer(t).Timeout += () =>
+            {
+                if (!IsInstanceValid(this)) return;
+                ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, seg, false);
+                // 回應時間還沒結束時，氣泡留到結束（跟 BratProcess 一致）
+                if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl))
+                    _bubbleGirl.SetMeta("hide_t", Mathf.Max(PatTalkShowTime, _bratLineType != 0 ? Mathf.Max(_bratWindow, 0.5f) : 0f));
+            };
+        }
+        if (reply != null && allowReply)
+        {
+            string r = reply;
+            GetTree().CreateTimer(t + GirlTalkReplyDelay).Timeout += () =>
+            {
+                if (IsInstanceValid(this) && !_playerChoiceActive) SayMale(new[] { r });   // 選項還在時不蓋掉
+            };
+        }
+        return reply != null;
+    }
+
+    // ════════ 男主選項的名稱：每次出現隨機挑一個，名字不要每次都一樣 ═════════
+    [ExportGroup("男主選項名稱（每次隨機挑一個）")]
+    [Export] public string[] ChoiceLessonNames  = { "教訓她", "好好教訓這個雌小鬼", "讓她知道厲害", "懲罰這個雌小鬼" };      // 雌小鬼話：教訓
+    [Export] public string[] ChoiceIgnoreNames  = { "不理她", "裝作沒聽到", "隨她去說", "繼續做自己的" };                    // 雌小鬼話：不理
+    [Export] public string[] ChoiceSoftNames    = { "溫柔一點", "慢慢來", "聽她的，放慢一點" };                              // 正常話：放慢、溫柔
+    [Export] public string[] ChoiceCarryOnNames = { "繼續", "不用管，繼續", "就這樣" };                                      // 正常話：繼續
+    [Export] public string[] ChoicePainPunishNames = { "小鬼，這就是你的懲罰", "叫你亂說話，這是懲罰", "再嘴硬就別怪我了" };    // 痛：懲罰
+    [Export] public string[] ChoiceSlowNames    = { "慢下來吧", "好吧，放慢一點", "別急，慢慢來" };                          // 痛／要高潮：放慢
+    [Export] public string[] ChoiceKeepNames    = { "別停，就這樣", "繼續，不要停", "就這樣繼續" };                          // 要高潮：繼續
+
+    string PickName(string[] pool, string fallback)
+    {
+        var s = Pick(pool);
+        return string.IsNullOrEmpty(s) ? fallback : s;
+    }
+
+    /// <summary>正常話時選「繼續」：照原本「沒人理她」的算法。</summary>
+    void ApplyIgnoreNormal()
+    {
+        Mood += NormalIgnoredMoodUp; BratValue -= 1f;
+        BratResolve();
+    }
+
     /// <summary>目前狀態是不是「痛」或「莉奈要高潮了」（這兩種插入中會給男主專屬選項）。</summary>
     bool GirlTalkStateHasChoices()
     {
@@ -167,14 +269,16 @@ public partial class TrainingRoomRuntime
         var st = CurrentGirlTalkState();
         if (st == GirlTalkState.Pain)
         {
-            ShowPlayerChoices(ChoicePromptPain, new[] { ChoicePainPunish, ChoicePainSlow },
-                new System.Action[] { () => GirlChoose(ChoicePainPunish, ApplyLesson), () => GirlChoose(ChoicePainSlow, ApplySlowDown) }, BratWindowSec);
+            string pa = PickName(ChoicePainPunishNames, ChoicePainPunish), pb = PickName(ChoiceSlowNames, ChoicePainSlow);   // 名稱每次不同
+            ShowPlayerChoices(ChoicePromptPain, new[] { pa, pb },
+                new System.Action[] { () => GirlChoose(pa, ApplyLesson), () => GirlChoose(pb, ApplySlowDown) }, BratWindowSec);
             return true;
         }
         if (st == GirlTalkState.NearClimax)
         {
-            ShowPlayerChoices(ChoicePromptNearClimax, new[] { ChoiceClimaxKeep, ChoiceClimaxSlow },
-                new System.Action[] { () => GirlChoose(ChoiceClimaxKeep, ApplyKeepGoing), () => GirlChoose(ChoiceClimaxSlow, ApplySlowDown) }, BratWindowSec);
+            string ca = PickName(ChoiceKeepNames, ChoiceClimaxKeep), cb = PickName(ChoiceSlowNames, ChoiceClimaxSlow);   // 名稱每次不同
+            ShowPlayerChoices(ChoicePromptNearClimax, new[] { ca, cb },
+                new System.Action[] { () => GirlChoose(ca, ApplyKeepGoing), () => GirlChoose(cb, ApplySlowDown) }, BratWindowSec);
             return true;
         }
         return false;

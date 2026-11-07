@@ -88,12 +88,13 @@ public partial class TrainingRoomRuntime
         else if (BratValue >= 100f) { BratSetVar(BratVarEnd, 2); GD.Print("[Brat] 雌小鬼值 100 → 隔天結局：莉奈讓男主當奴隸"); }
     }
 
-    void BratSay(string[] lines)
+    /// <summary>莉奈說話（台詞可用「|」分段、「=>」男主回應，舒服加愛心、不舒服加「不要…」，見 GirlTalk.cs）。回傳這句有沒有帶男主回應。</summary>
+    bool BratSay(string[] lines, bool allowReply = true)
     {
         lines = DemoMode.Trim(lines);   // 試玩版：每區只留 2 句
-        if (lines == null || lines.Length == 0) return;
+        if (lines == null || lines.Length == 0) return false;
         string t = Pick(lines);
-        if (!string.IsNullOrEmpty(t)) ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, t, false);
+        return !string.IsNullOrEmpty(t) && GirlSayRich(t, allowReply);
     }
 
     bool BratR18 => PlayerDataManager.Instance?.R18ContentEnabled == true;
@@ -129,13 +130,14 @@ public partial class TrainingRoomRuntime
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
                 _bratLineType = GD.Randf() < p ? 1 : 2;
-                BratSay(GirlTalkLines(_bratLineType == 1));   // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）
-                bool hasChoices = r18 && BratInserted && (_bratLineType == 1 || GirlTalkStateHasChoices());   // 插入中：雌小鬼話、或「痛／莉奈要高潮」都有選項
-                if (!hasChoices) GirlTalkMaleReply(_bratLineType == 1);   // 沒有選項時（例如沒插入）：莉奈先說，男主過一下用文字回應（GirlTalk.cs）
+                bool hasChoices = r18 && BratInserted;   // 插入中（在做的時候）：莉奈每說一句，男主都有選項（名稱每次不同）
+                // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）；台詞自己帶「=>男主回應」的話，這裡就會播
+                bool lineHasReply = BratSay(GirlTalkLines(_bratLineType == 1), allowReply: !hasChoices);
+                if (!hasChoices && !lineHasReply) GirlTalkMaleReply(_bratLineType == 1);   // 台詞沒帶回應、也沒有選項：用區域的男主回應（痛／要高潮，GirlTalk.cs）
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;
-                if (hasChoices && !GirlTalkShowStateChoices()) BratShowChoices();   // 痛／莉奈要高潮：專屬選項；其他雌小鬼話：教訓她／不理她
+                if (hasChoices && !GirlTalkShowStateChoices()) { if (_bratLineType == 1) BratShowChoices(); else BratShowChoicesNormal(); }   // 痛／莉奈要高潮：專屬選項；雌小鬼話：教訓／不理；正常話：溫柔／繼續
             }
         }
         else
@@ -171,8 +173,18 @@ public partial class TrainingRoomRuntime
     void BratShowChoices()
     {
         if (_playerChoiceActive) return;
-        ShowPlayerChoices(BratChoicePrompt, new[] { "教訓她", "不理她" },
-            new Action[] { BratChooseLesson, BratChooseIgnore }, BratWindowSec);
+        string a = PickName(ChoiceLessonNames, "教訓她"), b = PickName(ChoiceIgnoreNames, "不理她");   // 名稱每次不同
+        ShowPlayerChoices(BratChoicePrompt, new[] { a, b },
+            new Action[] { () => GirlChoose(a, BratChooseLesson), () => GirlChoose(b, BratChooseIgnore) }, BratWindowSec);
+    }
+
+    /// <summary>做的時候莉奈說的是正常話：選項是「溫柔一點（放慢）」或「繼續」。</summary>
+    void BratShowChoicesNormal()
+    {
+        if (_playerChoiceActive) return;
+        string a = PickName(ChoiceSoftNames, "溫柔一點"), b = PickName(ChoiceCarryOnNames, "繼續");
+        ShowPlayerChoices(BratChoicePrompt, new[] { a, b },
+            new Action[] { () => GirlChoose(a, ApplySlowDown), () => GirlChoose(b, ApplyIgnoreNormal) }, BratWindowSec);
     }
 
     static Button BratMakeBtn(string text, System.Action onPress)
