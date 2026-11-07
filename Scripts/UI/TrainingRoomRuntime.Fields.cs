@@ -143,12 +143,12 @@ public partial class TrainingRoomRuntime : Node
         {
             if (_extraSpritePaths.TryGetValue(layerName, out var ep))
             {
-                yield return ep;
+                yield return DlMode.Resolve(ep);   // DL 版：預載馬賽克版（DlMode.cs）
             }
             else
             {
                 string baseName = layerName.Contains("/") ? layerName[(layerName.LastIndexOf('/') + 1)..] : layerName;
-                yield return "Sprites/" + baseName;
+                yield return DlMode.Resolve("Sprites/" + baseName);
             }
         }
     }

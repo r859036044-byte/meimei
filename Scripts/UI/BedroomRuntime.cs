@@ -139,7 +139,7 @@ public partial class BedroomRuntime : Node
 
             // 實際美術檔案攤平放在 Sprites/ 底下（無 Meimei/ 及分組子資料夾），故取 basename 載入
             string baseName1 = layerName.Contains("/") ? layerName[(layerName.LastIndexOf('/') + 1)..] : layerName;
-            var tex = ResourceLoader.Load<Texture2D>("res://Resources/Sprites/" + baseName1 + ".png");
+            var tex = ResourceLoader.Load<Texture2D>(DlMode.ResolvePath(baseName1));   // DL 版：雞雞等改載入馬賽克版
             if (tex != null)
             {
                 img.Texture = tex;
@@ -174,7 +174,7 @@ public partial class BedroomRuntime : Node
                 if (child is TextureRect tr && tr.Texture == null)
                 {
                     string baseName2 = layerName.Contains("/") ? layerName[(layerName.LastIndexOf('/') + 1)..] : layerName;
-                    var tex = ResourceLoader.Load<Texture2D>("res://Resources/Sprites/" + baseName2 + ".png");
+                    var tex = ResourceLoader.Load<Texture2D>(DlMode.ResolvePath(baseName2));
                     if (tex != null) { tr.Texture = tex; tr.Modulate = Colors.White; }
                 }
             }

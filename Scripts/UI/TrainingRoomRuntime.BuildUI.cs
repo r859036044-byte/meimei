@@ -552,8 +552,9 @@ void fragment() {
             string baseName = layerName.Contains("/") ? layerName[(layerName.LastIndexOf('/') + 1)..] : layerName;
             // _extraSpritePaths 優先：這張表是用來覆蓋 basename 規則會撞名到「錯誤圖」的例外情況
             // （例如 手1/手2 撞到另一個角色同名檔案），必須先查表，查不到才落回一般 basename 規則。
-            var tex = (_extraSpritePaths.TryGetValue(layerName, out var ep) ? ResourceHelper.LoadTexAny(ep) : null)
-                   ?? ResourceHelper.LoadTexAny("Sprites/" + baseName);
+            // DL 版（DlMode）：雞雞／開1／開上／插入 改載入 12px 馬賽克版（Sprites/DL/），原圖不動；其他圖不受影響
+            var tex = (_extraSpritePaths.TryGetValue(layerName, out var ep) ? ResourceHelper.LoadTexAny(DlMode.Resolve(ep)) : null)
+                   ?? ResourceHelper.LoadTexAny(DlMode.Resolve("Sprites/" + baseName));
 
             if (tex != null)
             {
