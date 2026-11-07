@@ -19,6 +19,7 @@ public partial class TrainingRoomRuntime
     [Export] public float   EmoteGapPx     = 10f;                     // 氣泡離前髮邊緣的距離（螢幕 px）；左右邊由 GirlBubbleSideMode 與對話氣泡決定
     [Export] public float   EmoteMoodStep  = 4f;                      // 心情累積變化多少才冒愛心／毛線團（越大越少冒）
     [Export] public float   EmoteHoldSec   = 1.2f;                    // 驚嘆號／問號／毛線團停留秒數
+    [Export(PropertyHint.Range, "0.3,3,0.05")] public float EmoteZoomMul = 1f;   // 表情氣泡大小的額外倍率；氣泡會跟著鏡頭縮放（跟對話氣泡同一套曲線，見 BubbleK）。覺得太小就調大
 
     float _emoteCd, _emoteHeartCd;
     float _emoteMoodPrev = float.NaN, _emoteMoodAcc;
@@ -40,7 +41,7 @@ public partial class TrainingRoomRuntime
         }
         // 有對話框：表情氣泡在對話框正下方（不蓋到字）；沒有對話框：放頭的左右側
         int side = PickGirlSide();
-        EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec, EmoteFaceTarget);
+        EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec, EmoteFaceTarget, () => BubbleK() * EmoteZoomMul);   // 大小跟著鏡頭縮放
     }
 
     /// <summary>表情氣泡尾巴要指向的點：莉奈的臉中心（跟對話框尾巴用同一個點）。</summary>

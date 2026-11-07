@@ -17,6 +17,7 @@ public partial class EmoteBubble : Control
     public Func<Vector2> Anchor;
     public Func<Vector2> TailTarget;   // 尾巴要指向的點（螢幕座標，例如莉奈的臉中心）；null＝維持左下 45°
     public float HoldSec = 1.2f;      // 表情氣泡停留秒數
+    public Func<float> ScaleProvider;  // 整體大小倍率（每幀讀；例如跟著鏡頭縮放）；null＝1
 
     static readonly Color Outline = new Color("4a3a4f");
     static readonly Color HeartFill = new Color("ed70a3");
@@ -24,9 +25,9 @@ public partial class EmoteBubble : Control
 
     float _age;
     Vector2[] _scribble;
-    public static EmoteBubble Spawn(Node parent, Kind kind, Func<Vector2> anchor, float holdSec = 1.2f, Func<Vector2> tailTarget = null)
+    public static EmoteBubble Spawn(Node parent, Kind kind, Func<Vector2> anchor, float holdSec = 1.2f, Func<Vector2> tailTarget = null, Func<float> scaleProvider = null)
     {
-        var e = new EmoteBubble { EmoteKind = kind, Anchor = anchor, HoldSec = holdSec, TailTarget = tailTarget };
+        var e = new EmoteBubble { EmoteKind = kind, Anchor = anchor, HoldSec = holdSec, TailTarget = tailTarget, ScaleProvider = scaleProvider };
         parent.AddChild(e);
         return e;
     }
@@ -68,7 +69,8 @@ public partial class EmoteBubble : Control
 
         if (TailTarget != null)
         {
-            Vector2 d = TailTarget() - (Position + Center);   // 目標在圓心的哪個方向（螢幕座標，跟本地座標同軸）
+            Vector2 centerScreen = Position + PivotOffset + (Center - PivotOffset) * Scale.X;   // 圓心實際在螢幕的哪裡（有縮放時從尾巴尖端縮放）
+            Vector2 d = TailTarget() - centerScreen;   // 目標在圓心的哪個方向（螢幕座標，跟本地座標同軸）
             if (d.LengthSquared() > 1f) _tailDir = d.Normalized();
         }
     }
@@ -82,7 +84,8 @@ public partial class EmoteBubble : Control
         // 彈出：0.3 → 1.15 → 1；停留 HoldSec；最後 0.3 秒淡出並往上飄一點
         float s = _age < 0.16f ? Mathf.Lerp(0.3f, 1.15f, _age / 0.16f)
                 : _age < 0.28f ? Mathf.Lerp(1.15f, 1f, (_age - 0.16f) / 0.12f) : 1f;
-        Scale = new Vector2(s, s);
+        float k = ScaleProvider != null ? Mathf.Max(0.2f, ScaleProvider()) : 1f;   // 跟著鏡頭縮放的倍率
+        Scale = new Vector2(s * k, s * k);
         float outT = Mathf.Clamp((_age - HoldSec) / 0.3f, 0f, 1f);
         Modulate = new Color(1, 1, 1, 1f - outT);
         if (EmoteKind == Kind.Tangle && _age < 0.9f)
@@ -93,17 +96,38 @@ public partial class EmoteBubble : Control
         QueueRedraw();
     }
 
+    static Vector2[] LargestPoly(Godot.Collections.Array<Vector2[]> polys)
+    {
+        Vector2[] best = polys[0]; float bestA = -1f;
+        foreach (var p in polys)
+        {
+            float a = 0f;
+            for (int i = 0; i < p.Length; i++) { var u = p[i]; var v = p[(i + 1) % p.Length]; a += u.X * v.Y - v.X * u.Y; }
+            a = Mathf.Abs(a);
+            if (a > bestA) { bestA = a; best = p; }
+        }
+        return best;
+    }
+
     public override void _Draw()
     {
         var c = Center;
         // 氣泡：白底圓＋深色描邊＋尾巴（尾巴朝向 TailTarget，例如莉奈的臉；沒有目標就維持左下 45°）
         Vector2 perp = new Vector2(-_tailDir.Y, _tailDir.X);   // 垂直於尾巴方向，決定尾巴底部的寬度
-        Vector2 baseC = c + _tailDir * 26f;        // 尾巴底邊中心（貼在圓周上）
+        Vector2 baseC = c + _tailDir * 26f;        // 尾巴底邊中心（貼在圓周內，和圓重疊）
         Vector2 tip   = c + _tailDir * 44f;         // 尾巴尖端
-        DrawColoredPolygon(new[] { baseC + perp * 9f, baseC - perp * 9f, tip }, Outline);
-        DrawColoredPolygon(new[] { baseC + perp * 6f, baseC - perp * 6f, c + _tailDir * 38f }, Colors.White);
-        DrawCircle(c, 31f, Outline);
-        DrawCircle(c, 28f, Colors.White);
+        // 圓和尾巴合成「同一個」外形：外框（深色）一次畫完，內部（白色）是外形往內縮 3px 一次填完，
+        // 所以尾巴和圓的交界處不會有深色的線（以前是分開畫，圓的外框會壓在尾巴白色上面）。
+        var circle = new Vector2[48];
+        for (int i = 0; i < circle.Length; i++) { float a = Mathf.Tau * i / circle.Length; circle[i] = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 31f; }
+        var tailPoly = new[] { baseC + perp * 9f, baseC - perp * 9f, tip };
+        Vector2[] outer = circle;
+        var merged = Geometry2D.MergePolygons(circle, tailPoly);
+        if (merged.Count > 0) outer = LargestPoly(merged);
+        DrawColoredPolygon(outer, Outline);
+        var shrunk = Geometry2D.OffsetPolygon(outer, -3f, Geometry2D.PolyJoinType.Round);
+        if (shrunk.Count > 0) DrawColoredPolygon(LargestPoly(shrunk), Colors.White);
+        else DrawCircle(c, 28f, Colors.White);
 
         switch (EmoteKind)
         {
