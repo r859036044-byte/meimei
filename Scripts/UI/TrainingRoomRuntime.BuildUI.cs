@@ -826,6 +826,12 @@ void fragment() {
         _btnDrag = MkIconBtn(bar, "BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, new Vector2(Pad, Y(0)));
         _btnDrag.Icon = MkDressIcon(); _btnDrag.IconAlignment = HorizontalAlignment.Center;   // 白色連衣裙
         _btnDrag.Pressed += () => ToggleDragTool();
+        if (DemoMode.Enabled)
+        {   // 試玩版：衣服模式停用（衣服物件不可控制）
+            _btnDrag.Disabled = true;
+            _btnDrag.Modulate = new Color(1f, 1f, 1f, 0.35f);
+            _btnDrag.TooltipText = "試玩版未開放";
+        }
         RefreshDragButton();
 
         _btnMouse = MkIconBtn(bar, "BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, new Vector2(Pad, Y(5)));

@@ -175,6 +175,11 @@ public partial class MainMenuRuntime : Control
         btnStart.Pressed += () =>
         {
             NovelReader.ClearHistory();
+            if (DemoMode.Enabled)
+            {   // 試玩版：不問要不要看序章，直接開始遊戲進 TrainingRoom
+                StartGameSkipPrologue();
+                return;
+            }
             SetActive(_mainPanel, false);
             SetActive(_skipPanel, true);
         };
@@ -243,14 +248,19 @@ public partial class MainMenuRuntime : Control
         };
         btnSkip.Pressed += () =>
         {
-            GameFlowManager.Instance?.SetSkipPrologue(true);
-            NewGameReset.ResetAll();   // 開新遊戲：所有變數歸零
             SetActive(panel, false);
-            // 跳過劇情 → 進入 TrainingRoom
-            TaskLogger.Run(FadeToBlackAndLoad("TrainingRoom", _lifeCts.Token), "MainMenu.SkipToTrainingRoom");
+            StartGameSkipPrologue();
         };
 
         return panel;
+    }
+
+    /// <summary>開新遊戲、跳過序章劇情，直接進 TrainingRoom（「直接開始」與試玩版的「開始遊戲」共用）。</summary>
+    void StartGameSkipPrologue()
+    {
+        GameFlowManager.Instance?.SetSkipPrologue(true);
+        NewGameReset.ResetAll();   // 開新遊戲：所有變數歸零
+        TaskLogger.Run(FadeToBlackAndLoad("TrainingRoom", _lifeCts.Token), "MainMenu.SkipToTrainingRoom");
     }
 
     // ── 設定面板（純程式繪製版）─────────────────────────────────
