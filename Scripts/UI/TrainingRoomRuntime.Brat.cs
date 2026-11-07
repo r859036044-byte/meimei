@@ -128,7 +128,8 @@ public partial class TrainingRoomRuntime
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
                 _bratLineType = GD.Randf() < p ? 1 : 2;
-                BratSay(GirlTalkLines(_bratLineType == 1));   // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中）挑台詞（GirlTalk.cs）
+                BratSay(GirlTalkLines(_bratLineType == 1));   // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）
+                if (!(_bratLineType == 1 && r18 && BratInserted)) GirlTalkMaleReply(_bratLineType == 1);   // 痛／莉奈要高潮：莉奈先說，男主再回應（有「教訓／不理」選項時，選項就是男主的回應）
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;

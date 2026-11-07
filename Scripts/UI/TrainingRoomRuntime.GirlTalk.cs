@@ -9,6 +9,7 @@ using Godot;
 ///   Pain         痛／不舒服（插入或碰小穴時，速度不對或太乾）
 ///   NearClimax   莉奈要高潮了（穴高潮值 ≥ GirlTalkNearClimaxAt，而且有在被碰或插入）
 ///   MaleNearEjac 男主要射了（插入中，男主精力 ≥ GirlTalkMaleNearEjacAt 或破功中）
+/// 「痛」和「莉奈要高潮了」是莉奈先說、過 GirlTalkReplyDelay 秒男主再在他的對話框回應（MaleReply* 台詞）。
 /// 優先順序：莉奈要高潮 &gt; 男主要射 &gt; 痛 &gt; 插入中 &gt; 觸摸中 &gt; 衣服脫了 &gt; 什麼都沒做。
 /// 每個狀態各有「雌小鬼話」和「正常話」兩組（雌小鬼話 = 之後可以「教訓／不理」的那種，見 Brat.cs）。
 /// 台詞都是占位，自行在 Inspector 的「莉奈台詞 1～7」七個群組各自增減。
@@ -22,6 +23,7 @@ public partial class TrainingRoomRuntime
     [Export] public float GirlTalkUndressAt = 1.0f;   // 「看到多少」（ExposureScore，0~約 4）到多少以上算「衣服脫了」
     [Export(PropertyHint.Range, "0,100,1")] public float GirlTalkNearClimaxAt = 90f;   // 穴高潮值到多少以上算「莉奈要高潮了」
     [Export(PropertyHint.Range, "0,120,1")] public float GirlTalkMaleNearEjacAt = 90f; // 男主精力到多少以上算「男主要射了」（也包含破功中）
+    [Export(PropertyHint.Range, "0.2,6,0.1")] public float GirlTalkReplyDelay = 1.4f;   // 莉奈說完之後，男主多久才回應（秒；「痛」和「莉奈要高潮了」才有回應）
 
     // 每個狀態各自一個群組（Inspector 裡分開折疊）；每組有「雌小鬼話」（可以教訓／不理）和「正常話」兩種
     [ExportGroup("莉奈台詞 1：什麼都沒做")]
@@ -89,6 +91,11 @@ public partial class TrainingRoomRuntime
         "唔…有點痛…", "等、等一下…太快了…", "……慢一點，拜託。", "嗚…好痛…", "那裡…不舒服…",
         "不要…這樣會痛…", "請、請輕一點…", "……我有點受不了。",
     };
+    // 莉奈說完之後，男主回應（在男主的對話框）。分「回雌小鬼話」和「回正常話」
+    [Export] public string[] MaleReplyBratPain =
+        { "好好好，我慢一點。", "抱歉抱歉，是不是太快了？", "別逞強啊，痛就說。", "那我換個節奏。" };
+    [Export] public string[] MaleReplyNormalPain =
+        { "對不起，我會輕一點。", "還痛嗎？我先停一下。", "別忍著，告訴我哪裡不舒服。", "我放慢一點，好嗎？" };
 
     [ExportGroup("莉奈台詞 6：莉奈要高潮了")]
     [Export] public string[] BratLinesNearClimax =
@@ -101,6 +108,11 @@ public partial class TrainingRoomRuntime
         "啊…不行…要、要到了…", "嗯…哥哥…快、快要…", "等、等一下…有什麼要來了…", "呼…呼…不要停…", "啊…我、我快不行了…",
         "嗯嗯…腦袋…一片空白…", "哥哥…抱緊我…", "啊…好奇怪…快要…",
     };
+    // 莉奈說完之後，男主回應（在男主的對話框）。分「回雌小鬼話」和「回正常話」
+    [Export] public string[] MaleReplyBratNearClimax =
+        { "嘴硬什麼，都這樣了。", "是是是，你才沒有。", "想到就到吧，別忍。", "我看你還能撐多久。" };
+    [Export] public string[] MaleReplyNormalNearClimax =
+        { "我在這裡，別怕。", "沒事的，放鬆就好。", "嗯，我抱著你。", "不用忍，交給我。" };
 
     [ExportGroup("莉奈台詞 7：男主要射了")]
     [Export] public string[] BratLinesMaleNearEjac =
@@ -127,6 +139,23 @@ public partial class TrainingRoomRuntime
         if (touching) return GirlTalkState.Touching;
         if (ExposureScore() >= GirlTalkUndressAt) return GirlTalkState.Undressed;
         return GirlTalkState.Idle;
+    }
+
+    /// <summary>莉奈說完定時台詞後，男主在自己的對話框回應。只有「痛」和「莉奈要高潮了」兩種狀態才回。
+    /// brat＝剛剛莉奈說的是雌小鬼話（true）或正常話（false）。</summary>
+    void GirlTalkMaleReply(bool brat)
+    {
+        var lines = CurrentGirlTalkState() switch
+        {
+            GirlTalkState.Pain       => brat ? MaleReplyBratPain       : MaleReplyNormalPain,
+            GirlTalkState.NearClimax => brat ? MaleReplyBratNearClimax : MaleReplyNormalNearClimax,
+            _ => null,
+        };
+        if (lines == null || lines.Length == 0) return;
+        GetTree().CreateTimer(GirlTalkReplyDelay).Timeout += () =>
+        {
+            if (IsInstanceValid(this) && !_playerChoiceActive) SayMale(lines);   // 選項還在時不蓋掉
+        };
     }
 
     /// <summary>依目前狀態回傳要說的那一組台詞。brat＝雌小鬼話（true）或正常話（false）。</summary>
