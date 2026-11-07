@@ -756,6 +756,7 @@ void fragment() {
         panel.OffsetBottom = -20; panel.OffsetTop = -20 - H;
         panel.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(PanelW / 2f)));
         _canvas.AddChild(panel);
+        panel.Visible = false;   // 舊的勃起條：一開始就不顯示（進場黑屏時不會閃出來）
         _vertBarsPanel = panel;   // HudGate.cs：勃起條不顯示（只隱藏，沒刪）
 
         // 原本黃色精液條的位置：程式畫的雞雞造型按鈕（硬了才出現，點擊＝叫出／收起雞雞，叫出後裡面顯示綠色精力條）
@@ -827,6 +828,7 @@ void fragment() {
 
         var btnJiji = MkFloatBtn("Btn2", "雞雞", new Color(1.00f, 0.80f, 0.66f), idxJiji, count);
         btnJiji.Text = "🍆";
+        btnJiji.Visible = false;   // 舊的 🍆：一開始就不顯示
         _btnJijiNode = btnJiji;   // HudGate.cs：男主說硬了才顯示
         btnJiji.AddThemeFontSizeOverride("font_size", 30);
         btnJiji.Pressed += () => OnJijiButtonPressed();
@@ -899,6 +901,7 @@ void fragment() {
         stPanel.OffsetBottom = -20; stPanel.OffsetTop = -20 - Hs;
         stPanel.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(StamPanelW / 2f)));
         _canvas.AddChild(stPanel);
+        stPanel.Visible = false;   // 舊的精力條：一開始就不顯示
         _staminaPanel = stPanel;   // HudGate.cs：男主說硬了才顯示
 
         _staminaBar = new ProgressBar

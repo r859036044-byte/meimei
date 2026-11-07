@@ -365,7 +365,8 @@ public partial class TrainingRoomRuntime
         {
             _statLbl = MakeCornerLbl(parent, "MaleStatLbl", -230f, -150f, -240f, 16);
         }
-        _timeLbl.Visible = PlayTimeLimitOn;
+        _timeLbl.Visible = false;   // 右下角的倒數時間／精力文字已淘汰：不顯示（只隱藏，節點還在）
+        _statLbl.Visible = false;
         float left = Mathf.Max(0f, PlayTimeLimitSec - _playTime);
         _timeLbl.Text = $"⏳ {(int)(left / 60f)}:{(int)(left % 60f):00}";
         _timeLbl.Modulate = left <= 30f ? new Color(1f, 0.45f, 0.45f) : Colors.White;
