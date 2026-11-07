@@ -166,6 +166,7 @@ public partial class TrainingRoomRuntime : Node
         { "洞",    "Sprites/xiaoxuekaidi" },
         { "開1",   "Sprites/xiaoxuekai" },
         { "開上",  "Sprites/xiaoxuekaishang" },
+        { "笑",    "Sprites/笑_無虎牙" },   // 笑的嘴巴：用「去掉右下角虎牙」的整張畫布版（原圖 笑.png 保留不動；出現愛心時用，見 Mouth.cs）
         { "插入",  "Sprites/xiaoxuekai2" },
         { "手1", "Sprites/手1_女" },
         { "手2", "Sprites/手2_女" },

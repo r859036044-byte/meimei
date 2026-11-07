@@ -162,8 +162,21 @@ public partial class MainMenuRuntime : Control
         _btnQuitRT    = btnQuit;
         _btnGalleryRT = btnGallery;
 
-        btnGallery.Pressed += () => _galleryScreen?.Open();
-        BuildMiniGameEntry(btnContainer);   // 左下角小遊戲入口
+        if (DemoMode.Enabled)
+        {   // 試玩版主選單：只留「開始遊戲／設定／退出遊戲」，不要「繼續遊戲」「圖鑑」「小遊戲」，並重新排版
+            btnLoad.QueueFree(); btnGallery.QueueFree();
+            _btnLoadRT = null; _btnGalleryRT = null;
+            // 三顆按鈕置中對齊「原本五顆（間距 120）」的中心：開始 → 設定 → 退出，由上往下
+            float cx = BtnStartPos.X, cy = (BtnStartPos.Y + BtnGalleryPos.Y) * 0.5f, gap = BtnStartPos.Y - BtnLoadPos.Y;
+            BtnStartPos = new Vector2(cx, cy + gap);
+            BtnSettPos  = new Vector2(cx, cy);
+            BtnQuitPos  = new Vector2(cx, cy - gap);
+        }
+        else
+        {
+            btnGallery.Pressed += () => _galleryScreen?.Open();
+            BuildMiniGameEntry(btnContainer);   // 左下角小遊戲入口
+        }
 
         // R18/全年齡切換按鈕已移到開發者工具面板（F9 召喚）裡，
         // 主選單不再直接顯示這顆按鈕。PlayerDataManager.SetR18/ToggleR18 邏輯保留不動。
@@ -183,8 +196,11 @@ public partial class MainMenuRuntime : Control
             SetActive(_mainPanel, false);
             SetActive(_skipPanel, true);
         };
-        btnLoad.Disabled = true;
-        BtnLabel(btnLoad)?.AddThemeColorOverride("font_color", new Color("978993"));   // TODO: 存檔系統
+        if (!DemoMode.Enabled)   // 試玩版沒有「繼續遊戲」按鈕
+        {
+            btnLoad.Disabled = true;
+            BtnLabel(btnLoad)?.AddThemeColorOverride("font_color", new Color("978993"));   // TODO: 存檔系統
+        }
         btnSett.Pressed += () =>
         {
             SetActive(_mainPanel, false);

@@ -10,19 +10,20 @@ using Godot;
 ///   NearClimax   莉奈要高潮了（穴高潮值 ≥ GirlTalkNearClimaxAt，而且有在被碰或插入）
 ///   MaleNearEjac 男主要射了（插入中，男主精力 ≥ GirlTalkMaleNearEjacAt 或破功中）
 /// 「痛」和「莉奈要高潮了」是莉奈先說、過 GirlTalkReplyDelay 秒男主再在他的對話框回應（MaleReply* 台詞）。
-/// 優先順序：莉奈要高潮 &gt; 男主要射 &gt; 痛 &gt; 插入中 &gt; 觸摸中 &gt; 衣服脫了 &gt; 什麼都沒做。
+/// 優先順序：莉奈要高潮 &gt; 男主要射 &gt; 痛 &gt; 很濕了 &gt; 插入中 &gt; 觸摸中 &gt; 衣服脫了 &gt; 什麼都沒做。
 /// 每個狀態各有「雌小鬼話」和「正常話」兩組（雌小鬼話 = 之後可以「教訓／不理」的那種，見 Brat.cs）。
 /// 台詞都是占位，自行在 Inspector 的「莉奈台詞 1～7」七個群組各自增減。
 /// （被碰時另外有「點擊反應」台詞 Play.cs ReactNow，是碰到的當下才說，跟這裡的定時說話是兩套。）
 /// </summary>
 public partial class TrainingRoomRuntime
 {
-    public enum GirlTalkState { Idle, Undressed, Touching, Inserted, Pain, NearClimax, MaleNearEjac }
+    public enum GirlTalkState { Idle, Undressed, Touching, Inserted, Pain, NearClimax, MaleNearEjac, Wet }
 
     [ExportGroup("莉奈台詞 0：狀態判定")]
     [Export] public float GirlTalkUndressAt = 1.0f;   // 「看到多少」（ExposureScore，0~約 4）到多少以上算「衣服脫了」
     [Export(PropertyHint.Range, "0,100,1")] public float GirlTalkNearClimaxAt = 90f;   // 穴高潮值到多少以上算「莉奈要高潮了」
     [Export(PropertyHint.Range, "0,120,1")] public float GirlTalkMaleNearEjacAt = 90f; // 男主精力到多少以上算「男主要射了」（也包含破功中）
+    [Export(PropertyHint.Range, "0,100,1")] public float GirlTalkWetAt = 70f;          // 濕度到多少以上算「很濕了」（跟點擊反應的 ReactWetAt 一樣預設 70）
     [Export(PropertyHint.Range, "0.2,6,0.1")] public float GirlTalkReplyDelay = 1.4f;   // 莉奈說完之後，男主多久才回應（秒；「痛」和「莉奈要高潮了」才有回應）
 
     // 每個狀態各自一個群組（Inspector 裡分開折疊）；每組有「雌小鬼話」（可以教訓／不理）和「正常話」兩種
@@ -135,11 +136,18 @@ public partial class TrainingRoomRuntime
         if (ClimaxLevel >= GirlTalkNearClimaxAt && (touching || BratInserted)) return GirlTalkState.NearClimax;
         if (BratInserted && (Stamina >= GirlTalkMaleNearEjacAt || _breaking)) return GirlTalkState.MaleNearEjac;
         if ((BratInserted || f.pussy) && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）
+        if (Wetness >= GirlTalkWetAt) return GirlTalkState.Wet;                          // 很濕了：誘惑的話（排在插入中／觸摸中前面）
         if (BratInserted) return GirlTalkState.Inserted;
         if (touching) return GirlTalkState.Touching;
         if (ExposureScore() >= GirlTalkUndressAt) return GirlTalkState.Undressed;
         return GirlTalkState.Idle;
     }
+
+    [ExportGroup("莉奈台詞 10：很濕了（誘惑的話）")]
+    // 莉奈濕度 ≥ GirlTalkWetAt（預設 70）時，定時說話改從這一區挑。內容請你自己填（我只先放占位字）。
+    // 一樣可以用「|」分段、「=>」接男主回應；舒服時會自動加愛心。優先順序：排在痛／要高潮／男主要射之後、插入中／觸摸中之前。
+    [Export] public string[] BratLinesWet       = { "（很濕了：雌小鬼話 1）", "（很濕了：雌小鬼話 2）", "（很濕了：雌小鬼話 3）" };
+    [Export] public string[] BratNormalLinesWet = { "（很濕了：正常話 1）", "（很濕了：正常話 2）", "（很濕了：正常話 3）" };
 
     [ExportGroup("莉奈台詞 8：男主選項與回應")]
     // 插入中，莉奈說「痛」或「要高潮了」時，男主在自己的對話框選擇怎麼回。選了之後男主會說出按鈕上那句話。
@@ -206,6 +214,7 @@ public partial class TrainingRoomRuntime
     {
         ParseGirlLine(raw, out var segs, out var reply);
         bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
+        if (good) TriggerMouthSmile();   // 舒服＝台詞加愛心：嘴巴也換成笑（Mouth.cs）
         for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
         ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
         float t = 0f;
@@ -334,6 +343,7 @@ public partial class TrainingRoomRuntime
             GirlTalkState.NearClimax   => brat ? BratLinesNearClimax   : BratNormalLinesNearClimax,
             GirlTalkState.MaleNearEjac => brat ? BratLinesMaleNearEjac : BratNormalLinesMaleNearEjac,
             GirlTalkState.Pain         => brat ? BratLinesPain         : BratNormalLinesPain,
+            GirlTalkState.Wet          => brat ? BratLinesWet          : BratNormalLinesWet,
             GirlTalkState.Inserted  => brat ? BratLinesInsert  : BratNormalLinesInsert,
             GirlTalkState.Touching  => brat ? BratLinesTouch   : BratNormalLinesTouch,
             GirlTalkState.Undressed => brat ? BratLinesUndress : BratNormalLinesUndress,

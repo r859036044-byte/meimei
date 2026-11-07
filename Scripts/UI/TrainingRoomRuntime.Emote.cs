@@ -39,6 +39,7 @@ public partial class TrainingRoomRuntime
             if (_emoteCd > 0f) return;
             _emoteCd = EmoteCooldown;
         }
+        if (kind == EmoteBubble.Kind.Heart) TriggerMouthSmile();   // 出現愛心：嘴巴換成笑（Mouth.cs）
         // 有對話框：表情氣泡在對話框正下方（不蓋到字）；沒有對話框：放頭的左右側
         int side = PickGirlSide();
         EmoteBubble.Spawn(UiRoot, kind, () => EmoteAnchor(side), EmoteHoldSec, EmoteFaceTarget, () => BubbleK() * EmoteZoomMul);   // 大小跟著鏡頭縮放

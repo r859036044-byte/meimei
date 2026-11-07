@@ -52,6 +52,12 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    [Export] public float MouthSmileSec = 2.5f;   // 出現愛心（愛心氣泡、台詞加愛心）時，嘴巴換成「笑」維持幾秒
+    float _mouthSmileT;
+
+    /// <summary>出現愛心的時候呼叫：嘴巴換成「笑」（去掉虎牙的版本）MouthSmileSec 秒。</summary>
+    public void TriggerMouthSmile() => _mouthSmileT = MouthSmileSec;
+
     string _mouthShown;      // 目前由這支程式顯示的嘴巴（null＝沒接管）
     float  _mouthScaleX = 1f;
 
@@ -63,6 +69,7 @@ public partial class TrainingRoomRuntime
 
     void UpdateMouthOperateCore(float dt)
     {
+        _mouthSmileT -= dt;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
         string expr = FaceController.CurrentExpression ?? "";
@@ -70,13 +77,14 @@ public partial class TrainingRoomRuntime
         bool busy = _tongueOn || _lickOn || _jijiPhase != 0;   // 舌頭／舔／雞雞出現：嘴巴交給原本的流程
         bool operating = _browLingerT > 0f;                      // 跟眉毛同一個「正在操作」判定
 
-        if (!free || busy || !operating)
+        bool smiling = _mouthSmileT > 0f;   // 剛出現愛心：換成笑（優先於抖動嘴／張嘴1，不用在操作中也會笑）
+        if (!free || busy || (!operating && !smiling))
         {
             if (_mouthShown != null) ReleaseMouth(expr);
             return;
         }
 
-        string want = BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴";
+        string want = smiling ? "笑" : (BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴");
         if (_mouthShown != want) ShowOnlyMouth(want);
 
         // 抖動嘴：不舒服才慢慢左右向內縮（舒服程度的平滑已在 Brow.cs 做好）
