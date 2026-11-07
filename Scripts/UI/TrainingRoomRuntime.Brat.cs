@@ -40,9 +40,9 @@ public partial class TrainingRoomRuntime
     [Export] public string[] BratBegLines = { "對、對不起～！", "我錯了啦～！", "慢、慢一點…求你了…！" };   // 被教訓時求饒（占位）
     [Export] public string[] BratSootheLines = { "……嗯。", "哼…這次就放過你。", "…呼。" };                       // 被摸頭安撫（占位）
     [Export] public string[] BratLines =
-        { "哼～弱雞～", "這種程度也敢叫我做事？", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～" };            // 雌小鬼的話（占位）
+        { "哼～弱雞～", "這種程度也敢叫我做事？", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～" };            // 雌小鬼的話：什麼都沒做時用（占位）；其他狀態見 GirlTalk.cs
     [Export] public string[] BratNormalLines =
-        { "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？" };                                // 正常的話（占位）
+        { "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？" };                                // 正常的話：什麼都沒做時用（占位）；其他狀態見 GirlTalk.cs
     [Export] public string[] BratPinchReplyLines = { "痛痛痛～！", "嗚…", "放手啦～！" };                     // 被捏時的反應（占位）
     [Export] public string[] BratPinchNormalReplyLines = { "…你幹嘛？", "好痛…", "……" };                    // 正常話被捏時的反應（占位）
 
@@ -131,7 +131,7 @@ public partial class TrainingRoomRuntime
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
                 _bratLineType = GD.Randf() < p ? 1 : 2;
-                BratSay(_bratLineType == 1 ? BratLines : BratNormalLines);
+                BratSay(GirlTalkLines(_bratLineType == 1));   // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中）挑台詞（GirlTalk.cs）
                 _bratWindow = BratWindowSec; _headSootheT = 0f;
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.SetMeta("hide_t", BratWindowSec);   // 氣泡留到回應時間結束
                 _bratTimer = -1f;
