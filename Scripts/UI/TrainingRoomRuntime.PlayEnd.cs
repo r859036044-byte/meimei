@@ -179,15 +179,9 @@ public partial class TrainingRoomRuntime
         if (DemoMode.Enabled) Stamina = Mathf.Min(Stamina, DemoStaminaCap);   // 試玩版：精力到不了 100，所以不會破功、不會射
         if (Stamina >= 100f && _endureT <= 0f) _breaking = true;
         _maleThrusting = thrusting; _maleThrustSpeed = thrusting ? sThrust : 0f;
-        if (_breaking)
-        {
-            // 專門的破功倒數：不動 BreakWindowSec 秒後射；抽插時走得更快（速度滿檔約 BreakWindowThrustSec 秒）
-            float maxMul = BreakWindowSec / Mathf.Max(0.1f, BreakWindowThrustSec);
-            float mul = thrusting ? Mathf.Lerp(1f, maxMul, Mathf.Clamp(sThrust, 0f, 1f)) : 1f;
-            _breakT += dt * mul;
-            Stamina = 100f + 20f * Mathf.Clamp(_breakT / Mathf.Max(0.1f, BreakWindowSec), 0f, 1f);   // 精力數字跟著倒數（100→120），其他地方照舊用精力判斷
-            if (_breakT >= BreakWindowSec && !_ejacRunning && !_insertEjacActive) MaleEjaculate();
-        }
+        // 破功倒數本身（_breakT 往前走、跑滿就射）在 BreakChoice.cs 的 BreakCountdownTick，由 _PhysicsProcess 呼叫，
+        // 不放在這裡：這裡在主流程 _Process 的後段，前面任何一步出錯就會整串停掉，倒數也跟著停（變成「不選擇就不會射」）。
+        if (_breaking) Stamina = 100f + 20f * Mathf.Clamp(_breakT / Mathf.Max(0.1f, BreakWindowSec), 0f, 1f);   // 精力數字跟著倒數（100→120），其他地方照舊用精力判斷
         else _breakT = 0f;
         Stamina = Mathf.Clamp(Stamina, 0f, 120f);
 

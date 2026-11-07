@@ -32,6 +32,23 @@ public partial class TrainingRoomRuntime
 
     bool _breakChoiceShown;
 
+    /// <summary>破功倒數：獨立的更新迴圈（_PhysicsProcess），不受主流程 _Process 影響。
+    /// 精力滿了（_breaking）就開始走：不動 BreakWindowSec 秒、抽插時走得更快（速度滿檔約 BreakWindowThrustSec 秒），跑滿就自動射精——
+    /// 不管有沒有選「慢下來／射進去」、有沒有按忍耐，沒人處理就是會射。</summary>
+    public override void _PhysicsProcess(double delta)
+    {
+        BreakCountdownTick((float)delta);
+    }
+
+    void BreakCountdownTick(float dt)
+    {
+        if (!_breaking) return;
+        float maxMul = BreakWindowSec / Mathf.Max(0.1f, BreakWindowThrustSec);
+        float mul = _maleThrusting ? Mathf.Lerp(1f, maxMul, Mathf.Clamp(_maleThrustSpeed, 0f, 1f)) : 1f;
+        _breakT += dt * mul;
+        if (_breakT >= BreakWindowSec && !_ejacRunning && !_insertEjacActive) MaleEjaculate();
+    }
+
     /// <summary>忍耐失敗（還在抽插）：男主說「糟糕，還是忍不住」，這次只射出 EndureLeakMin~Max 的量，剩下的留著。</summary>
     void LeakEjaculate()
     {
