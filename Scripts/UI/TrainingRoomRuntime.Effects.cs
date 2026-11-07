@@ -411,6 +411,7 @@ public partial class TrainingRoomRuntime : Node
         OnClimaxReached();   // 記錄「已高潮過」＋高潮值回到 ClimaxAfterLevel（見 Arousal.cs）
         OnClimaxSweat();     // 高潮一次出很多汗（InsertEjac.cs）
         FaceController?.SetExpression("高潮");
+        _mouthClimaxShakeT = MouthClimaxShakeSec;   // 高潮：嘴巴先抖動嘴，再換小嘴吐舌（Mouth.cs）
         SetLayer("表情/高潮水", true);
         SetLayer("表情/小穴水", true);
 

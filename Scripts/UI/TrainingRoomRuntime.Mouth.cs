@@ -18,6 +18,14 @@ public partial class TrainingRoomRuntime
     [Export] public float MouthSqueezeSec     = 1.5f;   // 左右內縮的平滑時間（越大越慢）
     [Export] public Vector2 MouthCenterTex    = new Vector2(965.5f, 753.5f);   // 抖動嘴中心（貼圖 2000x3200 像素）：縮放繞著它
 
+    [ExportGroup("快高潮時的嘴巴")]
+    [Export(PropertyHint.Range, "0,100,1")] public float MouthNearStart  = 40f;   // 被摸時高潮值到多少開始：小嘴巴慢慢放大
+    [Export(PropertyHint.Range, "0,100,1")] public float MouthTongueAt   = 80f;   // 高潮值到多少換成小嘴吐舌
+    [Export(PropertyHint.Range, "1,3,0.05")] public float MouthNearMaxScale = 1.6f;   // 小嘴巴放到最大的倍率（在 MouthTongueAt 時）
+    [Export] public float MouthNearSec       = 1.0f;   // 放大跟著高潮值走的平滑時間（越大越慢）
+    [Export] public float MouthClimaxShakeSec = 1.5f;  // 高潮瞬間：先抖動嘴幾秒，之後換小嘴吐舌
+    float _mouthClimaxShakeT, _mouthNearTarget = 1f;
+
     static readonly string[] _mouthFreeExprs =
         { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌" };
 
@@ -36,9 +44,10 @@ public partial class TrainingRoomRuntime
     void UpdateMouthBig(float dt)
     {
         bool big = BratInserted || _insertEjacActive || _ejacRunning;
-        float tgt = big ? MouthBigScale : 1f;
+        float tgt = big ? MouthBigScale : _mouthNearTarget;
+        float sec = big ? MouthBigSec : MouthNearSec;
         if (Mathf.IsEqualApprox(_mouthBigK, tgt) && !big) { if (_mouthBigK != 1f) { _mouthBigK = 1f; ApplyMouthBig(1f); } return; }
-        _mouthBigK = Mathf.Lerp(_mouthBigK, tgt, 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, MouthBigSec)));
+        _mouthBigK = Mathf.Lerp(_mouthBigK, tgt, 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, sec)));
         ApplyMouthBig(_mouthBigK);
     }
 
@@ -72,9 +81,18 @@ public partial class TrainingRoomRuntime
     void UpdateMouthOperateCore(float dt)
     {
         _mouthSmileT -= dt;
+        _mouthNearTarget = 1f;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
         string expr = FaceController.CurrentExpression ?? "";
+        if (_mouthClimaxShakeT > 0f)
+        {   // 高潮：先抖動嘴 → 時間到換回高潮表情指定的小嘴吐舌
+            _mouthClimaxShakeT -= dt;
+            if (_mouthShown != "抖動嘴") { ShowOnlyMouth("抖動嘴"); _mouthScaleX = 1f; }
+            ApplyMouthScaleX("抖動嘴", 1f);
+            if (_mouthClimaxShakeT <= 0f) ReleaseMouth(expr);
+            return;
+        }
         bool free = System.Array.IndexOf(_mouthFreeExprs, expr) >= 0;
         bool busy = _tongueOn || _lickOn || _jijiPhase != 0;   // 舌頭／舔／雞雞出現：嘴巴交給原本的流程
         bool operating = _browLingerT > 0f;                      // 跟眉毛同一個「正在操作」判定
@@ -88,7 +106,15 @@ public partial class TrainingRoomRuntime
             return;
         }
 
-        string want = smiling ? "笑" : (!patFast && BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴");
+        // 快高潮：被摸時高潮值越高，小嘴巴慢慢放大；到 MouthTongueAt 換成小嘴吐舌
+        string nearWant = null;
+        if (operating && !BratInserted && ClimaxLevel >= MouthNearStart)
+        {
+            float tN = Mathf.Clamp((ClimaxLevel - MouthNearStart) / Mathf.Max(1f, MouthTongueAt - MouthNearStart), 0f, 1f);
+            _mouthNearTarget = Mathf.Lerp(1f, MouthNearMaxScale, tN);
+            nearWant = ClimaxLevel >= MouthTongueAt ? "小嘴吐舌" : "小嘴巴";
+        }
+        string want = nearWant ?? (smiling ? "笑" : (!patFast && BratValue >= MouthBratSmileAt ? "張嘴1" : "抖動嘴"));
         if (_mouthShown != want) ShowOnlyMouth(want);
 
         // 抖動嘴：不舒服才慢慢左右向內縮（舒服程度的平滑已在 Brow.cs 做好）
