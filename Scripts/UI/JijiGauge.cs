@@ -19,7 +19,8 @@ public partial class JijiGauge : Control
     public Color GaugeColor   = new Color(0.30f, 0.72f, 0.48f);
     public float Border = 3f;
     public float ShaftMaxRx = 0.31f;    // 莖最寬處的半寬（相對整體寬度）
-    public float ShaftSplit = 0.04f;    // 最寬的位置（從莖頂往下佔莖長的幾成；0.04＝就在跟蘑菇頭接合處，往下一路收細；越大越往下移）
+    public float ShaftSplit = 0.20f;    // 最寬的位置（從莖頂往下佔莖長的幾成；0.20＝離頂端 20%，也就是從底往上 80% 高；越大越往下）
+    public float ShaftNeck  = 0.60f;    // 跟蘑菇頭接合處的寬度，佔最寬處的幾成（越小，上面鼓出來的弧度越明顯；1＝沒有弧度）
     public float ShaftBottomKeep = 0.45f;   // 莖最底端的寬度，佔最寬處的幾成（越小下面越瘦；1＝不收細）
 
     bool _hover, _down;
@@ -68,12 +69,12 @@ public partial class JijiGauge : Control
 
     /// <summary>蛋形（連續曲線）：從 yTop 到 yBot，最寬處在 split（0~1）。
     /// 最寬處以上是圓頂（橢圓）；以下平滑收細到最底端剩 bottomKeep 倍寬（不收成尖）。左右對稱。</summary>
-    static Vector2[] Egg(float cx, float yTop, float yBot, float split, float rx, float bottomKeep, int n = 40)
+    static Vector2[] Egg(float cx, float yTop, float yBot, float split, float rx, float bottomKeep, float neck, int n = 40)
     {
         float len = yBot - yTop;
         float Half(float t)   // t：0＝頂、1＝底，回傳該處半寬
         {
-            if (t <= split) { float u = (split - t) / Mathf.Max(0.001f, split); return rx * Mathf.Sqrt(Mathf.Max(0f, 1f - u * u)); }
+            if (t <= split) { float u = (split - t) / Mathf.Max(0.001f, split); return rx * (neck + (1f - neck) * Mathf.Sqrt(Mathf.Max(0f, 1f - u * u))); }   // 頸（接合處）→ 鼓到最寬
             float v = (t - split) / Mathf.Max(0.001f, 1f - split);
             return rx * (bottomKeep + (1f - bottomKeep) * Mathf.Pow(Mathf.Max(0f, 1f - Mathf.Pow(v, 1.6f)), 0.9f));
         }
@@ -125,7 +126,7 @@ public partial class JijiGauge : Control
         {
             Ellipse(cx - ballR * 0.95f, ballY, ballR, ballR),   // 左球
             Ellipse(cx + ballR * 0.95f, ballY, ballR, ballR),   // 右球
-            Egg(cx, shaftTop, shaftBot, ShaftSplit, w * ShaftMaxRx, ShaftBottomKeep),   // 莖：蛋形（上胖下瘦）
+            Egg(cx, shaftTop, shaftBot, ShaftSplit, w * ShaftMaxRx, ShaftBottomKeep, ShaftNeck),   // 莖：蛋形（上胖下瘦）
             Cap(cx, capCy, capRx, capTop, capBot),              // 蘑菇頭
         };
         var sil = parts[0];
