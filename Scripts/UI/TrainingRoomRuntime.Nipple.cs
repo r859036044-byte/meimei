@@ -127,7 +127,7 @@ public partial class TrainingRoomRuntime
             if (replaced != null) n.SlotLeft = oldSlot ?? false;
             else if (leftBusy && !rightBusy) n.SlotLeft = false;
             else if (rightBusy && !leftBusy) n.SlotLeft = true;
-            else n.SlotLeft = false;
+            else n.SlotLeft = (k == "NL");   // 兩隻手都空著：摸左邊的乳頭用左手、右邊的用右手（跟摸胸一樣）
             CancelSlot(n.SlotLeft, k);
         }
         n.Ord = ++_handSeq;

@@ -1017,10 +1017,10 @@ void fragment() {
         if (_midDrag) return true;
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mbt)
         {
-            if (mbt.Pressed)
+            if (mbt.Pressed && DemoMode.Enabled) { }   // 試玩版：肩帶／衣服上半部不能調整（跳過這一段，後面的衣擺拉起仍可用）
+            else if (mbt.Pressed)
             {
                 if (IsPointerOverUi() || _tongueTool || _handMode != HandMode.None) return false;
-                if (DemoMode.Enabled) return false;   // 試玩版：肩帶／衣服上半部不能調整（衣擺和中間區在上面已處理，仍可用）
                 Vector2 wt = ScreenToWorld(mbt.Position);
                 Vector2 lpt = cloth.GetGlobalTransform().AffineInverse() * wt;
                 Vector2 uv = lpt / new Vector2(sx, sy);
