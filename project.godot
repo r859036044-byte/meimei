@@ -25,6 +25,7 @@ PlayerDataManager="res://Scripts/Systems/PlayerDataManager.cs"
 DaySystem="res://Scripts/Systems/DaySystem.cs"
 GalleryDataManager="res://Scripts/Systems/GalleryDataManager.cs"
 DevModeManager="res://Scripts/Systems/DevModeManager.cs"
+ScreenshotManager="res://Scripts/Systems/ScreenshotManager.cs"
 
 [display]
 
