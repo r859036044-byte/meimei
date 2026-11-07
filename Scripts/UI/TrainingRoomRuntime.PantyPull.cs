@@ -190,7 +190,8 @@ public partial class TrainingRoomRuntime
                 _pantyMoved = false; _pantyDownScreen = mb.Position;
                 _pantyDrag = true; _pantyStartLY = lp.Y; _pantyStartT = _pantyPullT;
                 _pantyMode = 0;
-                if (PantyAsideEnabled && _pantyPullA < 0.004f && vy >= _pantyBotV - PantyAsideZoneFrac * (_pantyBotV - _pantyTopV)
+                if (PantyAsideEnabled && !DemoMode.Enabled && _pantyPullA < 0.004f   // 試玩版：內褲「拉開」不能用，只能往下拉脫掉
+                    && vy >= _pantyBotV - PantyAsideZoneFrac * (_pantyBotV - _pantyTopV)
                     && (_pantyBotV - vy) <= PantyAsidePressMaxFrac * (_pantyBotV - _pantyTopV))
                 {
                     _pantyMode = 1; _pantyPressScreen = mb.Position; _pantyPressU = vx;
