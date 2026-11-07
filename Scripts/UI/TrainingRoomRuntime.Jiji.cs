@@ -484,12 +484,28 @@ void fragment() {
                 break;
             case 2:
                 if (_jijiAnimating) break;   // 還在滑動中不接受
+                // 靠近之後才開／收 M 腿，小穴位置變了，雞雞還停在舊位置：先對位再插入（不然會隔空插）
+                if (!_jijiAnus && (CalcPhase2Offset() - _jijiPhase2Pos).Length() > JijiRealignTolerancePx) { RealignJijiToHole(); break; }
                 if (_jijiAnus && AnusCenterScreen(out var dbgA) && Layers.TryGetValue("雞雞", out var dbgJ) && dbgJ != null)
                     GD.Print($"[AnusDbg] 肛門中心 screen={dbgA}  雞雞尖端 screen={dbgJ.GetGlobalTransform() * _jijiTipLocal}  差(尖端-肛門)={dbgJ.GetGlobalTransform() * _jijiTipLocal - dbgA}");
                 StartInsertion();
                 break;
             // Phase 3：左鍵是否按住由 UpdateJiji 每幀直接讀，這裡不用處理
         }
+    }
+
+    [Export] public float JijiRealignTolerancePx = 15f;   // 雞雞靠近後，小穴位置偏離超過這麼多（畫布 px）就先重新對位再插入
+
+    /// <summary>雞雞已經出現（靠近／在前面）但還沒插入時，小穴的位置變了（例如開／收 M 腿）：重新算對準小穴的位置，並滑過去。</summary>
+    void RealignJijiToHole()
+    {
+        if (_jijiPhase != 1 && _jijiPhase != 2) return;
+        var np = CalcPhase2Offset();
+        if ((np - _jijiPhase2Pos).Length() < 1f) return;
+        _jijiPhase2Pos = np;
+        var target = _jijiPhase == 2 ? np : np + new Vector2(0f, JijiDefaultOffsetY);
+        _ = AnimateJijiAsync(target, false, JijiAppearDuration);
+        GD.Print("[Jiji] 小穴位置變了 → 雞雞重新對位");
     }
 
     void StartInsertion()

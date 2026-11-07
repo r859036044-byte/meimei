@@ -213,6 +213,7 @@ public partial class TrainingRoomRuntime : Node
         // 切回一般腿：M 腿專用、但不在「m腿」群組裡的疊層（洞／開1／開上／插入）也要一起收掉，不然會殘留在一般腿上
         if (!opening) { HideOpenAndInsertLayers(); _holeLeftOpen = false; }
         _mLegTransitioning = false;
+        RealignJijiToHole();   // 雞雞已經靠近的話，小穴位置跟著 M 腿變了，要重新對位（Jiji.cs）
     }
 
     void UpdateBreastHotspotTracking()
