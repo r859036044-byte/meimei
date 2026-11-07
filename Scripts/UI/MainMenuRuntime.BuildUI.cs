@@ -353,6 +353,7 @@ public partial class MainMenuRuntime : Control
         allAgesCheck.AddThemeColorOverride("font_hover_color", new Color("b84e7e"));
         ageRow.AddChild(allAgesCheck);
         ApplyStretchAnchor(allAgesCheck, V2(0, 0), V2(1, 1), V2(125, 0), V2(0, 0));
+        if (DemoMode.Enabled) { ageRow.Visible = false; ageRow.CustomMinimumSize = Vector2.Zero; }   // 試玩版：設定裡不讓玩家選擇是否全年齡（隱藏，不刪）
         allAgesCheck.ButtonPressed = !(PlayerDataManager.Instance?.R18ContentEnabled ?? false);
         // 打勾/取消立即生效並存檔（不必等「套用設定」，避免勾了直接按返回而沒生效）
         allAgesCheck.Toggled += on =>
