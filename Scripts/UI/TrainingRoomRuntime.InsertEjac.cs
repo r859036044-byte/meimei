@@ -284,9 +284,10 @@ public partial class TrainingRoomRuntime
         {
             Vector2 from = hole + new Vector2(Rf(-size * 0.3f, size * 0.3f), size * 0.55f);
             // 第一次內射（破處）：白色精液、血絲、混血粉紅 三種輪流混在一起流出
+            bool bloodSlot = _firstTimeBleeding && i % 3 == 1 && Rf(0f, 1f) <= BloodAmount;   // 血那一條：依 BloodAmount 的機率才真的是血，否則是混血粉紅
             Color fc = !_firstTimeBleeding ? SemenWhiteColor
-                     : (i % 3 == 0 ? SemenWhiteColor : i % 3 == 1 ? BloodColor : SemenPinkColor);
-            bool isBlood = _firstTimeBleeding && i % 3 == 1;
+                     : (i % 3 == 0 ? SemenWhiteColor : bloodSlot ? BloodColor : SemenPinkColor);
+            bool isBlood = bloodSlot;
             TaskLogger.Run(FlowFromHoleAsync(from, CreampieFlowLenPx * Rf(0.6f, 1.1f), Rf(2.0f, 3.2f), isBlood ? Rf(5f, 7f) : Rf(9f, 13f), fc),
                            "TrainingRoom.CreampieFlow");
             await WaitSecAsync(Rf(0.25f, 0.5f));
@@ -381,6 +382,7 @@ void fragment() {
     // ════════════════════════════════════════════════════════════════
     //  第一次（破處）流血
     // ════════════════════════════════════════════════════════════════
+    [Export(PropertyHint.Range, "0,1,0.05")] public float BloodAmount = 0.5f;   // 血的總量（1＝原本的量，0.5＝一半）：血流條數、洞口滲血的次數與間隔、雞雞沾血、內射混血的比例、血流粗細／長度都跟著縮減
     [Export] public float BloodDripIntervalMin = 1.8f;   // 抽插中偶爾從洞口滲出血的間隔（秒）
     [Export] public float BloodDripIntervalMax = 3.6f;
     [Export] public float JijiBloodGainPerSec  = 0.12f; // 抽插時雞雞沾血增加速度（0~1）
@@ -410,11 +412,11 @@ void fragment() {
         pdm.TriggerVirginityLoss();
         _firstTimeBleeding = true; _bleedActive = true; _bleedT = 0f;
         _bloodSeed = Rf(0f, 100f);   // 每次破處血痕分布都不同
-        _jijiBlood = Mathf.Max(_jijiBlood, 0.35f);
+        _jijiBlood = Mathf.Max(_jijiBlood, 0.35f * BloodAmount);
         _jijiBloodBlur = 0f;
         _jijiBloodBurst = true;
         _holeBloodDrips = 0;
-        _bloodDripTimer = Rf(BloodDripIntervalMin, BloodDripIntervalMax);
+        _bloodDripTimer = Rf(BloodDripIntervalMin, BloodDripIntervalMax) / Mathf.Max(0.1f, BloodAmount);
         TaskLogger.Run(BloodFlowsAsync(2, 0.2f), "TrainingRoom.BreakBlood");
         GD.Print("[Jiji] 破處 → 流血");
     }
@@ -447,19 +449,21 @@ void fragment() {
     async System.Threading.Tasks.Task BloodFlowsAsync(int count, float delay)
     {
         // 一定有一條主流：幾乎直直往下、量比較多（較粗較長），只有輕微彎曲；其餘左右流動限定在小範圍內
+        count = Mathf.Max(0, Mathf.RoundToInt(count * BloodAmount));   // BloodAmount 低：旁邊的支流變少（只剩主流）
+        float bk = Mathf.Lerp(0.6f, 1f, BloodAmount);                  // 血流的長度／粗細倍率
         for (int i = 0; i <= count; i++)
         {
             await WaitSecAsync(delay + i * Rf(0.2f, 0.45f));
             if (i == 0)
             {
                 TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(Rf(-2f, 2f), 0f),
-                                                 Rf(40f, 58f), Rf(2.6f, 3.6f), Rf(5.5f, 7f), BloodColor,
+                                                 Rf(40f, 58f) * bk, Rf(2.6f, 3.6f), Rf(5.5f, 7f) * bk, BloodColor,
                                                  Rf(-3f, 3f), Rf(0.6f, 1.1f), Rf(1.6f, 2.4f)), "TrainingRoom.BloodMain");
                 continue;
             }
             float side = (i % 2 == 0) ? -1f : 1f;
             TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(side * Rf(1f, 4f), 0f),
-                                             Rf(16f, 34f), Rf(1.8f, 3.0f), Rf(3.2f, 4.8f), BloodColor,
+                                             Rf(16f, 34f) * bk, Rf(1.8f, 3.0f), Rf(3.2f, 4.8f) * bk, BloodColor,
                                              side * Rf(4f, 12f), Rf(0.8f, 1.5f), Rf(1.6f, 3.0f)), "TrainingRoom.BloodFlow");
         }
     }
@@ -559,29 +563,29 @@ void fragment() {
         if (_bleedActive)
         {
             _bleedT += dt;
-            if (_bleedT >= BleedStopSec) { _bleedActive = false; GD.Print("[Jiji] 流血結束（已滿 " + BleedStopSec + " 秒）"); }
+            if (_bleedT >= BleedStopSec * Mathf.Max(0.3f, BloodAmount)) { _bleedActive = false; GD.Print("[Jiji] 流血結束（已滿 " + BleedStopSec + " 秒）"); }
         }
         if (!_bleedActive || _jijiPhase != 3 || _jijiStage < 1) return;
         bool thrusting = !_s2Paused && !_pullOutAnim;
-        if (thrusting) _jijiBlood = Mathf.Min(1f, _jijiBlood + JijiBloodGainPerSec * dt * (0.5f + _s2Sin));
+        if (thrusting) _jijiBlood = Mathf.Min(1f, _jijiBlood + JijiBloodGainPerSec * BloodAmount * dt * (0.5f + _s2Sin));
         if (thrusting) _jijiBloodBlur = Mathf.Min(0.55f, _jijiBloodBlur + 0.05f * dt * (0.4f + _s2Sin));
         bool bloodSettled = _insFollowT > 1.2f;   // 剛插入（突破衝上去）那一下先不冒血，等插穩了再開始
         if (_jijiBloodBurst && bloodSettled)
         {
             _jijiBloodBurst = false;
-            for (int bi = 0; bi < 2; bi++) TaskLogger.Run(SpawnJijiBloodFlowAsync(bi * 0.25f), "TrainingRoom.JijiBloodBurst");
+            for (int bi = 0; bi < Mathf.Max(1, Mathf.RoundToInt(2 * BloodAmount)); bi++) TaskLogger.Run(SpawnJijiBloodFlowAsync(bi * 0.25f), "TrainingRoom.JijiBloodBurst");
         }
         if (bloodSettled) _jijiBloodFlowT -= dt;
-        if (bloodSettled && _jijiBloodFlowT <= 0f && _jijiBloodFlowActive < 4 && !_pullOutAnim)
+        if (bloodSettled && _jijiBloodFlowT <= 0f && _jijiBloodFlowActive < Mathf.Max(1, Mathf.RoundToInt(4 * BloodAmount)) && !_pullOutAnim)
         {
-            _jijiBloodFlowT = Rf(2.2f, 4.2f);
+            _jijiBloodFlowT = Rf(2.2f, 4.2f) / Mathf.Max(0.1f, BloodAmount);
             TaskLogger.Run(SpawnJijiBloodFlowAsync(0f), "TrainingRoom.JijiBloodFlow");
         }
         _bloodDripTimer -= dt;
-        if (_bloodDripTimer <= 0f && _holeBloodDrips < HoleBloodDripMax)
+        if (_bloodDripTimer <= 0f && _holeBloodDrips < Mathf.RoundToInt(HoleBloodDripMax * BloodAmount))
         {
             _holeBloodDrips++;
-            _bloodDripTimer = Rf(BloodDripIntervalMin, BloodDripIntervalMax);
+            _bloodDripTimer = Rf(BloodDripIntervalMin, BloodDripIntervalMax) / Mathf.Max(0.1f, BloodAmount);
             TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(Rf(-5f, 5f), -4f),
                                              Rf(14f, 34f), Rf(1.5f, 2.8f), Rf(3.2f, 5f), BloodColor,
                                              Rf(-8f, 8f), Rf(0.7f, 1.3f), Rf(1.6f, 3.0f)), "TrainingRoom.BloodDrip");

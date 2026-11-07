@@ -21,10 +21,47 @@ public partial class TrainingRoomRuntime
     static readonly string[] _mouthFreeExprs =
         { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌" };
 
+    [Export] public float MouthBigScale = 2.0f;   // 被插入／被射精時嘴巴放大的倍率（2.0＝變大 100%）
+    [Export] public float MouthBigSec   = 0.25f;  // 放大／縮回的平滑時間（秒）
+
+    // 各嘴巴圖的中心（貼圖 2000x3200 像素，從各圖不透明範圍量出來）：放大繞著各自的中心
+    static readonly System.Collections.Generic.Dictionary<string, Vector2> _mouthCenters = new()
+    {
+        ["小嘴"] = new Vector2(964f, 753.5f), ["抖動嘴"] = new Vector2(965.5f, 753.5f), ["小嘴巴"] = new Vector2(964f, 757f),
+        ["表情/嘴巴"] = new Vector2(961f, 754.5f), ["小嘴吐舌"] = new Vector2(965.5f, 761f), ["張嘴1"] = new Vector2(964f, 752f),
+    };
+    float _mouthBigK = 1f;
+
+    /// <summary>被插入（雞雞插入中）或被射精時，嘴巴放大 MouthBigScale 倍。每幀由 UpdateMouthOperate 呼叫。</summary>
+    void UpdateMouthBig(float dt)
+    {
+        bool big = BratInserted || _insertEjacActive || _ejacRunning;
+        float tgt = big ? MouthBigScale : 1f;
+        if (Mathf.IsEqualApprox(_mouthBigK, tgt) && !big) { if (_mouthBigK != 1f) { _mouthBigK = 1f; ApplyMouthBig(1f); } return; }
+        _mouthBigK = Mathf.Lerp(_mouthBigK, tgt, 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, MouthBigSec)));
+        ApplyMouthBig(_mouthBigK);
+    }
+
+    void ApplyMouthBig(float k)
+    {
+        foreach (var kv in _mouthCenters)
+        {
+            if (!Layers.TryGetValue(kv.Key, out var node) || node is not Control c) continue;
+            c.PivotOffset = kv.Value * c.Size / new Vector2(2000f, 3200f);
+            c.Scale = new Vector2(k, k);
+        }
+    }
+
     string _mouthShown;      // 目前由這支程式顯示的嘴巴（null＝沒接管）
     float  _mouthScaleX = 1f;
 
     void UpdateMouthOperate(float dt)
+    {
+        UpdateMouthOperateCore(dt);
+        UpdateMouthBig(dt);   // 被插入／被射精：嘴巴放大 100%（放在最後，才不會被上面的還原縮放蓋掉）
+    }
+
+    void UpdateMouthOperateCore(float dt)
     {
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
