@@ -37,6 +37,7 @@ public partial class MainMenuRuntime : Control
     private Control _menuBtnContainer;   // 主選單按鈕容器（統一隱藏/顯示）
     /// <summary>為 true 時，下次進入主選單直接顯示開始畫面（由遊戲中的「返回主畫面」設定）。</summary>
     public static bool SkipIntroOnce;
+    static bool _demoLogoDone;   // 試玩版：LOGO 只在遊戲啟動時播一次（從試玩結束返回標題就不再播）
 
     private Control _logoPanel;
     private Control _dialoguePanel;
@@ -144,6 +145,7 @@ public partial class MainMenuRuntime : Control
     [ExportGroup("開場BGM設定")]
     [Export] public float BgmStartTime     = 3f;    // 音樂從第幾秒開始播放
     [Export] public float BgmFadeInDur     = 4f;    // 淡入秒數
+    [Export] public float DemoBgmFadeInDur = 8f;    // 試玩版：LOGO 後進標題畫面，音樂淡入的秒數（拉長，比較柔和）
     [Export] public float BgmVolume        = 1f;    // 最終音量(0~1)
     /// <summary>在指定秒數時開始淡出（0=不淡出）</summary>
     [Export] public float BgmFadeOutAt     = 0f;    // 音樂播到第幾秒開始淡出（0=不淡出）
@@ -343,7 +345,7 @@ public partial class MainMenuRuntime : Control
         // DevModeManager 全域常駐處理，不用在每個場景各自建立監聽節點。
 
         // 從遊戲中「返回主畫面」→ 直接顯示開始畫面（不重播 LOGO 與開場動畫）
-        if (SkipIntroOnce || DemoMode.Enabled)   // 試玩版：OP 直接跳到主畫面
+        if (SkipIntroOnce || (DemoMode.Enabled && _demoLogoDone))   // 試玩版：播完 LOGO 後 OP 直接跳到主畫面
         {
             SkipIntroOnce = false;
             // 試玩版：不預載調教室貼圖／場景（啟動時不要讀那麼多；進調教室時才載入）

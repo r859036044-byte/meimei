@@ -886,6 +886,7 @@ void fragment() {
             leave.OffsetRight = -20; leave.OffsetLeft = -20 - LW;
             leave.OffsetBottom = -20; leave.OffsetTop = -20 - LW;
             leave.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(LW / 2f)));
+            leave.Visible = !DemoMode.Enabled;   // 試玩版：不要離開按鈕（只隱藏）
             _canvas.AddChild(leave);
             var btnLeave = MkIconBtn(leave, "BtnLeave", "離開房間（結束今天）", new Color(1.00f, 0.70f, 0.70f), new Vector2(Pad, Pad));
             btnLeave.Text = "🚪";

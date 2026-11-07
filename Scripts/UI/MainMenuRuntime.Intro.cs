@@ -73,6 +73,12 @@ public partial class MainMenuRuntime : Control
         foreach (var relPath in TrainingRoomRuntime.GetPreloadSpritePaths())
             ResourceHelper.PreloadTexAny(relPath);
         ResourceLoader.LoadThreadedRequest("res://Scenes/TrainingRoom.tscn");
+        if (DemoMode.Enabled)
+        {   // 試玩版：LOGO 這段等待時間多預讀一點（標題用到的圖、音樂），進標題畫面就不卡
+            LoadTex("CG/random_title_image/random title image (2)");
+            LoadTex("Backgrounds/bg_LivingRoom");
+            LoadBgm("Audio/bgm/meimei_op");
+        }
         SetActive(_logoPanel, true);
         SetActive(_mainPanel, false);
 
@@ -123,6 +129,13 @@ public partial class MainMenuRuntime : Control
             foreach (var txt in logoTexts)
                 SetAlpha(txt, a * 0.45f);
         }, ct);
+
+        if (DemoMode.Enabled)
+        {   // 試玩版：LOGO 播完 → 不播 OP 動畫，直接到標題畫面（音樂慢慢淡入）
+            _demoLogoDone = true;
+            TitleDirect(ct, true);
+            return;
+        }
 
         // ── 白屏閃光 → 標題畫面 ──
         // 建立白色遮罩
@@ -649,7 +662,7 @@ public partial class MainMenuRuntime : Control
     /// <summary>
     /// 從遊戲中「返回主畫面」：跳過 LOGO 與開場動畫，直接顯示開始畫面。
     /// </summary>
-    void TitleDirect(CancellationToken ct)
+    void TitleDirect(CancellationToken ct, bool fadeBgm = false)
     {
         SetActive(_logoPanel, false);
         SetActive(_mainPanel, true);
@@ -660,10 +673,11 @@ public partial class MainMenuRuntime : Control
         if (opClip != null && _bgmSource != null)
         {
             _bgmSource.Stream = opClip;
-            _bgmFading = false;
+            _bgmFading = fadeBgm;
+            if (fadeBgm) SetVol(_bgmSource, 0f);
             _bgmSource.Play();
             _bgmSource.Seek(Mathf.Min(SkipMusicTime, (float)opClip.GetLength()));
-            ApplyVolumes();
+            if (fadeBgm) _ = FadeInBGM(DemoBgmFadeInDur, ct); else ApplyVolumes();
         }
 
         var mainBg = _mainPanel.GetNodeOrNull<TextureRect>("BG/BGTex");
