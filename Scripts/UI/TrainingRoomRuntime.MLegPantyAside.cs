@@ -376,8 +376,8 @@ public partial class TrainingRoomRuntime
         if (Layers.TryGetValue("m腿/小穴", out var pl) && pl != null && LayerContentRect("m腿/小穴") is Rect2 cr && panty.Size.X > 0f && panty.Size.Y > 0f)
             c = (cr.GetCenter() + pl.Position - panty.Position) / panty.Size;   // 以 M 腿小穴本體的中心為濕痕中心
         _mPantyMat.SetShaderParameter("wet_k", _mPantyWetK);
-        _mPantyMat.SetShaderParameter("wet_c", c + MPantyWetOffsetUV);
-        _mPantyMat.SetShaderParameter("wet_r", MPantyWetRadiusUV);
+        _mPantyMat.SetShaderParameter("wet_c", c + MPantyWetOffsetUV + PantyWetSpreadOffset());
+        _mPantyMat.SetShaderParameter("wet_r", PantyWetSpreadRadius(MPantyWetRadiusUV));
         _mPantyMat.SetShaderParameter("wet_core", PantyWetCore);
         _mPantyMat.SetShaderParameter("wet_col", new Vector3(PantyWetColor.R, PantyWetColor.G, PantyWetColor.B));
     }

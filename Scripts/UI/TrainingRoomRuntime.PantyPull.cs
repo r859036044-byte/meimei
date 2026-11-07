@@ -443,8 +443,8 @@ public partial class TrainingRoomRuntime
             c = new Vector2(lp.X / Mathf.Max(1f, panty.Size.X), lp.Y / Mathf.Max(1f, panty.Size.Y));
         }
         _pantyMat.SetShaderParameter("wet_k", _pantyWetK);
-        _pantyMat.SetShaderParameter("wet_c", c + PantyWetOffsetUV);
-        _pantyMat.SetShaderParameter("wet_r", PantyWetRadiusUV);
+        _pantyMat.SetShaderParameter("wet_c", c + PantyWetOffsetUV + PantyWetSpreadOffset());
+        _pantyMat.SetShaderParameter("wet_r", PantyWetSpreadRadius(PantyWetRadiusUV));
         _pantyMat.SetShaderParameter("wet_core", PantyWetCore);
         _pantyMat.SetShaderParameter("wet_col", new Vector3(PantyWetColor.R, PantyWetColor.G, PantyWetColor.B));
     }
