@@ -19,8 +19,8 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 MouthCenterTex    = new Vector2(965.5f, 753.5f);   // 抖動嘴中心（貼圖 2000x3200 像素）：縮放繞著它
 
     [ExportGroup("快高潮時的嘴巴")]
-    [Export(PropertyHint.Range, "0,100,1")] public float MouthNearStart  = 40f;   // 被摸時高潮值到多少開始：小嘴巴慢慢放大
-    [Export(PropertyHint.Range, "0,100,1")] public float MouthTongueAt   = 80f;   // 高潮值到多少換成小嘴吐舌
+    [Export(PropertyHint.Range, "0,100,1")] public float MouthNearStart  = 30f;   // 被摸時高潮值到多少開始：小嘴巴慢慢放大
+    [Export(PropertyHint.Range, "0,100,1")] public float MouthTongueAt   = 70f;   // 高潮值到多少換成小嘴吐舌
     [Export(PropertyHint.Range, "1,3,0.05")] public float MouthNearMaxScale = 1.6f;   // 小嘴巴放到最大的倍率（在 MouthTongueAt 時）
     [Export] public float MouthNearSec       = 1.0f;   // 放大跟著高潮值走的平滑時間（越大越慢）
     [Export] public float MouthClimaxShakeSec = 1.5f;  // 高潮瞬間：先抖動嘴幾秒，之後換小嘴吐舌
@@ -36,6 +36,7 @@ public partial class TrainingRoomRuntime
         if (f.nipple) v = Mathf.Max(v, PartArousal["乳頭"]);
         if (f.mouth)  v = Mathf.Max(v, PartArousal["嘴"]);
         if (f.head)   v = Mathf.Max(v, PartArousal["頭"]);
+        if (f.pussy)  v = Mathf.Max(v, Wetness);   // 小穴被摸：濕度越高嘴巴越快進入下一階段（濕了就容易切換）
         return v;
     }
 
