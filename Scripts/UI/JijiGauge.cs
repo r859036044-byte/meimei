@@ -23,6 +23,7 @@ public partial class JijiGauge : Control
     public float ThermoTubeR  = 0.075f;                           // 管子半徑（相對整體寬度）
     public float ThermoTopFrac = 0.10f, ThermoBottomFrac = 0.82f; // 溫度計在莖上的範圍（從莖頂往下佔莖長的幾成）
     public bool  Full;                                            // 滿了：整個放大並震動
+    public float Urgency;                                         // 0~1：破功倒數進度，越高放大和震動越強
     public float FullScale = 1.22f;                               // 滿了放大的倍率（從底部中心放大）
     public float ShakeAmp  = 0.07f;                               // 滿了震動的角度（弧度，約 4°）
     public float Border = 3f;
@@ -48,8 +49,9 @@ public partial class JijiGauge : Control
         // 滿了：從底部中心放大並震動；沒滿就回到原樣
         PivotOffset = new Vector2(Size.X * 0.5f, Size.Y);
         float k = 1f - Mathf.Exp(-dt * 10f);
-        _scaleCur = Mathf.Lerp(_scaleCur, Full ? FullScale : 1f, k);
-        float rot = Full ? (Mathf.Sin(_time * 70f) + 0.5f * Mathf.Sin(_time * 113f)) * ShakeAmp * 0.67f : 0f;
+        float u = Mathf.Clamp(Urgency, 0f, 1f);
+        _scaleCur = Mathf.Lerp(_scaleCur, Full ? Mathf.Lerp(FullScale, FullScale * 1.12f, u) : 1f, k);   // 越接近射越大
+        float rot = Full ? (Mathf.Sin(_time * 70f) + 0.5f * Mathf.Sin(_time * 113f)) * ShakeAmp * 0.67f * Mathf.Lerp(0.6f, 1.5f, u) : 0f;   // 越接近射震得越兇
         _rotCur = Mathf.Lerp(_rotCur, rot, Full ? 0.6f : k);
         Scale = new Vector2(_scaleCur, _scaleCur);
         Rotation = _rotCur;

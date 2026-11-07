@@ -46,6 +46,7 @@ public partial class TrainingRoomRuntime
             _jijiGauge.ShowGauge = _jijiPhase != 0;
             _jijiGauge.Value = Mathf.Clamp(Stamina / 100f, 0f, 1f);   // 溫度計滿格＝精力 100（破功線）
             _jijiGauge.Full = _breaking || Stamina >= 100f;           // 滿了：放大並震動，這段時間可以按忍耐回去
+            _jijiGauge.Urgency = BreakProgress;                       // 破功倒數越接近射，放大和震動越強
         }
     }
 }

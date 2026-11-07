@@ -3,7 +3,7 @@ using Godot;
 /// <summary>
 /// 男主狀態（Inspector「男主狀態」「遊玩時間」群組，Play 中可即時調）：
 ///  • 精力（左下精力條，Stamina）＝男主的「感覺」0~120：沒插入最多 40；≥90 才能射（射精按鈕）；抽插累積，
-///    超過 100 會「破功」快速衝到 120 → 自動射精。小穴越舒服（高潮值）累積越快；又快又高會「痛」。
+///    到 100（溫度計滿）會「破功」：啟動專門的破功倒數（不動 5 秒、抽插約 3 秒），跑滿就自動射精，這段時間可以按忍耐回去。小穴越舒服（高潮值）累積越快；又快又高會「痛」。
 ///  • 勃起度（左下原本的「精液」條，_semenLevel）：≥50 才勃起（雞雞才能出現），<30 軟掉（雞雞收起來）；痛會讓它掉。
 ///  • 精液量（SemenStock，右下角顯示）＝男主能射多少：越多每次射越多；射完減少，會慢慢回復。
 ///  • 忍耐按鈕：冷靜下來、停止抽插、精力慢慢下降；精力超過 100 時忍耐有失敗率（超過越多越高），失敗＝破功。
@@ -54,8 +54,12 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,30,0.1")] public float FeelRatePerSpeed = 3f; // 速度滿檔時額外每秒增加
     [Export(PropertyHint.Range, "0,3,0.05")] public float FeelHoleBoost = 0.8f; // 小穴高潮值 100 時累積速度額外 ×(1+這個)：小穴越舒服越容易射
     [Export(PropertyHint.Range, "0,5,0.05")] public float FeelDecay = 0.8f;     // 沒累積時每秒下降
-    [Export(PropertyHint.Range, "0.5,200,0.5")] public float FeelBreakRate = 4f;   // 破功（超過 100）後每秒衝多少。從 100 衝到 120 要 20÷這個秒＝可以按忍耐回去的時間（4＝約 5 秒；以前是 45＝不到半秒就射）
-    [Export(PropertyHint.Range, "0,1,0.05")] public float EndureFailWhileBreaking = 0.5f;   // 已經破功（滿了）時按忍耐，忍不住的最低機率（失敗了還有時間再按）
+    // 破功倒數：精力到 100（溫度計滿）就開始，有一個專門的計數 _breakT 在跑，跑滿就射。可以在這段時間按「忍耐」回去。
+    [Export(PropertyHint.Range, "0.5,30,0.5")] public float BreakWindowSec = 5f;        // 什麼都不做：這麼多秒後射
+    [Export(PropertyHint.Range, "0.3,30,0.1")] public float BreakWindowThrustSec = 3f;   // 抽插速度滿檔：計數走得比較快，只要這麼多秒（速度越慢越接近上面那個）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float EndureFailWhileBreaking = 0.5f;   // 破功倒數中、沒在抽插時按忍耐，忍不住的機率（失敗了還有時間再按）
+    [Export(PropertyHint.Range, "0,100,1")] public float EndureBackFeel = 85f;            // 忍耐成功後，精力最多退到這個值
+    [Export(PropertyHint.Range, "0,1,0.05")] public float EndureFailBreakingThrust = 0.8f;  // 破功倒數中、還在抽插時按忍耐，忍不住的機率（抽插中更難忍）
     [Export(PropertyHint.Range, "0,120,1")] public float FeelAfterEjac = 20f;   // 射精後精力掉到
     [Export(PropertyHint.Range, "0,100,1")] public float PainStartFeel = 60f;   // 精力超過這個且又快才會痛
     [Export(PropertyHint.Range, "0,1,0.05")] public float PainFeelSlow = 0.3f;  // 痛時精力累積變慢多少
@@ -104,7 +108,11 @@ public partial class TrainingRoomRuntime
     float _erectBase, _erectBoost, _erectIdleT;   // 勃起度：自然上升的底／連續動作的加速倍率
     bool _playForced, _ejacDone;
     bool _erectOn;               // 目前是否勃起（有遲滯）
-    bool _breaking, _prevBreaking;   // 破功中（精力往 120 衝）
+    bool _breaking, _prevBreaking;   // 破功中（精力滿了，破功倒數在跑）
+    float _breakT;                   // 破功倒數：0 ~ BreakWindowSec，跑滿就射
+    bool _maleThrusting;             // 這一幀男主有在抽插（StepMale 設定，忍耐判定用）
+    /// <summary>破功倒數進度 0~1（沒破功＝0）。HUD 用來決定放大震動的強度。</summary>
+    public float BreakProgress => _breaking ? Mathf.Clamp(_breakT / Mathf.Max(0.1f, BreakWindowSec), 0f, 1f) : 0f;
     float _pain;                 // 0~1
     float _endureT;              // 忍耐剩餘秒數
     float _ejacMul = 1f;         // 這次射精量倍率
@@ -153,7 +161,7 @@ public partial class TrainingRoomRuntime
         float rise = 0f;
         if (thrusting) rise = (FeelRateBase + FeelRatePerSpeed * sThrust) * (1f + FeelHoleBoost * hole01) * (1f - PainFeelSlow * _pain) * (_erectOn ? 1f : 0.5f);
         else if (anything && !inserted) rise = FeelRateTouch;
-        if (_breaking) rise = 0f;   // 破功中只靠 FeelBreakRate 衝，窗口才會是固定秒數（不會因為還在抽插而更快射）
+        if (_breaking) rise = 0f;   // 破功中只靠破功倒數（_breakT）走，精力不另外累積
         if (!inserted)
         {
             if (Stamina > FeelCapNoInsert) Stamina = Mathf.Max(FeelCapNoInsert, Stamina - FeelDecay * 3f * dt);
@@ -164,11 +172,17 @@ public partial class TrainingRoomRuntime
         if (_endureT > 0f) Stamina -= EndureFeelDrop * dt;
 
         if (Stamina >= 100f && _endureT <= 0f) _breaking = true;
+        _maleThrusting = thrusting;
         if (_breaking)
         {
-            Stamina += FeelBreakRate * dt;
-            if (Stamina >= 120f && !_ejacRunning && !_insertEjacActive) MaleEjaculate();
+            // 專門的破功倒數：不動 BreakWindowSec 秒後射；抽插時走得更快（速度滿檔約 BreakWindowThrustSec 秒）
+            float maxMul = BreakWindowSec / Mathf.Max(0.1f, BreakWindowThrustSec);
+            float mul = thrusting ? Mathf.Lerp(1f, maxMul, Mathf.Clamp(sThrust, 0f, 1f)) : 1f;
+            _breakT += dt * mul;
+            Stamina = 100f + 20f * Mathf.Clamp(_breakT / Mathf.Max(0.1f, BreakWindowSec), 0f, 1f);   // 精力數字跟著倒數（100→120），其他地方照舊用精力判斷
+            if (_breakT >= BreakWindowSec && !_ejacRunning && !_insertEjacActive) MaleEjaculate();
         }
+        else _breakT = 0f;
         Stamina = Mathf.Clamp(Stamina, 0f, 120f);
 
         // 勃起度
@@ -240,7 +254,7 @@ public partial class TrainingRoomRuntime
         TriggerEjaculation();
         GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this)) SayMaleEv(MaleAfterEjacLines); };
         _ejacDone = true;
-        _breaking = false;
+        _breaking = false; _breakT = 0f;
         Stamina = Mathf.Min(Stamina, FeelAfterEjac);
         SetSemenLevel(_semenLevel - ErectDropOnEjac / 100f);
         bool wasEnd = _playTimeUp;
@@ -265,13 +279,14 @@ public partial class TrainingRoomRuntime
         }
         float over = Mathf.Max(0f, Stamina - 100f);
         float fail = Stamina >= 100f ? Mathf.Clamp(over / Mathf.Max(1f, EndureFailOver), 0f, 1f) : 0f;
-        if (_breaking) fail = Mathf.Max(fail, EndureFailWhileBreaking);   // 已經在破功了，更難忍（機率可在 Inspector 調）
+        if (_breaking) fail = Mathf.Max(fail, _maleThrusting ? EndureFailBreakingThrust : EndureFailWhileBreaking);   // 已經在破功了，更難忍；還在抽插更難（機率可在 Inspector 調）
         if (GD.Randf() < fail)
         {
             _breaking = true; SayMale(EndureFailLines); GD.Print($"[Male] 忍耐失敗（失敗率 {fail:P0}）");
             return;
         }
-        _breaking = false; _endureT = EndureSec;
+        _breaking = false; _breakT = 0f; _endureT = EndureSec;
+        Stamina = Mathf.Min(Stamina, EndureBackFeel);   // 忍耐成功：精力退回去，不會一忍完又馬上破功
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         SayMale(EndureOkLines);
     }
