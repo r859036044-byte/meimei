@@ -136,6 +136,8 @@ public partial class TrainingRoomRuntime
 
     string _mouthShown;
     bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
+    readonly System.Collections.Generic.Dictionary<string, (bool vis, Vector2 scale, Vector2 pivot)> _pinchMouthSnap = new();
+    [Export(PropertyHint.Range, "0,5,0.1")] public float PinchFrownDelaySec = 1f;   // 捏住多久才換成倒笑
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleX = 0.45f;   // 倒笑嘴左右壓縮（0.45＝跟小嘴巴同寬）
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleY = 1f;      // 倒笑嘴上下大小（1＝翻轉後不壓扁）
     [Export] public float PinchFrownCenterY = 757f;   // 倒笑嘴中心的貼圖 Y（757＝小嘴巴的中心，兩者位置對齊；往上減、往下加）
@@ -175,18 +177,30 @@ public partial class TrainingRoomRuntime
         _mouthNearTarget = 1f;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
-        // 捏臉（按住臉頰拖動）時：嘴巴換成倒笑（「笑」上下翻轉，跟說話張嘴用的是同一招）；放手就還原
-        if (_pinchDrag)
+        // 捏臉（按住臉頰拖動）：捏滿 PinchFrownDelaySec 秒才換成倒笑（一捏就換太突兀）；放手就還原
+        if (_pinchDrag && _pinchPressT >= PinchFrownDelaySec)
         {
-            _pinchMouthOn = true;
+            if (!_pinchMouthOn)
+            {   // 剛要換成倒笑：先記下現在每個嘴巴圖層的顯示／縮放（有雌小鬼時放手要還原成這個初始嘴）
+                _pinchMouthSnap.Clear();
+                foreach (var n in _mouthLayerNames)
+                    if (Layers.TryGetValue(n, out var nd) && nd is Control nc) _pinchMouthSnap[n] = (nc.Visible, nc.Scale, nc.PivotOffset);
+                _pinchMouthOn = true;
+            }
             ShowOnlyMouth("笑");
             ApplyFrownMouth();
             return;
         }
-        if (_pinchMouthOn)
+        if (_pinchMouthOn && !_pinchDrag)
         {
             _pinchMouthOn = false;
-            ReleaseMouth("");
+            if (BratEnabled && BratValue >= MouthBratSmileAt && _pinchMouthSnap.Count > 0)
+            {   // 有雌小鬼：變回捏之前的初始雌小鬼嘴
+                foreach (var kv in _pinchMouthSnap)
+                    if (Layers.TryGetValue(kv.Key, out var nd) && nd is Control nc) { nc.Visible = kv.Value.vis; nc.Scale = kv.Value.scale; nc.PivotOffset = kv.Value.pivot; }
+            }
+            else ReleaseMouth("");
+            _pinchMouthSnap.Clear();
         }
 
         // 若正在用舌頭親嘴（_tongueOn），嘴巴圖層由 TongueOverlay 遮蓋，不顯示底層嘴巴
