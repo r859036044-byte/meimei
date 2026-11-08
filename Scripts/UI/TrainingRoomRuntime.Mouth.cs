@@ -275,17 +275,27 @@ public partial class TrainingRoomRuntime
             }
             else
             {
-                // 說完台詞：保持小嘴巴（或小嘴吐舌），不會變回原本的嘴巴
+                // 說完台詞：普通摸頭回到笑，其他回到小嘴巴（或小嘴吐舌），不會變回原本的嘴巴
                 _isTalking = false;
-                ShowOnlyMouth(baseMouth);
-                ApplyMouthScale(baseMouth, Vector2.One);
+                string talkEndMouth = (_patOn && _jijiPhase != 3) ? "笑" : baseMouth;
+                ShowOnlyMouth(talkEndMouth);
+                ApplyMouthScale(talkEndMouth, Vector2.One);
                 return;
             }
         }
 
         // ════════════════════════════════════════════════════════════
-        //  4. 一般被摸或待機（互動後）：一律用「小嘴巴」或「小嘴吐舌」
+        //  4. 一般被摸或待機（互動後）：
+        //     若為普通摸頭（_patOn && _jijiPhase != 3）：顯示正常的「笑」
+        //     其他情況一律用「小嘴巴」或「小嘴吐舌」
         // ════════════════════════════════════════════════════════════
+        if (_patOn && _jijiPhase != 3)
+        {
+            ShowOnlyMouth("笑");
+            ApplyMouthScale("笑", Vector2.One);
+            return;
+        }
+
         ShowOnlyMouth(baseMouth);
         ApplyMouthScale(baseMouth, Vector2.One);
     }

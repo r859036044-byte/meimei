@@ -281,9 +281,6 @@ public partial class TrainingRoomRuntime
         PlayTrVoicePriorityRandom(3.2f, 1.30f,
             "climax/climax_long_1.wav",
             "climax/climax_igu_1.wav",
-            "climax/climax_ikaw_1.wav",
-            "climax/climax_ikaw_2.wav",
-            "climax/climax_fall_1.wav",
             "climax/climax_fall_2.wav",
             "climax/climax_fall_3.wav"
         );
@@ -297,9 +294,8 @@ public partial class TrainingRoomRuntime
         if (wetEnough)
         {
             PlayTrVoicePriorityRandom(1.8f, 1.15f,
-                "insert/ireteru.wav",
-                "insert/insert_ask.wav",
-                "talk_mumble/mumble_rame.wav"
+                "talk_mumble/mumble_rame.wav",
+                "talk_mumble/mumble_endure.wav"
             );
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "啊…要進來了…！", false);
         }
@@ -322,9 +318,7 @@ public partial class TrainingRoomRuntime
         _resistVoiceCd = 1.6f;
         PlayTrVoicePriorityRandom(1.4f, 1.15f,
             "insert/break_dry.wav",
-            "insert/ireteru.wav",
             "talk_mumble/mumble_endure.wav",
-            "talk_mumble/mumble_moudame_1.wav",
             "moan/mid_1.wav",
             "moan/mid_2.wav"
         );
@@ -364,8 +358,6 @@ public partial class TrainingRoomRuntime
                 PlayTrVoiceRandom(
                     "talk_mumble/mumble_rame.wav",
                     "talk_mumble/mumble_moudamedeshu.wav",
-                    "talk_mumble/mumble_moudame_1.wav",
-                    "talk_mumble/mumble_moudame_2.wav",
                     "talk_mumble/mumble_endure.wav"
                 );
                 return;
@@ -377,7 +369,6 @@ public partial class TrainingRoomRuntime
             {
                 PlayTrVoiceRandom(
                     "talk_sweet/sweet_kimochi.wav",
-                    "talk_sweet/sweet_sokosuki_1.wav",
                     "talk_sweet/sweet_sokosuki_2.wav",
                     "talk_sweet/sweet_koresuki_1.wav"
                 );
@@ -433,8 +424,6 @@ public partial class TrainingRoomRuntime
                 "talk_mumble/mumble_minaideyo.wav",
                 "talk_mumble/mumble_kannanomuri.wav",
                 "talk_mumble/mumble_sonnanomuri.wav",
-                "talk_mumble/mumble_moudame_1.wav",
-                "talk_mumble/mumble_moudame_2.wav",
                 "talk_mumble/mumble_damea.wav",
                 "talk_mumble/mumble_iyanano.wav",
                 "talk_mumble/mumble_yada.wav",
@@ -452,7 +441,6 @@ public partial class TrainingRoomRuntime
         {
             PlayTrVoiceRandom(
                 "talk_sweet/sweet_kimochi.wav",
-                "talk_sweet/sweet_sokosuki_1.wav",
                 "talk_sweet/sweet_sokosuki_2.wav",
                 "talk_sweet/sweet_koresuki_1.wav",
                 "talk_sweet/sweet_koresuki_2.wav",
@@ -530,15 +518,13 @@ public partial class TrainingRoomRuntime
             case "breast":
                 PlayTrVoiceRandom(
                     "touch_breast/breast_touch_1.wav",
-                    "touch_breast/breast_touch_2.wav",
-                    "touch_breast/breast_touch_3.wav",
                     "touch_breast/breast_touch_4.wav",
                     "touch_breast/breast_touch_5.wav"
                 );
                 break;
             case "nipple":
                 PlayTrVoiceRandom(
-                    "touch_breast/breast_touch_2.wav",
+                    "touch_breast/breast_touch_1.wav",
                     "touch_breast/breast_touch_4.wav",
                     "talk_sweet/sweet_sokosuki_2.wav"
                 );
@@ -555,22 +541,38 @@ public partial class TrainingRoomRuntime
                 break;
             case "pussy":
                 PlayTrVoiceRandom(
-                    "touch_pussy/pussy_touch_1.wav",
-                    "touch_pussy/pussy_touch_2.wav",
                     "touch_pussy/pussy_touch_3.wav",
                     "touch_pussy/pussy_touch_4.wav",
                     "talk_mumble/mumble_rame.wav"
                 );
                 break;
             case "head":
+                if (_jijiPhase == 3)
+                {
+                    PlayTrVoiceRandom(
+                        "touch_body/sleep_sigh_1.wav",
+                        "touch_body/sleep_sigh_2.wav",
+                        "talk_sweet/sweet_gyutte.wav"
+                    );
+                }
+                else
+                {
+                    PlayTrVoiceRandom(
+                        "talk_brat/brat_zako_1.wav",
+                        "talk_brat/brat_zako_2.wav",
+                        "talk_brat/brat_taunt.wav",
+                        "talk_sweet/sweet_aha.wav",
+                        "touch_body/sleep_hum_1.wav",
+                        "touch_body/sleep_hum_2.wav"
+                    );
+                }
+                break;
             case "body":
                 PlayTrVoiceRandom(
                     "touch_body/body_touch_1.wav",
                     "touch_body/body_touch_2.wav",
                     "touch_body/sleep_hum_1.wav",
-                    "touch_body/sleep_hum_2.wav",
-                    "touch_body/sleep_sigh_1.wav",
-                    "touch_body/sleep_sigh_2.wav"
+                    "touch_body/sleep_hum_2.wav"
                 );
                 break;
             case "thrust":
