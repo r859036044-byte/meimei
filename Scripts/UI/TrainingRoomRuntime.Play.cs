@@ -131,8 +131,10 @@ public partial class TrainingRoomRuntime
             ClimaxLevel = Mathf.Clamp(ClimaxLevel - pen, 0f, 100f);
             GD.Print($"[Play] 濕度不夠就突破（{w:F0}/{BreakWetNeed:F0}）→ 穴高潮值 -{pen:F0}");
         }
-        PlayTrVoice(enough ? "insert/break_virgin.wav" : "insert/break_dry.wav");
+        // 突破／破處時一律高優先級播放使用者指定的破處專屬語音，鎖定 3.6 秒不被後續氣泡覆蓋
+        PlayTrVoicePriority("insert/break_virgin.wav", 3.6f, 1.35f);
         ReactLine(enough ? ReactBreakWet : ReactBreakDry, true);
+        _reactCd = 3.6f;
         ShowEmote(enough ? EmoteBubble.Kind.Exclaim : EmoteBubble.Kind.Tangle);   // 濕度足夠＝驚嘆號；不夠＝毛線團
     }
 
@@ -180,9 +182,11 @@ public partial class TrainingRoomRuntime
         _reactPrevCount = count;
 
         if (count == 0) { _reactNext = -1f; return; }
-        if (_reactNext < 0f) _reactNext = (float)GD.RandRange(ReactInterval.X, ReactInterval.Y);
+        float minInt = thrust ? 2.2f : ReactInterval.X;
+        float maxInt = thrust ? 4.0f : ReactInterval.Y;
+        if (_reactNext < 0f) _reactNext = (float)GD.RandRange(minInt, maxInt);
         _reactNext -= dt;
-        if (_reactNext <= 0f) { ReactNow(mouth); _reactNext = (float)GD.RandRange(ReactInterval.X, ReactInterval.Y); }
+        if (_reactNext <= 0f) { ReactNow(mouth); _reactNext = (float)GD.RandRange(minInt, maxInt); }
     }
 
     (bool breast, bool nipple, bool mouth, bool head, bool pussy, bool thrust) _reactFlags;
@@ -204,7 +208,7 @@ public partial class TrainingRoomRuntime
         if (f.nipple) Add(ReactNipple);
         if (f.head)   Add(ReactHead);
         if (f.pussy)  Add(ReactPussy);
-        if (f.thrust) Add(ReactThrust);
+        if (f.thrust) Add(ReactThrust, 3);
         if (w >= ReactWetAt) Add(ReactWet);
         if (f.thrust && w < ReactDryAt) Add(ReactDryThrust, 2);
         if (c >= 90f) Add(ReactNearClimax, 2);
@@ -215,6 +219,7 @@ public partial class TrainingRoomRuntime
     {
         PlayTrClimaxVoice();
         ReactLine(ReactClimaxLines, true);
+        _reactCd = 3.2f;
     }
 
     void ReactLine(string[] lines, bool force)

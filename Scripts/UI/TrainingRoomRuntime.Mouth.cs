@@ -5,8 +5,8 @@ using Godot;
 /// 支援：
 ///   1. 常態基礎嘴型：被摸之後就應該會一直保持小嘴巴，在做切換（ZZZ 睡覺表情時為「張嘴1」）。
 ///   2. 依照台詞字數節奏開合：短台詞僅開合 1 次，長台詞最多 4 次，說完台詞都會變成小嘴巴。
-///   3. 倒笑寬度壓縮：翻轉倒笑（Y 軸 -1.25）時，水平左右壓縮（X 軸 0.48），使其寬度與小嘴巴一致。
-///   4. 被抽插時有較大的反應：依抽插速度與深度有張嘴大喘氣／小嘴巴動態放大脈動。
+///   3. 倒笑寬度壓縮：翻轉倒笑（Y 軸 -1.25~-1.35）時，水平左右壓縮（X 軸 0.48~0.52），使其寬度與小嘴巴一致。
+///   4. 被插與抽插時有明顯比被摸更大的反應：抵住推進時緊張喘息、抽插時隨每次深入張嘴大喘氣與小嘴巴動態脈動。
 ///   5. 快感與快高潮反應：隨高潮度提升小嘴巴漸進放大，滿了轉為「小嘴吐舌」。
 /// </summary>
 public partial class TrainingRoomRuntime
@@ -21,7 +21,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("快高潮時的嘴巴")]
     [Export(PropertyHint.Range, "0,100,1")] public float MouthNearStart  = 30f;   // 被摸時高潮值到多少開始：小嘴巴慢慢放大
     [Export(PropertyHint.Range, "0,100,1")] public float MouthTongueAt   = 70f;   // 高潮值到多少換成小嘴吐舌
-    [Export(PropertyHint.Range, "1,3,0.05")] public float MouthNearMaxScale = 1.6f;   // 小嘴巴放到最大的倍率
+    [Export(PropertyHint.Range, "1,3,0.05")] public float MouthNearMaxScale = 1.35f;  // 被摸時小嘴巴放到最大的倍率（保持比被插時溫和）
     [Export] public float MouthNearSec       = 1.0f;   // 放大跟著高潮值走的平滑時間
     [Export] public float MouthClimaxShakeSec = 1.5f;  // 高潮瞬間：先抖動嘴幾秒，之後換小嘴吐舌
     float _mouthClimaxShakeT, _mouthNearTarget = 1f;
@@ -72,7 +72,7 @@ public partial class TrainingRoomRuntime
     static readonly string[] _mouthFreeExprs =
         { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌", "插入1", "插入2", "做愛", "做愛(半閉)", "做愛(全閉)", "做愛3", "做愛4", "高潮", "高潮1", "高潮2" };
 
-    [Export] public float MouthBigScale = 2.0f;
+    [Export] public float MouthBigScale = 1.65f;
     [Export] public float MouthBigSec   = 0.25f;
 
     static readonly System.Collections.Generic.Dictionary<string, Vector2> _mouthCenters = new()
@@ -93,23 +93,7 @@ public partial class TrainingRoomRuntime
         bool big = BratInserted || _insertEjacActive || _ejacRunning;
         float tgt = big ? MouthBigScale : _mouthNearTarget;
         float sec = big ? MouthBigSec : MouthNearSec;
-        if (Mathf.IsEqualApprox(_mouthBigK, tgt) && !big)
-        {
-            if (_mouthBigK != 1f) { _mouthBigK = 1f; ApplyMouthBig(1f); }
-            return;
-        }
         _mouthBigK = Mathf.Lerp(_mouthBigK, tgt, 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, sec)));
-        ApplyMouthBig(_mouthBigK);
-    }
-
-    void ApplyMouthBig(float k)
-    {
-        foreach (var kv in _mouthCenters)
-        {
-            if (!Layers.TryGetValue(kv.Key, out var node) || node is not Control c) continue;
-            c.PivotOffset = kv.Value * c.Size / new Vector2(2000f, 3200f);
-            c.Scale = new Vector2(k, k);
-        }
     }
 
     [Export] public float MouthSmileSec = 2.5f;
@@ -124,8 +108,8 @@ public partial class TrainingRoomRuntime
 
     void UpdateMouthOperate(float dt)
     {
-        UpdateMouthOperateCore(dt);
         UpdateMouthBig(dt);
+        UpdateMouthOperateCore(dt);
     }
 
     void UpdateMouthOperateCore(float dt)
@@ -139,15 +123,16 @@ public partial class TrainingRoomRuntime
         {
             _mouthClimaxShakeT -= dt;
             if (_mouthShown != "抖動嘴") { ShowOnlyMouth("抖動嘴"); _mouthScaleX = 1f; }
-            ApplyMouthScale("抖動嘴", new Vector2(1f, 1f));
+            ApplyMouthScale("抖動嘴", new Vector2(1.25f, 1.25f));
             if (_mouthClimaxShakeT <= 0f) ReleaseMouth(expr);
             return;
         }
 
         bool free = System.Array.IndexOf(_mouthFreeExprs, expr) >= 0;
         bool busy = _tongueOn || _lickOn;   // 只有舔嘴或舌頭在嘴巴上時才算嘴巴忙碌
+        bool inPhase3 = _jijiPhase == 3;
         bool thrusting = _jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused;
-        bool operating = _browLingerT > 0f || thrusting;
+        bool operating = _browLingerT > 0f || inPhase3;
 
         if (operating || _patOn || _touchAnimRunningLeft || _touchAnimRunningRight || _bTouchRunning)
         {
@@ -184,15 +169,18 @@ public partial class TrainingRoomRuntime
                 float flapPhase = (_talkTimer % flapDur) / flapDur;
                 if (flapPhase < 0.55f)
                 {
-                    // 張嘴階段：倒笑壓縮左右（X=0.48 寬度與小嘴巴約32px一致，Y=-1.25 翻轉成開口拱形）
+                    // 張嘴階段：倒笑壓縮左右（X=0.48 寬度與小嘴巴一致，Y=-1.25 翻轉成開口拱形；被插時張得更大）
                     ShowOnlyMouth("笑");
-                    ApplyMouthScale("笑", new Vector2(0.48f, -1.25f));
+                    float openY = inPhase3 ? -1.42f : -1.22f;
+                    float openX = inPhase3 ? 0.52f : 0.48f;
+                    ApplyMouthScale("笑", new Vector2(openX, openY));
                 }
                 else
                 {
                     // 閉嘴階段：小嘴巴
                     ShowOnlyMouth("小嘴巴");
-                    ApplyMouthScale("小嘴巴", Vector2.One);
+                    float closeScale = inPhase3 ? 1.30f : 1.0f;
+                    ApplyMouthScale("小嘴巴", new Vector2(closeScale, closeScale));
                 }
                 return;
             }
@@ -201,7 +189,8 @@ public partial class TrainingRoomRuntime
                 // 開合次數已滿：說完台詞都會變成小嘴巴
                 _isTalking = false;
                 ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", Vector2.One);
+                float endScale = inPhase3 ? 1.25f : 1.0f;
+                ApplyMouthScale("小嘴巴", new Vector2(endScale, endScale));
                 return;
             }
         }
@@ -211,7 +200,7 @@ public partial class TrainingRoomRuntime
         // ════════════════════════════════════════════════════════════
         string nearWant = null;
         float nearLv = MouthNearLevel();
-        if (operating && !BratInserted && nearLv >= MouthNearStart)
+        if (operating && nearLv >= MouthNearStart)
         {
             float tN = Mathf.Clamp((nearLv - MouthNearStart) / Mathf.Max(1f, MouthTongueAt - MouthNearStart), 0f, 1f);
             _mouthNearTarget = Mathf.Lerp(1f, MouthNearMaxScale, tN);
@@ -219,34 +208,74 @@ public partial class TrainingRoomRuntime
         }
 
         // ════════════════════════════════════════════════════════════
-        //  3. 被插時的大反應（抽插節奏張嘴喘息／小嘴巴動態放大）
+        //  3. 被插與突破時的大反應（明顯比一般被摸更劇烈）
         // ════════════════════════════════════════════════════════════
-        if (thrusting)
+        if (inPhase3)
         {
-            float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
-            if (nearWant == "小嘴吐舌")
+            // Stage 0：剛抵住入口或正在用力頂開阻力（_resistBlocking）
+            if (_jijiStage == 0)
             {
-                ShowOnlyMouth("小嘴吐舌");
-                ApplyMouthScale("小嘴吐舌", Vector2.One);
+                if (_resistBlocking && _jijiHeld)
+                {
+                    // 用力頂開破處阻力時：張嘴喘息（倒笑壓縮）與抖動嘴交替，呈現明顯承受感
+                    bool gaspOpen = ((int)(Time.GetTicksMsec() / 220) % 2) == 0;
+                    if (gaspOpen)
+                    {
+                        ShowOnlyMouth("笑");
+                        ApplyMouthScale("笑", new Vector2(0.50f, -1.35f));
+                    }
+                    else
+                    {
+                        ShowOnlyMouth("抖動嘴");
+                        ApplyMouthScale("抖動嘴", new Vector2(0.85f, 1.15f));
+                    }
+                }
+                else
+                {
+                    ShowOnlyMouth("小嘴巴");
+                    ApplyMouthScale("小嘴巴", new Vector2(1.30f, 1.30f));
+                }
+                return;
             }
-            else if (normSpeed >= 0.45f && _s2Sin > 0.35f)
+
+            // Stage >= 1：突破後或抽插進行中
+            if (thrusting)
             {
-                // 較快速度抽插深處：張大嘴喘氣（倒笑壓縮寬度，大張喘息）
-                ShowOnlyMouth("笑");
-                ApplyMouthScale("笑", new Vector2(0.52f, -1.30f));
+                float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
+                if (nearWant == "小嘴吐舌" && _s2Sin <= 0.25f)
+                {
+                    ShowOnlyMouth("小嘴吐舌");
+                    float tongueScale = Mathf.Lerp(1.25f, 1.50f, normSpeed);
+                    ApplyMouthScale("小嘴吐舌", new Vector2(tongueScale, tongueScale));
+                }
+                else if (_s2Sin > 0.20f || (normSpeed >= 0.40f && _s2Sin > 0.0f))
+                {
+                    // 每次往上深入頂入時：張大嘴喘氣（倒笑壓縮寬度，大張喘息）
+                    ShowOnlyMouth("笑");
+                    float openY = Mathf.Lerp(-1.28f, -1.48f, normSpeed);
+                    ApplyMouthScale("笑", new Vector2(0.52f, openY));
+                }
+                else
+                {
+                    // 抽插回撤間隙的小嘴巴：依速度與深度動態放大脈動（1.25x ~ 1.60x，比一般被摸的 1.0x 大得多）
+                    ShowOnlyMouth("小嘴巴");
+                    float thrustScale = Mathf.Lerp(1.25f, 1.60f, normSpeed) * (1f + 0.15f * Mathf.Max(0f, _s2Sin));
+                    ApplyMouthScale("小嘴巴", new Vector2(thrustScale, thrustScale));
+                }
+                return;
             }
             else
             {
-                // 抽插過程中的小嘴巴：依速度與深度動態放大脈動
-                ShowOnlyMouth("小嘴巴");
-                float thrustScale = Mathf.Lerp(1.15f, 1.45f, normSpeed) * (1f + 0.12f * Mathf.Max(0f, _s2Sin));
-                ApplyMouthScale("小嘴巴", new Vector2(thrustScale, thrustScale));
+                // 插在裡面但暫停抽插時：保持微張放大的小嘴巴（或小嘴吐舌）
+                string restIn = (nearWant == "小嘴吐舌") ? "小嘴吐舌" : "小嘴巴";
+                ShowOnlyMouth(restIn);
+                ApplyMouthScale(restIn, new Vector2(1.28f, 1.28f));
+                return;
             }
-            return;
         }
 
         // ════════════════════════════════════════════════════════════
-        //  4. 常態基礎嘴型：被摸之後就應該會一直保持小嘴巴，在做切換
+        //  4. 常態基礎嘴型（一般被摸或待機）：保持輕柔的小嘴巴（1.0x~1.15x）
         // ════════════════════════════════════════════════════════════
         string defaultResting = (expr == "ZZZ") ? "張嘴1" : "小嘴巴";
 
@@ -270,13 +299,18 @@ public partial class TrainingRoomRuntime
             ShowOnlyMouth(want);
         }
 
-        // 只有極度不舒服變成抖動嘴時，才做內縮
+        // 只有極度不舒服變成抖動嘴時，才做內縮；一般被摸時僅微幅縮放（1.0x~1.15x），不會比被插反應大
         if (want == "抖動嘴")
         {
             float uncomfy = Mathf.Clamp(_browNeg, 0f, 1f);
             float tgt = Mathf.Lerp(1f, MouthMinScaleX, uncomfy);
             _mouthScaleX = Mathf.Lerp(_mouthScaleX, tgt, 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, MouthSqueezeSec)));
             ApplyMouthScale("抖動嘴", new Vector2(_mouthScaleX, 1f));
+        }
+        else if (want == "小嘴巴" || want == "小嘴吐舌")
+        {
+            float touchScale = Mathf.Clamp(_mouthNearTarget, 1f, 1.18f);
+            ApplyMouthScale(want, new Vector2(touchScale, touchScale));
         }
         else
         {
@@ -310,12 +344,12 @@ public partial class TrainingRoomRuntime
     void ApplyMouthScale(string layerName, Vector2 scale)
     {
         if (!Layers.TryGetValue(layerName, out var node) || node is not Control c) return;
-        Vector2 center = _mouthCenters.TryGetValue(layerName, out var ctr) ? ctr : new Vector2(964f, 754f);
+        var center = _mouthCenters.TryGetValue(layerName, out var mc) ? mc : MouthCenterTex;
         c.PivotOffset = center * c.Size / new Vector2(2000f, 3200f);
         c.Scale = scale;
     }
 
-    static void ResetMouthScale(Node node)
+    static void ResetMouthScale(CanvasItem node)
     {
         if (node is Control c) c.Scale = Vector2.One;
     }
