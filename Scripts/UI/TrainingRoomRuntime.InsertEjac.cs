@@ -69,6 +69,7 @@ public partial class TrainingRoomRuntime
         _ejacRunning = true;
         _insertEjacActive = true;
         _s2Paused = false; _pullActive = false;
+        if (!IsVoicePlaying) PlayTrVoice("insert/pre_ejac_breath.wav");
         try
         {
             float s2c = 1f / CharScreenScale();

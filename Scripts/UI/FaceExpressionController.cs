@@ -201,7 +201,7 @@ public partial class FaceExpressionController : Node
                 _eyeCloseCtrl?.SnapToTarget();   // 預設表情的眼睛直接到位，不要看到睜眼→閉眼的過渡
             }
             else
-                SetLayerActive("小嘴", true);
+                SetLayerActive("小嘴巴", true);
         }
         catch (System.Exception e)
         {
@@ -716,9 +716,9 @@ public partial class FaceExpressionController : Node
             { "插入1",      "抖動嘴"    },
             { "插入2",      "小嘴巴"    },   // 完全突破：小嘴巴
             { "做愛(半閉)", "表情/嘴巴" },
-            { "做愛(全閉)", "小嘴"      },
-            { "做愛3",      "小嘴"      },
-            { "做愛4",      "小嘴"      },
+            { "做愛(全閉)", "小嘴巴"    },
+            { "做愛3",      "小嘴巴"    },
+            { "做愛4",      "小嘴巴"    },
             { "高潮1",      "小嘴吐舌"  },
             { "高潮2",      "小嘴吐舌"  },
             { "高潮",       "小嘴吐舌"  },
@@ -729,7 +729,7 @@ public partial class FaceExpressionController : Node
             // 圖層名稱，不用額外加新的 PartGroup 圖層或多寫貼圖替換的程式碼。
             { "ZZZ",        "張嘴1"     },
         };
-        const string defaultMouth = "小嘴";
+        const string defaultMouth = "小嘴巴";
 
         if (Expressions == null) return;
         foreach (var expr in Expressions)

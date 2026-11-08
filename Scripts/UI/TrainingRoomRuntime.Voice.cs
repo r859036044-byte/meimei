@@ -103,13 +103,14 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>隨著高潮度增加沒有說話的時候的嬌喘聲音</summary>
+    /// <summary>隨著高潮度增加或抽插時沒有說話的時候的嬌喘聲音</summary>
     void UpdateIdleMoan(float dt)
     {
         if (IsVoicePlaying || _isTalking) return;
 
+        bool thrusting = _jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused;
         float c = ClimaxLevel;
-        if (c < 15f)
+        if (c < 15f && !thrusting)
         {
             _idleMoanTimer = -1f;
             return;
@@ -117,20 +118,40 @@ public partial class TrainingRoomRuntime
 
         if (_idleMoanTimer < 0f)
         {
-            // 隨高潮度提升，待機嬌喘間隔縮短（高潮度越高喘得越頻繁）
-            if (c < 40f)
-                _idleMoanTimer = (float)GD.RandRange(8.0, 13.0);
-            else if (c < 70f)
-                _idleMoanTimer = (float)GD.RandRange(4.0, 7.0);
+            if (thrusting)
+            {
+                float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
+                if (normSpeed > 0.7f)
+                    _idleMoanTimer = (float)GD.RandRange(1.2, 2.2);
+                else if (normSpeed > 0.35f)
+                    _idleMoanTimer = (float)GD.RandRange(2.0, 3.5);
+                else
+                    _idleMoanTimer = (float)GD.RandRange(3.0, 4.5);
+            }
             else
-                _idleMoanTimer = (float)GD.RandRange(2.0, 3.8);
+            {
+                // 隨高潮度提升，待機嬌喘間隔縮短（高潮度越高喘得越頻繁）
+                if (c < 40f)
+                    _idleMoanTimer = (float)GD.RandRange(8.0, 13.0);
+                else if (c < 70f)
+                    _idleMoanTimer = (float)GD.RandRange(4.0, 7.0);
+                else
+                    _idleMoanTimer = (float)GD.RandRange(2.0, 3.8);
+            }
         }
 
         _idleMoanTimer -= dt;
         if (_idleMoanTimer <= 0f)
         {
             _idleMoanTimer = -1f;
-            PlayBreathMoan();
+            if (thrusting)
+            {
+                PlayThrustMoanVoice();
+            }
+            else
+            {
+                PlayBreathMoan();
+            }
         }
     }
 
@@ -418,18 +439,32 @@ public partial class TrainingRoomRuntime
                 );
                 break;
             case "thrust":
-                if (GD.Randi() % 2 == 0)
-                {
-                    PlayTrVoiceRandom("touch/thrust_1.wav", "touch/thrust_2.wav");
-                }
-                else
-                {
-                    PlayBreathMoan();
-                }
+                PlayThrustMoanVoice();
                 break;
             default:
                 PlayBreathMoan();
                 break;
+        }
+    }
+
+    /// <summary>依抽插速度播放純嬌喘喘息（無台詞純呼吸嬌喘，分三級速度）</summary>
+    public void PlayThrustMoanVoice()
+    {
+        float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
+        if (normSpeed < 0.35f)
+        {
+            PlayTrVoiceRandom("thrust/thrust_slow_1.wav", "thrust/thrust_slow_2.wav", "thrust/thrust_slow_3.wav");
+            NotifyVoiceSpeak(1);
+        }
+        else if (normSpeed < 0.7f)
+        {
+            PlayTrVoiceRandom("thrust/thrust_mid_1.wav", "thrust/thrust_mid_2.wav", "thrust/thrust_mid_3.wav");
+            NotifyVoiceSpeak(2);
+        }
+        else
+        {
+            PlayTrVoiceRandom("thrust/thrust_fast_1.wav", "thrust/thrust_fast_2.wav", "thrust/thrust_fast_3.wav");
+            NotifyVoiceSpeak(3);
         }
     }
 }

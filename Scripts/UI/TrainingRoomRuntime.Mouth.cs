@@ -3,10 +3,10 @@ using Godot;
 /// <summary>
 /// TrainingRoomRuntime — 嘴巴外觀與說話動作控制系統：
 /// 支援：
-///   1. 常態基礎嘴型：說完台詞或平時皆為可愛的「小嘴巴」（ZZZ 睡覺表情時為「張嘴1」）。
-///   2. 依照台詞字數節奏開合：短台詞僅開合 1 次，長台詞最多 4 次，絕不頻繁抖動。
+///   1. 常態基礎嘴型：被摸之後就應該會一直保持小嘴巴，在做切換（ZZZ 睡覺表情時為「張嘴1」）。
+///   2. 依照台詞字數節奏開合：短台詞僅開合 1 次，長台詞最多 4 次，說完台詞都會變成小嘴巴。
 ///   3. 倒笑寬度壓縮：翻轉倒笑（Y 軸 -1.25）時，水平左右壓縮（X 軸 0.48），使其寬度與小嘴巴一致。
-///   4. 說完台詞後立刻平穩變回「小嘴巴」。
+///   4. 被抽插時有較大的反應：依抽插速度與深度有張嘴大喘氣／小嘴巴動態放大脈動。
 ///   5. 快感與快高潮反應：隨高潮度提升小嘴巴漸進放大，滿了轉為「小嘴吐舌」。
 /// </summary>
 public partial class TrainingRoomRuntime
@@ -33,6 +33,7 @@ public partial class TrainingRoomRuntime
     float _talkTimer = 0f;
     int   _targetFlaps = 0;
     bool  _isTalking = false;
+    bool  _hasBeenTouched = false;
 
     /// <summary>通知嘴巴依台詞字數開始說話開合動作（字少僅 1 次，最多 4 次，說完還原小嘴巴）</summary>
     public void NotifyVoiceSpeak(int flapCount = 1)
@@ -69,7 +70,7 @@ public partial class TrainingRoomRuntime
     }
 
     static readonly string[] _mouthFreeExprs =
-        { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌" };
+        { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌", "插入1", "插入2", "做愛", "做愛(半閉)", "做愛(全閉)", "做愛3", "做愛4", "高潮", "高潮1", "高潮2" };
 
     [Export] public float MouthBigScale = 2.0f;
     [Export] public float MouthBigSec   = 0.25f;
@@ -144,8 +145,14 @@ public partial class TrainingRoomRuntime
         }
 
         bool free = System.Array.IndexOf(_mouthFreeExprs, expr) >= 0;
-        bool busy = _tongueOn || _lickOn || _jijiPhase != 0;
-        bool operating = _browLingerT > 0f;
+        bool busy = _tongueOn || _lickOn;   // 只有舔嘴或舌頭在嘴巴上時才算嘴巴忙碌
+        bool thrusting = _jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused;
+        bool operating = _browLingerT > 0f || thrusting;
+
+        if (operating || _patOn || _touchAnimRunningLeft || _touchAnimRunningRight || _bTouchRunning)
+        {
+            _hasBeenTouched = true;
+        }
 
         if (_mouthSmileHold && (!free || busy || (_browUncomfy && _browLingerT > 0f) || CurrentGirlTalkState() == GirlTalkState.Pain))
         {
@@ -155,7 +162,7 @@ public partial class TrainingRoomRuntime
         bool patFast = _patOn && HeadPatSpeedLvMax > 0f && _patSpeedLv / HeadPatSpeedLvMax >= MouthPatFastAt;
         bool smiling = (_mouthSmileT > 0f || _mouthSmileHold) && !patFast;
 
-        // 若被佔用或不在自由表情列表，交還表情系統
+        // 若嘴巴真正被佔用（例如舔嘴），交還表情系統
         if (!free || busy)
         {
             if (_mouthShown != null) ReleaseMouth(expr);
@@ -212,15 +219,48 @@ public partial class TrainingRoomRuntime
         }
 
         // ════════════════════════════════════════════════════════════
-        //  3. 常態基礎嘴型（基本上應該是小嘴巴）
+        //  3. 被插時的大反應（抽插節奏張嘴喘息／小嘴巴動態放大）
         // ════════════════════════════════════════════════════════════
-        if (!operating && !smiling)
+        if (thrusting)
         {
-            if (_mouthShown != null) ReleaseMouth(expr);
+            float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
+            if (nearWant == "小嘴吐舌")
+            {
+                ShowOnlyMouth("小嘴吐舌");
+                ApplyMouthScale("小嘴吐舌", Vector2.One);
+            }
+            else if (normSpeed >= 0.45f && _s2Sin > 0.35f)
+            {
+                // 較快速度抽插深處：張大嘴喘氣（倒笑壓縮寬度，大張喘息）
+                ShowOnlyMouth("笑");
+                ApplyMouthScale("笑", new Vector2(0.52f, -1.30f));
+            }
+            else
+            {
+                // 抽插過程中的小嘴巴：依速度與深度動態放大脈動
+                ShowOnlyMouth("小嘴巴");
+                float thrustScale = Mathf.Lerp(1.15f, 1.45f, normSpeed) * (1f + 0.12f * Mathf.Max(0f, _s2Sin));
+                ApplyMouthScale("小嘴巴", new Vector2(thrustScale, thrustScale));
+            }
             return;
         }
 
+        // ════════════════════════════════════════════════════════════
+        //  4. 常態基礎嘴型：被摸之後就應該會一直保持小嘴巴，在做切換
+        // ════════════════════════════════════════════════════════════
         string defaultResting = (expr == "ZZZ") ? "張嘴1" : "小嘴巴";
+
+        if (!operating && !smiling)
+        {
+            // 被摸過之後，平常待機一律穩定保持可愛的小嘴巴
+            if (_hasBeenTouched || _mouthShown != null)
+            {
+                ShowOnlyMouth(defaultResting);
+                ApplyMouthScale(defaultResting, Vector2.One);
+            }
+            return;
+        }
+
         bool severeUncomfy = _browUncomfy && _browNeg > 0.65f;
         string want = nearWant ?? (smiling ? "笑" : (severeUncomfy ? "抖動嘴" : defaultResting));
 
@@ -260,14 +300,10 @@ public partial class TrainingRoomRuntime
     /// <summary>停手或還原：回到小嘴巴（ZZZ 表情時為張嘴1）。</summary>
     void ReleaseMouth(string expr)
     {
-        string orig = FaceController.GetExpressionMouth(expr);
-        if (string.IsNullOrEmpty(orig) || orig == "小嘴")
-        {
-            orig = (expr == "ZZZ") ? "張嘴1" : "小嘴巴";
-        }
+        string target = (expr == "ZZZ") ? "張嘴1" : "小嘴巴";
         if (Layers.TryGetValue("抖動嘴", out var shake) && shake != null) ResetMouthScale(shake);
-        ShowOnlyMouth(orig);
-        _mouthShown = null;
+        ShowOnlyMouth(target);
+        _mouthShown = target;
         _mouthScaleX = 1f;
     }
 

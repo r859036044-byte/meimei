@@ -246,7 +246,11 @@ public partial class TrainingRoomRuntime
         bool canEj = Stamina >= EjacBtnFeelPct;
         if (canEj && !_prevCanEjac) SayMaleEv(MaleCanEjacLines);
         _prevCanEjac = canEj;
-        if (_breaking && !_prevBreaking) ShowBreakChoices();   // 男主說「不行了，要射了」＋選項：慢下來／射進去（BreakChoice.cs）
+        if (_breaking && !_prevBreaking)
+        {
+            ShowBreakChoices();   // 男主說「不行了，要射了」＋選項：慢下來／射進去（BreakChoice.cs）
+            PlayTrVoice("insert/pre_ejac_breath.wav"); // 射之前沉重深呼吸喘息（14秒）
+        }
         _prevBreaking = _breaking;
         if (thrusting)
         {
