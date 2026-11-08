@@ -136,6 +136,21 @@ public partial class TrainingRoomRuntime
 
     string _mouthShown;
     bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
+    [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleX = 0.45f;   // 倒笑嘴左右壓縮（0.45＝跟小嘴巴同寬）
+    [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleY = 1f;      // 倒笑嘴上下大小（1＝翻轉後不壓扁）
+    [Export] public float PinchFrownCenterY = 757f;   // 倒笑嘴中心的貼圖 Y（757＝小嘴巴的中心，兩者位置對齊；往上減、往下加）
+
+    /// <summary>倒笑：「笑」上下翻轉＋左右壓縮，並讓翻轉後的嘴巴中心落在小嘴巴的位置。</summary>
+    void ApplyFrownMouth()
+    {
+        if (!Layers.TryGetValue("笑", out var node) || node is not Control c) return;
+        var ctr = _mouthCenters["笑"];
+        float sy = Mathf.Max(0.01f, PinchFrownScaleY);
+        // 以 pivot 為軸縮放：中心 cy 翻轉後落在 target → pivot = (target + sy*cy) / (1 + sy)
+        float py = (PinchFrownCenterY + sy * ctr.Y) / (1f + sy);
+        c.PivotOffset = new Vector2(ctr.X, py) * c.Size / new Vector2(2000f, 3200f);
+        c.Scale = new Vector2(PinchFrownScaleX, -sy);
+    }
     float  _mouthScaleX = 1f;
 
     void UpdateMouthOperate(float dt)
@@ -165,7 +180,7 @@ public partial class TrainingRoomRuntime
         {
             _pinchMouthOn = true;
             ShowOnlyMouth("笑");
-            ApplyMouthScale("笑", new Vector2(1f, -1f));
+            ApplyFrownMouth();
             return;
         }
         if (_pinchMouthOn)
