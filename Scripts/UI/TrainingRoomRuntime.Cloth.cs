@@ -1192,7 +1192,7 @@ void fragment() {
 
     // ── 插入：向右擴張（舊的「用衣服裁切插入／雞雞／血」已移除，改成衣服直接畫在最上面）──
     [Export(PropertyHint.Range, "0,5,0.05")] public float ClothBumpSpeedGain = 1.5f;   // 抽插速度最大時，衣服凸起／晃動額外放大倍數
-    [Export] public bool PlayTimeLimitOn = true;         // 遊玩時間限制
+    [Export] public bool PlayTimeLimitOn = false;         // 遊玩時間限制
     [Export(PropertyHint.Range, "10,3600,1")] public float PlayTimeLimitSec = 300f;   // 5 分鐘
     float _playTime; bool _playTimeUp;
     [Export(PropertyHint.Range, "0,60,0.5")] public float InsertWidenBottomPx = 4f;   // 插入物件只有底部額外向右擴張幾 px，讓右下角伸到雞雞的右緣貼齊（雞雞右緣 x≈1119、插入內容右緣 x≈1098）
