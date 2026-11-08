@@ -30,9 +30,9 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 1：什麼都沒做")]
     [Export] public string[] BratLines =
     {
-        "哼～雜魚❤～|～弱雞❤～=>又開始了嗎…你才是嘴上不饒人的那個吧。", "這種雜魚也敢命令我嗎？=>我哪有命令你，只是問問你要不要而已。", "笨蛋笨蛋～", "才不聽你的呢～", "大叔好沒用～",
+        "哼～雜魚❤～|～弱雞❤～=>又開始了嗎…你才是嘴上不饒人的那個吧。", "這種雜魚也敢命令我嗎？=>睡覺還是雌小鬼的樣子嗎？", "笨蛋笨蛋～", "才不聽你的呢～", "雜魚好沒用～",
         "喂～我都等好久了耶～", "你是不是在發呆啊～？", "真是的，一點用都沒有～", "要我誇你嗎？才不要～",
-        "大叔的臉好呆喔～", "哼，別以為我會乖乖聽話～",
+        "雜魚的臉好呆喔～", "哼，別以為我會乖乖聽話～",
     };                                                                                        // 雌小鬼的話（占位）
     [Export] public string[] BratNormalLines =
     {
@@ -44,9 +44,9 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 2：衣服脫了（但什麼都沒做）")]
     [Export] public string[] BratLinesUndress =
     {
-        "哼～看什麼看啦，大叔～", "衣服都亂掉了～變態～", "這麼想看喔？笨蛋～", "眼睛都直了喔～好噁心～",
-        "再看我就收費囉～", "才、才不是故意讓你看的～", "大叔果然是變態～", "哼，只准看，不准亂來～",
-        "臉都紅了耶～純情大叔～", "你的視線好煩喔～",
+        "哼～看什麼看啦，雜魚～", "衣服都亂掉了～變態～", "這麼想看喔？笨蛋～", "眼睛都直了喔～好噁心～",
+        "再看我就收費囉～", "才、才不是故意讓你看的～", "雜魚果然是變態～", "哼，只准看，不准亂來～",
+        "臉都紅了耶～純情雜魚～", "你的視線好煩喔～",
     };
     [Export] public string[] BratNormalLinesUndress =
     {
@@ -58,20 +58,22 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 3：觸摸中")]
     [Export] public string[] BratLinesTouch =
     {
-        "只有這種程度嗎～？", "手好笨拙喔～弱雞～", "才不會舒服呢～", "大叔的手好癢～別碰啦～",
-        "這樣就想讓我認輸？太天真了～", "呵呵，一點感覺都沒有喔～", "再用力一點啊～弱雞～",
-        "手在抖喔～好沒用～", "哼，才沒有在忍耐呢～", "你就只會這樣嗎～？",
+        "呼……❤\uFE0F就只有這點本事嗎？|哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
+        "呼……❤\uFE0F就只有這點本事嗎？",
+        "哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
     };
     [Export] public string[] BratNormalLinesTouch =
     {
-        "嗯…有點癢。", "……輕一點。", "那裡…有點奇怪。", "嗯…手好溫暖。", "等、等一下…",
-        "……嗯。", "不要突然這樣啦…", "有點…不好意思。", "慢一點的話…可以。", "呼…有點喘。",
+        "好舒服❤\uFE0F……再來…❤\uFE0F我還想要❤\uFE0F",
+        "嗯❤\uFE0F……感覺身體變得好奇怪❤\uFE0F",
+        "啊❤\uFE0F……那裡❤\uFE0F喜歡❤\uFE0F……",
+        "哈啊❤\uFE0F…再來…啊哈…❤\uFE0F",
     };
 
     [ExportGroup("莉奈台詞 4：插入中")]
     [Export] public string[] BratLinesInsert =
     {
-        "哼嗯…這種程度…才不算什麼～", "不、不要得意忘形喔～！", "嗯…才沒有很舒服啦～", "大叔…別、別太用力～",
+        "哼嗯…這種程度…才不算什麼～", "不、不要得意忘形喔～！", "嗯…才沒有很舒服啦～", "雜魚…別、別太用力～",
         "嘴上說不要…身體才沒有誠實呢～", "哼…你、你別笑啊～", "才、才不會輸給你～", "這、這點小事…！",
         "再…再快一點也沒關係喔～…才怪～", "喂…不許看我的臉啦～",
     };
@@ -84,7 +86,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 5：痛／不舒服")]
     [Export] public string[] BratLinesPain =
     {
-        "痛、痛啦～你不會輕一點嗎～", "笨蛋雜魚～弄得人家好痛～=>好好好，我慢一點，別生氣。", "哼…這樣一點都不舒服～", "速度不對啦～大叔真的很笨～",
+        "痛、痛啦～你不會輕一點嗎～", "笨蛋雜魚～弄得人家好痛～=>好好好，我慢一點，別生氣。", "哼…這樣一點都不舒服～", "速度不對啦～雜魚真的很笨～",
         "好痛…你是故意的吧～", "嗚…別、別那麼用力啦～", "這種技術也敢上場喔～？", "痛痛痛…我要生氣囉～",
     };
     [Export] public string[] BratNormalLinesPain =
@@ -101,7 +103,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 6：莉奈要高潮了")]
     [Export] public string[] BratLinesNearClimax =
     {
-        "才、才沒有要到呢～…哈啊…", "不、不可以～…再這樣的話…", "大叔…你、你給我停下來～…", "哼…才不會輸給你…嗯啊…",
+        "才、才沒有要到呢～…哈啊…", "不、不可以～…再這樣的話…", "雜魚…你、你給我停下來～…", "哼…才不會輸給你…嗯啊…",
         "要、要壞掉了啦～…笨蛋…", "不行…那裡…不要再弄了～", "我、我才沒有…啊…", "別、別看我的臉啦～…",
     };
     [Export] public string[] BratNormalLinesNearClimax =
@@ -118,7 +120,7 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 7：男主要射了")]
     [Export] public string[] BratLinesMaleNearEjac =
     {
-        "喂…你是不是快要不行了～？", "哼～這麼快就想投降了嗎～弱雞～", "大叔的表情好奇怪喔～要射了嗎～？", "笨蛋…別在裡面…才怪～",
+        "喂…你是不是快要不行了～？", "哼～這麼快就想投降了嗎～弱雞～", "雜魚的表情好奇怪喔～要射了嗎～？", "笨蛋…別在裡面…才怪～",
         "撐不住了吧～我都看出來了～", "忍、忍一下啦～真是的～",
     };
     [Export] public string[] BratNormalLinesMaleNearEjac =
@@ -137,14 +139,15 @@ public partial class TrainingRoomRuntime
     GirlTalkState CurrentGirlTalkState()
     {
         var f = _reactFlags;
-        bool touching = f.breast || f.nipple || f.mouth || f.head || f.pussy || f.thrust;
+        bool touching = f.breast || f.nipple || f.mouth || f.head || f.pussy || f.thrust || _bTouchRunning || _patOn || _tongueOn;
         // 優先順序（由高到低）：莉奈要高潮 > 男主要射 > 痛 > 插入中 > 觸摸中 > 衣服脫了 > 什麼都沒做
         if (ClimaxLevel >= GirlTalkNearClimaxAt && (touching || BratInserted)) return GirlTalkState.NearClimax;
         if (BratInserted && (Stamina >= GirlTalkMaleNearEjacAt || _breaking)) return GirlTalkState.MaleNearEjac;
-        if ((BratInserted || f.pussy) && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）
+        if (BratInserted && ArousalRateNow < 0f) return GirlTalkState.Pain;   // 速度不對／太乾（跟眉毛的「不舒服」同一個判定）；還沒插入不會說「痛」（碰小穴時走「觸摸中」）
         if (Wetness >= GirlTalkWetAt) return GirlTalkState.Wet;                          // 很濕了：誘惑的話（排在插入中／觸摸中前面）
         if (BratInserted) return GirlTalkState.Inserted;
-        if (touching) return GirlTalkState.Touching;
+        // 正在觸摸、或觸摸過且仍有濕度/快感時，維持觸摸狀態，絕不跳到日常「今天辛苦了」等正常話
+        if (touching || (HadBreastTouch && (Wetness > 15f || ClimaxLevel > 5f))) return GirlTalkState.Touching;
         if (ExposureScore() >= GirlTalkUndressAt) return GirlTalkState.Undressed;
         return GirlTalkState.Idle;
     }
@@ -152,8 +155,21 @@ public partial class TrainingRoomRuntime
     [ExportGroup("莉奈台詞 10：很濕了（誘惑的話）")]
     // 莉奈濕度 ≥ GirlTalkWetAt（預設 70）時，定時說話改從這一區挑。內容請你自己填（我只先放占位字）。
     // 一樣可以用「|」分段、「=>」接男主回應；舒服時會自動加愛心。優先順序：排在痛／要高潮／男主要射之後、插入中／觸摸中之前。
-    [Export] public string[] BratLinesWet       = { "（很濕了：雌小鬼話 1）", "（很濕了：雌小鬼話 2）", "（很濕了：雌小鬼話 3）" };
-    [Export] public string[] BratNormalLinesWet = { "（很濕了：正常話 1）", "（很濕了：正常話 2）", "（很濕了：正常話 3）" };
+    [Export] public string[] BratLinesWet       =
+    {
+        "哈啊……❤別停下來…雜魚❤|快點滿足我❤",
+        "哈啊……❤…雜魚❤…好舒服❤|快點…我想要……給我❤",
+        "哈啊……❤…❤|人家還想要更多啦…❤",
+        "嗯……❤才、才沒有覺得舒服呢❤",
+        "啊……❤那裡……討厭…❤",
+        "哈啊……❤|別停下來…快點給我啦…❤",
+    };
+    [Export] public string[] BratNormalLinesWet = 
+    {
+        "哈啊……❤…身體感覺好奇怪……❤",
+        "嗯啊…❤…好舒服……❤",
+        "呼……❤…不要停……❤",
+    };
 
     [ExportGroup("莉奈台詞 8：男主選項與回應")]
     // 插入中，莉奈說「痛」或「要高潮了」時，男主在自己的對話框選擇怎麼回。選了之後男主會說出按鈕上那句話。
@@ -189,6 +205,13 @@ public partial class TrainingRoomRuntime
     /// <summary>莉奈現在舒服：穴高潮值夠高，或眉毛判定很舒服（而且不是不舒服）。</summary>
     bool GirlFeelsGood() => !GirlFeelsBad() && (ClimaxLevel >= GirlHeartClimaxAt || (_browLingerT > 0f && _browPos >= 0.5f));
 
+    /// <summary>所有愛心統一成同一個字（去掉 emoji 變體，♥／♡ 也換成 GirlHeart），台詞裡的愛心看起來才一樣。</summary>
+    string NormalizeHearts(string seg)
+    {
+        if (string.IsNullOrEmpty(seg)) return seg;
+        return seg.Replace("\uFE0F", "").Replace("♥", GirlHeart).Replace("♡", GirlHeart).Replace("❤", GirlHeart);
+    }
+
     string DressGirlSegment(string seg, bool good, bool bad)
     {
         if (string.IsNullOrEmpty(seg)) return seg;
@@ -218,15 +241,17 @@ public partial class TrainingRoomRuntime
     /// <summary>莉奈說一句台詞：支援「|」分段、「=>」男主回應，並依舒服／不舒服加工。allowReply＝false 時不播男主回應（例如這時男主對話框已經是選項）。回傳這句有沒有帶男主回應。</summary>
     bool GirlSayRich(string raw, bool allowReply = true)
     {
+        raw = I18n.TLine(raw);
         ParseGirlLine(raw, out var segs, out var reply);
         _lastGirlLineSoundOnly = IsSoundOnly(string.Join("", segs));
         if (_lastGirlLineSoundOnly) reply = null;   // 只有「嗯…」「啊哈…」這種聲音：男主不回應
         bool good = GirlFeelsGood(), bad = !good && GirlFeelsBad();
         if (good) TriggerMouthSmile();   // 舒服＝台詞加愛心：嘴巴也換成笑（Mouth.cs）
-        for (int k = 0; k < segs.Length; k++) segs[k] = DressGirlSegment(segs[k], good, bad);
+        for (int k = 0; k < segs.Length; k++) segs[k] = NormalizeHearts(DressGirlSegment(segs[k], good, bad));
         bool hasReply = reply != null && allowReply;
         _dlgInExchange = true;
         ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, segs[0], false);
+        PlayGirlVoiceForText(segs[0]);
         _dlgInExchange = false;
         float t = 0f;
         for (int k = 1; k < segs.Length; k++)
@@ -238,6 +263,7 @@ public partial class TrainingRoomRuntime
                 if (!IsInstanceValid(this)) return;
                 _dlgInExchange = true;
                 ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, seg, false);
+                PlayGirlVoiceForText(seg);
                 _dlgInExchange = false;
                 // 回應時間還沒結束時，氣泡留到結束（跟 BratProcess 一致）；有男主回應時要留到回應之後
                 if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl))
@@ -386,6 +412,12 @@ public partial class TrainingRoomRuntime
             _                       => brat ? BratLines        : BratNormalLines,
         };
         // 某個狀態的台詞被清空時，退回「什麼都沒做」那組，不會突然不說話
-        return DemoMode.Trim(lines != null && lines.Length > 0 ? lines : (brat ? BratLines : BratNormalLines));   // 試玩版：每區只留 2 句
+        if (lines == null || lines.Length == 0)
+        {
+            lines = CurrentGirlTalkState() == GirlTalkState.Touching
+                ? (brat ? BratLinesTouch : BratNormalLinesTouch)
+                : (brat ? BratLines : BratNormalLines);
+        }
+        return DemoMode.Trim(lines);
     }
 }

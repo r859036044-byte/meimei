@@ -57,7 +57,7 @@ public partial class TrainingRoomRuntime
             ("R",          "右手",         "指定要用右手（紅圈＝已選），再點一次取消。"),
             ("emoji:👅",   "舌頭",         "嘴巴直接點就會用舌頭；選取後，點胸部、乳頭或下方也會改用舌頭。再點一次取消。"),
             ("jiji",       "雞雞",         "男主說「硬了」之後才會出現。點一下叫出雞雞，再點一下收起；叫出後，裡面的溫度計會顯示男主的精力。"),
-            ("emoji:🧘",   "忍耐",         "在雞雞按鈕旁邊，一樣硬了才出現。精力快滿時按，可以忍回去。"),
+            ("emoji:忍耐",   "忍耐",         "在雞雞按鈕旁邊，一樣硬了才出現。精力快滿時按，可以忍回去。"),
             ("emoji:🚪",   "離開房間",     "結束今天。"),
             ("key:☰",      "選單",         "保存／讀檔／設定。"),
             ("key:F12",    "截圖",         "按 F12 把目前畫面存成圖片；Shift＋F12 存成不含介面的版本；Ctrl＋F12 開啟存放截圖的資料夾。"),
@@ -74,7 +74,7 @@ public partial class TrainingRoomRuntime
             ("jiji",       "溫度計",       "雞雞按鈕中間的溫度計，白色會隨男主的精力慢慢升高，滿格＝精力 100。"),
             ("emoji:💦",   "滿了會怎樣",   "滿格時雞雞按鈕會放大並震動，同時男主說「不行了，要射了」。不處理的話，不動約 5 秒、抽插時約 3 秒就會射出來。"),
             ("emoji:💬",   "兩個選項",     "「慢下來」：降低抽插速度、爭取一點時間。「射進去」：直接射精。"),
-            ("emoji:🧘",   "忍耐",         "滿了的時候可以按忍耐忍回去。但抽插太快會忍不住，這時只會漏出一部分（約 30～50%）。"),
+            ("emoji:忍耐",   "忍耐",         "滿了的時候可以按忍耐忍回去。但抽插太快會忍不住，這時只會漏出一部分（約 30～50%）。"),
             ("bar:ffffff", "精液量",       "總量約 300%，一次滿量射掉 100%。用完就會軟，要等回復一些才能再硬。"),
         }),
     };
@@ -244,7 +244,7 @@ public partial class TrainingRoomRuntime
         var lbl = new Label { Text = text, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore };
         lbl.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        lbl.AddThemeFontSizeOverride("font_size", emoji ? 26 : (text.Length > 2 ? 13 : 18));
+        lbl.AddThemeFontSizeOverride("font_size", emoji ? (text.Length > 1 ? 18 : 26) : (text.Length > 2 ? 13 : 18));
         lbl.AddThemeColorOverride("font_color", UiText);
         box.AddChild(lbl);
         return box;

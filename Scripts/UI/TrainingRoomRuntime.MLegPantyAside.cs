@@ -162,6 +162,7 @@ public partial class TrainingRoomRuntime
         float thrust01 = Mathf.Clamp(thrustUp / 30f, 0f, 1f);
         float asideEff = _mpA;   // 抽插的撐開改成只在銜接處（thrust_j），折角不跟著動   // 少往上的 60% 幅度，換成多往右撐開的 px
         _mPantyMat.SetShaderParameter("aside", asideEff);
+        MPantyWetApply(panty);
         _mPantyMat.SetShaderParameter("right_follow", MPantyAsideRightFollow);
         _mPantyMat.SetShaderParameter("thrust_j", _mpA > 0.5f ? MPantyThrustSpread * thrustUp * MPantyThrustCut : 0f);
         _mPantyMat.SetShaderParameter("thrust_r", _mpA > 0.5f ? MPantyThrustRightFollow * thrust01 : 0f);
@@ -359,5 +360,25 @@ public partial class TrainingRoomRuntime
         d.Visible = cloth.Visible;
         _mPantyMat.SetShaderParameter("cc_tex", (Texture2D)_mpClVP.GetTexture());
         _mPantyMat.SetShaderParameter("cc_k", MPantyClothCutK);
+    }
+
+    // ── M 腿內褲的濕痕：跟一般內褲一樣，濕度越高、小穴附近越深（顏色／強度／曲線沿用 PantyWet* 設定）──
+    [Export] public Vector2 MPantyWetRadiusUV = new Vector2(0.025f, 0.018f);   // M 腿內褲濕痕大小（內褲貼圖 UV，左右／上下）
+    [Export] public Vector2 MPantyWetOffsetUV = new Vector2(0f, 0.012f);         // M 腿內褲濕痕位置微調（UV；相對 M 腿小穴中心）
+    float _mPantyWetK;
+
+    void MPantyWetApply(TextureRect panty)
+    {
+        float wet01 = Mathf.Clamp(Wetness / 100f, 0f, 1f);
+        float k = PantyWetEnabled ? PantyWetMax * Mathf.Pow(wet01, PantyWetCurve) : 0f;
+        _mPantyWetK = Mathf.Lerp(_mPantyWetK, k, Mathf.Clamp(6f * (float)GetProcessDeltaTime(), 0f, 1f));   // 平滑，不會跳
+        Vector2 c = new Vector2(0.48f, 0.25f);
+        if (Layers.TryGetValue("m腿/小穴", out var pl) && pl != null && LayerContentRect("m腿/小穴") is Rect2 cr && panty.Size.X > 0f && panty.Size.Y > 0f)
+            c = (cr.GetCenter() + pl.Position - panty.Position) / panty.Size;   // 以 M 腿小穴本體的中心為濕痕中心
+        _mPantyMat.SetShaderParameter("wet_k", _mPantyWetK);
+        _mPantyMat.SetShaderParameter("wet_c", c + MPantyWetOffsetUV + PantyWetSpreadOffset());
+        _mPantyMat.SetShaderParameter("wet_r", PantyWetSpreadRadius(MPantyWetRadiusUV));
+        _mPantyMat.SetShaderParameter("wet_core", PantyWetCore);
+        _mPantyMat.SetShaderParameter("wet_col", new Vector3(PantyWetColor.R, PantyWetColor.G, PantyWetColor.B));
     }
 }

@@ -134,6 +134,7 @@ public partial class TrainingRoomRuntime : Node
 		UpdateCharShade();   // 人物光影濾鏡（Layout.cs）
 		UpdateNightFilter();   // 人物夜晚濾鏡（Layout.cs）
 		UpdateF1OnlyUi();   // 高潮度／狀態卡／右側選單只在 F1 面板打開時顯示（Layout.cs）
+		UpdateTrVoice(dt);   // 莉奈語音與背景嬌喘呼吸系統
 		// 遮擋要放在最後：這一幀所有位移（雞雞、抽插、晃動、鏡頭）都算完才量位置，才會完整蓋住、不會慢一幀
 		UpdateCensor();
 	}

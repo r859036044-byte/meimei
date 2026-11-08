@@ -23,10 +23,10 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,10,0.1")] public float CleanLineDelay = 3.5f;  // 射精後多久說清理台詞
 
     [ExportGroup("男主狀態")]
-    [Export] public string[] MaleNotHardLines = { "（還沒硬1）", "（還沒硬2）", "（還沒硬3）" };      // 勃起度不夠時想叫雞雞出來
+    [Export] public string[] MaleNotHardLines = { "…還沒完全硬起來，稍微等一下", "不行，還沒準備好…", "等等，還差一點…" };      // 勃起度不夠時想叫雞雞出來
     [Export] public string[] MaleSoftLines    = { "（軟掉了1）", "（軟掉了2）", "（軟掉了3）" };      // 勃起度掉到 <30
-    [Export] public string[] EndureOkLines    = { "（忍住了1）", "（忍住了2）", "（忍住了3）" };
-    [Export] public string[] EndureFailLines  = { "（忍不住了1）", "（忍不住了2）", "（忍不住了3）" };
+    [Export] public string[] EndureOkLines    = { "呼……好險，差點就出來了。", "忍住了…稍微冷靜下來了…" };
+    [Export] public string[] EndureFailLines  = { "不行了……裡面太舒服了，沒辦法啊……|啊啊啊出來了！", "可惡……完全忍不住了|忍不住，射了！", "沒辦法忍了！嗚啊啊啊！|腦袋一片空白……全部都要射出來了！" };   // 「|」＝分兩段，先後出現
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOnPct  = 30f;   // 勃起度 ≥ 這個才勃起
     [Export(PropertyHint.Range, "0,100,1")] public float ErectOffPct = 15f;   // 勃起度 < 這個就軟掉
     [Export(PropertyHint.Range, "0,30,0.1")] public float ErectGain = 6f;       // 有任何互動時每秒增加的勃起度（黃條，基礎；再乘上連續動作的加速倍率）
@@ -78,17 +78,17 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.05")] public float EndureCutMul = 0.5f;       // 射精中忍耐成功：剩下的量 ×
 
     [ExportGroup("男主台詞（事件）")]
-    [Export] public string[] MaleHardLines     = { "（硬了1）", "（硬了2）", "（硬了3）" };           // 勃起度到 50，勃起
+    [Export] public string[] MaleHardLines     = { "已經硬了，這可都是莉奈的錯。", "準備好了……這根雜魚肉棒，已經等不及了" };           // 勃起度到 50，勃起
     [Export] public string[] MaleShowLines     = { "（雞雞出現1）", "（雞雞出現2）", "（雞雞出現3）" };       // 按 🍆 叫雞雞出來
-    [Export] public string[] MaleInsertLines   = { "（開始插入1）", "（開始插入2）", "（開始插入3）" };       // 按住入口開始插入
-    [Export] public string[] MaleBreakLines    = { "（突破1）", "（突破2）", "（突破3）" };           // 突破進去
+    [Export] public string[] MaleInsertLines   = { "妳已經迫不及待了吧？看我的", "雜魚肉棒要進去了喔。", "雜魚雞雞裝備要把雜魚小穴填滿了哦。" };       // 按住入口開始插入
+    [Export] public string[] MaleBreakLines    = { "喝啊！全部進去了……好緊！", "咕……莉奈的小穴真是太爽了！" };           // 突破進去
     [Export] public string[] MaleAnusLines     = { "（肛門1）", "（肛門2）", "（肛門3）" };           // 點肛門準備插入
     [Export] public string[] MaleAnusLickLines = { "（舔肛門1）", "（舔肛門2）", "（舔肛門3）" };         // 舌頭舔肛門開始
-    [Export] public string[] MaleThrustLines   = { "（抽插中1）", "（抽插中2）", "（抽插中3）" };         // 抽插中隨機間隔說
+    [Export] public string[] MaleThrustLines   = { "呼……哈啊…小穴…夾得真緊啊……", "被雜魚這樣狠狠地插……感覺怎麼樣？", "小穴裡面一直在一縮一縮的，莉奈也很爽吧？" };         // 抽插中隨機間隔說
     [Export] public string[] MaleFastLines     = { "（太快了，痛1）", "（太快了，痛2）", "（太快了，痛3）" };     // 又快又高、痛
-    [Export] public string[] MaleCanEjacLines  = { "（快到了1）", "（快到了2）", "（快到了3）" };         // 精力到 90，可以射
+    [Export] public string[] MaleCanEjacLines  = { "呼……不行了，快到極限了……", "莉奈……我要射了，…我準備射出來了！", "裡面太舒服了……感覺隨時都會射出來……", "莉奈的小穴太棒了……我快不行了……" };         // 精力到 90，可以射
     [Export] public string[] MaleBreakFeelLines= { "不行了…要射了！", "忍、忍不住了…要射了！", "要、要射了…怎麼辦…！" };       // 精力到 100：男主說這句，並出現「慢下來／射進去」選項
-    [Export] public string[] MaleEjacLines     = { "（射精1）", "（射精2）", "（射精3）" };           // 射精開始
+    [Export] public string[] MaleEjacLines     = { "射了……！啊啊啊！", "咕啊！收下吧！全部…的精液…全部射進莉奈的裡面了！", "射出來了……好爽…全都在妳的肚子裡！", "射了！嗚啊啊！精液……全都灌進去了！" };           // 射精開始
     [Export] public string[] MaleAfterEjacLines= { "（射完了1）", "（射完了2）", "（射完了3）" };         // 射精後
     [Export] public string[] MalePullOutLines  = { "（拔出1）", "（拔出2）", "（拔出3）" };           // 拔出
     [Export(PropertyHint.Range, "0,30,0.5")] public float MaleLineCooldown = 2.5f;   // 事件台詞最短間隔（秒）
@@ -127,10 +127,23 @@ public partial class TrainingRoomRuntime
     Button _ejacBtn, _endureBtn;
     Label _timeLbl, _statLbl;
 
+    [Export(PropertyHint.Range, "0.3,4,0.1")] public float MaleSegmentGapSec = 1.4f;   // 男主台詞用「|」分段時，每段間隔幾秒
+
     void SayMale(string[] lines)
     {
         string t = Pick(lines);
-        if (!string.IsNullOrEmpty(t)) ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, t, true);
+        if (string.IsNullOrEmpty(t)) return;
+        var parts = t.Split('|', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);   // 太長的台詞用「|」分成幾段，先後出現
+        if (parts.Length == 0) return;
+        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, parts[0], true);
+        for (int i = 1; i < parts.Length; i++)
+        {
+            string seg = parts[i];
+            GetTree().CreateTimer(MaleSegmentGapSec * i).Timeout += () =>
+            {
+                if (IsInstanceValid(this)) ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, seg, true);
+            };
+        }
     }
 
     int EjacWaves(int n) => Mathf.Max(1, Mathf.RoundToInt(n * _ejacMul));
@@ -223,7 +236,7 @@ public partial class TrainingRoomRuntime
         else if (_erectOn && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
         {
             _erectOn = false;
-            if (_jijiPhase > 0) { SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
+            if (_jijiPhase > 0) { if (!DemoMode.Enabled) SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
         }
 
         // ── 事件台詞 ──
@@ -233,11 +246,15 @@ public partial class TrainingRoomRuntime
         bool canEj = Stamina >= EjacBtnFeelPct;
         if (canEj && !_prevCanEjac) SayMaleEv(MaleCanEjacLines);
         _prevCanEjac = canEj;
-        if (_breaking && !_prevBreaking) ShowBreakChoices();   // 男主說「不行了，要射了」＋選項：慢下來／射進去（BreakChoice.cs）
+        if (_breaking && !_prevBreaking)
+        {
+            ShowBreakChoices();   // 男主說「不行了，要射了」＋選項：慢下來／射進去（BreakChoice.cs）
+            PlayTrVoice("insert/pre_ejac_breath.wav"); // 射之前沉重深呼吸喘息（14秒）
+        }
         _prevBreaking = _breaking;
         if (thrusting)
         {
-            if (_pain > 0.6f) SayMaleEv(MaleFastLines);
+            // 太快了／痛：由莉奈說（GirlTalk.cs 的「痛」區），男主不說
             _maleThrustLineT -= dt;
             if (_maleThrustLineT <= 0f) { _maleThrustLineT = MaleThrustLineGap * Rf(0.7f, 1.3f); SayMaleEv(MaleThrustLines); }
         }
@@ -260,7 +277,7 @@ public partial class TrainingRoomRuntime
         SemenStock = Mathf.Max(0f, SemenStock - SemenUsePerEjac * _ejacMul);
         SayMaleEv(sayLines ?? MaleEjacLines, true);
         TriggerEjaculation();
-        GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this)) SayMaleEv(MaleAfterEjacLines); };
+        GetTree().CreateTimer(2.5f).Timeout += () => { if (IsInstanceValid(this) && !DemoMode.Enabled) SayMaleEv(MaleAfterEjacLines); };
         _ejacDone = true;
         _breaking = false; _breakT = 0f;
         Stamina = Mathf.Min(Stamina, FeelAfterEjac);
@@ -304,7 +321,8 @@ public partial class TrainingRoomRuntime
     /// <summary>在 UpdateStage1Osc（抽插中）每幀呼叫：時間到停下／強制加速／忍耐中停止抽插。</summary>
     void PlayEndTick(float dt)
     {
-        if (!PlayTimeLimitOn)
+        if (!PlayTimeLimitOn || DemoMode.Enabled)   // 試玩版：沒有時間限制
+
         {
             if (_playTimeUp) { _playTimeUp = false; _playForced = false; }
         }
@@ -323,7 +341,7 @@ public partial class TrainingRoomRuntime
         UpdateHoverTip();   // 懸停提示氣泡（HoverTip.cs）
         UpdateBarNumbers(); // 條上的具體數值
         // 倒數：進房間就開始算
-        if (PlayTimeLimitOn && !_playTimeUp)
+        if (PlayTimeLimitOn && !DemoMode.Enabled && !_playTimeUp)
         {
             _playTime += dt;
             if (_playTime >= PlayTimeLimitSec)
@@ -354,7 +372,7 @@ public partial class TrainingRoomRuntime
         }
         if (_endureBtn == null || !IsInstanceValid(_endureBtn))
         {
-            _endureBtn = MakeCornerBtn(parent, "BtnEndure", "🧘 忍耐", -406f, -266f);
+            _endureBtn = MakeCornerBtn(parent, "BtnEndure", "忍耐", -406f, -266f);
             _endureBtn.Pressed += OnEndurePressed;
         }
         if (_timeLbl == null || !IsInstanceValid(_timeLbl))

@@ -51,6 +51,15 @@ public partial class TrainingRoomRuntime
         return CanvasToScreen(local);
     }
 
+    [Export] public Vector2 HoleFlowLocalPx = new Vector2(987f, 1538f);   // 精液／血流出的起點（洞.png 的畫布 px）：洞下面那顆紅色圓圓的地方的下緣
+
+    /// <summary>精液和血從洞「下面那顆紅色圓圓的地方」流出（比洞口內容的最下緣高一點，在紅色圓形的下緣）。</summary>
+    Vector2 HoleFlowOrigin()
+    {
+        if (Layers.TryGetValue("洞", out var h) && h != null) return h.GetGlobalTransform() * HoleFlowLocalPx;
+        return HoleBottomWorld() + new Vector2(0f, HoleFlowLocalPx.Y - 1560f);
+    }
+
     // ════════════════════════════════════════════════════════════════
     //  內射
     // ════════════════════════════════════════════════════════════════
@@ -60,6 +69,7 @@ public partial class TrainingRoomRuntime
         _ejacRunning = true;
         _insertEjacActive = true;
         _s2Paused = false; _pullActive = false;
+        if (!IsVoicePlaying) PlayTrVoice("insert/pre_ejac_breath.wav");
         try
         {
             float s2c = 1f / CharScreenScale();
@@ -71,6 +81,7 @@ public partial class TrainingRoomRuntime
 
             FaceController?.SetExpression("插入2");
             await MoveInsertAsync(baseY, deep, 0.15f);
+            PlayRinaEjacReaction();
             await PulseAsync(deep, 2);
             await MoveInsertAsync(deep, back, 0.2f);
             await WaitSecAsync(0.1f);
@@ -81,7 +92,7 @@ public partial class TrainingRoomRuntime
             for (int i = 0; i < leaks; i++)
             {
                 if (_ejacStop) break;
-                TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(Rf(-3f, 3f), 0f),
+                TaskLogger.Run(FlowFromHoleAsync(HoleFlowOrigin() + new Vector2(Rf(-3f, 3f), 0f),
                                                  Rf(14f, 24f), Rf(1.6f, 2.6f), Rf(7f, 11f),
                                                  _firstTimeBleeding && i % 2 == 1 ? SemenPinkColor : SemenWhiteColor), "TrainingRoom.InsertLeak");
                 await PulseAsync(deep, 1);
@@ -456,13 +467,13 @@ void fragment() {
             await WaitSecAsync(delay + i * Rf(0.2f, 0.45f));
             if (i == 0)
             {
-                TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(Rf(-2f, 2f), 0f),
+                TaskLogger.Run(FlowFromHoleAsync(HoleFlowOrigin() + new Vector2(Rf(-2f, 2f), 0f),
                                                  Rf(40f, 58f) * bk, Rf(2.6f, 3.6f), Rf(5.5f, 7f) * bk, BloodColor,
                                                  Rf(-3f, 3f), Rf(0.6f, 1.1f), Rf(1.6f, 2.4f)), "TrainingRoom.BloodMain");
                 continue;
             }
             float side = (i % 2 == 0) ? -1f : 1f;
-            TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(side * Rf(1f, 4f), 0f),
+            TaskLogger.Run(FlowFromHoleAsync(HoleFlowOrigin() + new Vector2(side * Rf(1f, 4f), 0f),
                                              Rf(16f, 34f) * bk, Rf(1.8f, 3.0f), Rf(3.2f, 4.8f) * bk, BloodColor,
                                              side * Rf(4f, 12f), Rf(0.8f, 1.5f), Rf(1.6f, 3.0f)), "TrainingRoom.BloodFlow");
         }
@@ -586,7 +597,7 @@ void fragment() {
         {
             _holeBloodDrips++;
             _bloodDripTimer = Rf(BloodDripIntervalMin, BloodDripIntervalMax) / Mathf.Max(0.1f, BloodAmount);
-            TaskLogger.Run(FlowFromHoleAsync(HoleBottomWorld() + new Vector2(Rf(-5f, 5f), -4f),
+            TaskLogger.Run(FlowFromHoleAsync(HoleFlowOrigin() + new Vector2(Rf(-5f, 5f), -4f),
                                              Rf(14f, 34f), Rf(1.5f, 2.8f), Rf(3.2f, 5f), BloodColor,
                                              Rf(-8f, 8f), Rf(0.7f, 1.3f), Rf(1.6f, 3.0f)), "TrainingRoom.BloodDrip");
         }

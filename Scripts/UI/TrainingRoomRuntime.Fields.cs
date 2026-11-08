@@ -130,7 +130,7 @@ public partial class TrainingRoomRuntime : Node
     /// 之後 BuildCharacter() 真的呼叫 LoadTexAny 時大多會命中 Godot 資源快取。</summary>
     public static IEnumerable<string> GetPreloadSpritePaths()
     {
-        yield return "Backgrounds/bg_LinaiBed_night_room";
+        yield return "Backgrounds/bg_LinaiBed(night)";
         yield return "Backgrounds/bg_LinaiBed_night_bed";
         // 進房間後才同步載入、之前沒列進預載的貼圖（被子、M 腿內褲邊線／裁切腿、各種游標與小圖示）：一併預載，避免黑屏／進場瞬間卡頓
         foreach (var extra in new[] {

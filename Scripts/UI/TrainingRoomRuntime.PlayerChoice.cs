@@ -25,11 +25,12 @@ public partial class TrainingRoomRuntime
     void UpdatePlayerFit(float dt)
     {
         if (_bubblePlayer == null || !IsInstanceValid(_bubblePlayer) || !_bubblePlayer.Visible || _bubblePlayer.Size.X < 1f) return;
-        float kCur = Mathf.Max(0.01f, BubbleScalePlayer * _playerFit);
+        float kCur = Mathf.Max(0.01f, BubbleK(true));   // 目前實際倍率（含跟鏡頭縮放、含動態縮小係數）
+        float kBase = kCur / Mathf.Max(0.01f, _playerFit);   // 不含動態縮小係數的倍率（跟鏡頭縮放，鏡頭不動就固定）
         Vector2 nat = _bubblePlayer.Size / kCur;                      // 每 1 倍 K 的氣泡大小（字、邊距都跟 K 成正比）
         Vector2 vp = GetViewport().GetVisibleRect().Size;
         float kMax = Mathf.Min(BubblePlayerMaxW * vp.X / Mathf.Max(1f, nat.X), BubblePlayerMaxH * vp.Y / Mathf.Max(1f, nat.Y));
-        float target = Mathf.Clamp(kMax / Mathf.Max(0.01f, BubbleScalePlayer), BubblePlayerMinFit, 1f);
+        float target = Mathf.Clamp(kMax / Mathf.Max(0.01f, kBase), BubblePlayerMinFit, 1f);
         _playerFit = Mathf.Lerp(_playerFit, target, 1f - Mathf.Exp(-dt * BubblePlayerFitSpeed));
     }
 
@@ -38,7 +39,7 @@ public partial class TrainingRoomRuntime
     {
         _playerChoiceSetting = true;
         _playerChoiceActive = false;   // 讓 ShowBubble 的「選項中不被蓋掉」檢查放行這一次
-        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, string.IsNullOrEmpty(prompt) ? "…" : prompt, true);
+        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, string.IsNullOrEmpty(prompt) ? "…" : I18n.T(prompt), true);
         _playerChoiceSetting = false;
         if (_bubblePlayer == null || !IsInstanceValid(_bubblePlayer)) return;
 
@@ -57,7 +58,7 @@ public partial class TrainingRoomRuntime
         for (int i = 0; i < labels.Length; i++)
         {
             var act = actions[i];
-            _playerChoiceRow.AddChild(BratMakeBtn(labels[i], () => { act?.Invoke(); }));
+            _playerChoiceRow.AddChild(BratMakeBtn(I18n.T(labels[i]), () => { act?.Invoke(); }));
         }
         _playerChoiceRow.Visible = true;
         _playerChoiceActive = true;

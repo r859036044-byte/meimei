@@ -119,7 +119,7 @@ public partial class TrainingRoomRuntime
             Target = bg,
             StateSource = () => DuvetState,
             Kicked = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_duvet_kicked"),
-            BedMask = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_bed"),   // 床的範圍，用來裁切
+            BedMask = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_bed"),   // 床的範圍（只當踢被子的裁切遮罩，不再畫出來），用來裁切
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale,
             MouseFilter = Control.MouseFilterEnum.Ignore,

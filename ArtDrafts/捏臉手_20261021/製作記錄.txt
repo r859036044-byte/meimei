@@ -1,6 +1,0 @@
-工具：內建 image_gen
-參考：Resources/Sprites/右手.png（使用者現有專案素材）
-用途：捏臉手勢透明素材草稿，尚未接入互動。
-無新增網站下載素材；權利來源沿用現有專案素材紀錄。
-提示：
-Create a standalone hand sprite based closely on supplied existing game RIGHT HAND art. Preserve its rough hand-drawn dark brown outlines, pale peach skin, very simple flat cel shading, short unpainted nails and same back-of-hand three-quarter perspective, wrist entering from lower right, fingers aimed upper left. Change gesture to a gentle CHEEK PINCH: thumb and bent index finger approach each other with only a small narrow gap between their soft pads, like pinching a small fold of cheek, index fingertip curled down toward thumb. Remaining three fingers curled naturally behind, anatomically correct single hand five fingers. Draw only hand and short wrist; no face, no cheek, no person, no objects. Remove black blurry wrist spot from reference. Transparent background with clean alpha edges, no white matte or extra detached marks. Match original modest detail and line thickness, do NOT beautify into realistic or polished glossy art. Sprite fills canvas with small safe margin, compact near-square composition.

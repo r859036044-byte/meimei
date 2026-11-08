@@ -1210,7 +1210,7 @@ void fragment() {
     [Export] public bool ClothOnTop = true;   // 關掉＝回到舊的順序（雞雞在衣服上面，靠遮罩裁切）
     bool _clothTopApplied; bool _clothTopInit;
     static readonly string[] ClothTopGroup = { "洞", "雞雞", "精液", "開上", "開1", "插入", "男人肚子" };
-    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "衣服", "m腿/內褲", "蝴蝶結2" };   // m腿/內褲：在衣服上面，但被 M 腿的輪廓裁切（見 SetMPantyLegClip）   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
+    static readonly string[] ClothTopParts = { "衣服/左帶", "衣服/右帶", "手2", "衣服", "m腿/內褲", "蝴蝶結2" };   // m腿/內褲：在衣服上面，但被 M 腿的輪廓裁切（見 SetMPantyLegClip）   // 蝴蝶結2 要一起搬到衣服上面，不然被衣服蓋住
     static readonly string[] LegMaskLayers = { "m腿/腿1", "m腿/腿2", "m腿/腳1", "m腿/腳2", "m腿/足1", "m腿/足2" };
     [Export] public bool ClothLegClip = true;   // 衣服在最上面時，被 M 腿（腿／腳／足）裁切
     SubViewport _legMaskVP; Node2D _legMaskRoot;
@@ -1220,6 +1220,31 @@ void fragment() {
     {
         int ai = anchor.GetIndex(), li = node.GetIndex();
         _charRoot.MoveChild(node, li < ai ? ai - 1 : ai);
+    }
+
+    // ── 舉腳（M 腿）時：手（手2）要在腿／腳／足下面 ──
+    // 手2 平常被 ApplyClothOnTop 搬到「衣服」前面（在 M 腿各層的上面）；M 腿時衣服是靠遮罩把腿的範圍裁掉，
+    // 所以排在腿上面的手2 會直接蓋在腿上。M 腿打開（含切換中）就把手2 移到 M 腿最底下那一層的前面，
+    // 關掉 M 腿再搬回衣服前面（維持原本「手在裙子下面」）。每幀檢查，後面有別處重排順序也會被拉回來。
+    bool _handUnderMLeg;
+    void UpdateHandUnderMLeg()
+    {
+        if (_charRoot == null) return;
+        if (!Layers.TryGetValue("手2", out var hand) || hand == null || hand.GetParent() != _charRoot) return;
+        if (_mLegOpen)
+        {
+            Control lowest = null; int lowIdx = int.MaxValue;
+            foreach (var n in LegMaskLayers)
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot && l.GetIndex() < lowIdx) { lowest = l; lowIdx = l.GetIndex(); }
+            if (lowest == null) return;
+            if (hand.GetIndex() > lowIdx) MoveBefore(hand, lowest);
+            _handUnderMLeg = true;
+        }
+        else if (_handUnderMLeg)
+        {
+            if (Layers.TryGetValue("衣服", out var cloth) && cloth != null && cloth.GetParent() == _charRoot) MoveBefore(hand, cloth);
+            _handUnderMLeg = false;
+        }
     }
 
     void ApplyClothOnTop()
@@ -1289,6 +1314,11 @@ void fragment() {
     // ── M 腿內褲：跟衣服一樣被 M 腿（腿／腳／足）裁切；被衣服蓋住的部分靠圖層順序（衣服在它上面）──
     ShaderMaterial _mPantyMat;
     const string MPantyShaderCode = @"shader_type canvas_item;
+uniform float wet_k = 0.0;       // 濕痕強度 0~1（M 腿內褲，跟一般內褲同一套）
+uniform vec2 wet_c = vec2(0.5, 0.5);   // 濕痕中心（內褲貼圖 UV）
+uniform vec2 wet_r = vec2(0.06, 0.04); // 濕痕半徑（UV）
+uniform float wet_core = 0.5;
+uniform vec3 wet_col = vec3(0.7, 0.74, 0.88);
 uniform sampler2D leg_tex : filter_linear;
 uniform vec2 lg_x = vec2(1.0, 0.0);
 uniform vec2 lg_y = vec2(0.0, 1.0);
@@ -1846,6 +1876,12 @@ void fragment() {
         c.rgb = mix(c.rgb, vec3(0.45, 0.28, 0.30), sk_ * 0.9);
         c.a = max(c.a, sk_);
     }
+    if (wet_k > 0.001 && c.a > 0.01) {   // 濕度：小穴附近的內褲被色彩增值蓋上一塊深色濕痕（跟一般內褲一樣）
+        vec2 wd_ = (UV - wet_c) / max(wet_r, vec2(0.001));
+        float wn_ = fract(sin(dot(floor(UV * 70.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        float wm_ = 1.0 - smoothstep(wet_core, 1.0, length(wd_) + wn_ * 0.18);
+        c.rgb = mix(c.rgb, c.rgb * wet_col, clamp(wet_k * wm_, 0.0, 1.0));
+    }
     COLOR = c * vc;
 }
 ";
@@ -1943,6 +1979,7 @@ void fragment() {
             && Layers.TryGetValue("衣服", out var cth) && cth != null && cth.GetParent() == _charRoot && _duvet.GetIndex() < cth.GetIndex())
             _clothTopInit = false;   // 被子後來才建立／被移動，重新排一次
         ApplyClothOnTop();
+        UpdateHandUnderMLeg();   // 舉腳時手在腿下面（見上面說明）
         UpdateMPantyFollow();   // 內褲先移到這一幀跟著抽插／呼吸的最終位置，下面的遮罩和撥開才不會差一步（抽插時裁切才會跟著動）
         UpdateClothLegMask();
         UpdateClothThrust();

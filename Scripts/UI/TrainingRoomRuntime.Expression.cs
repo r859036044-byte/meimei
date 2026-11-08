@@ -136,8 +136,8 @@ public partial class TrainingRoomRuntime : Node
             new EyeCloseController.SlidePart { RT = Get("表情/睫毛2"),  CloseOffsetY = -25f, EyeGroup = 2 },
             new EyeCloseController.SlidePart { RT = Get("眼角1"),       CloseOffsetY = -20f, EyeGroup = 1 },
             new EyeCloseController.SlidePart { RT = Get("眼角2"),       CloseOffsetY = -20f, EyeGroup = 2 },
-            new EyeCloseController.SlidePart { RT = Get("表情/下睫毛1"), CloseOffsetY =  20f, EyeGroup = 1 },
-            new EyeCloseController.SlidePart { RT = Get("表情/下睫毛2"), CloseOffsetY =  20f, EyeGroup = 2 },
+            new EyeCloseController.SlidePart { RT = Get("表情/下睫毛1"), CloseOffsetY =  20f, EyeGroup = 1, IsLowerLash = true },
+            new EyeCloseController.SlidePart { RT = Get("表情/下睫毛2"), CloseOffsetY =  20f, EyeGroup = 2, IsLowerLash = true },
         };
 
         // 眼白／眼球的閉眼效果改用「真正的裁切遮罩」：BuildExpressionSystem() 一開始已經呼叫
