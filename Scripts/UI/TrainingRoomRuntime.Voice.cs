@@ -5,14 +5,10 @@ using System.Collections.Generic;
 /// TrainingRoomRuntime — 莉奈（みづきゆうか 聲線）語音與呼吸嬌喘系統。
 /// 支援：
 ///   1. 50% 柔和基礎音量控制（耳邊低語與弱氣台詞再額外降至 0.70x~0.75x）
-///   2. 傲嬌/雌小鬼嘲諷台詞（talk_brat）
-///   3. 口齒不清、微弱不堅定、低語小聲台詞（talk_mumble）
-///   4. 融化依賴、撒嬌喜歡台詞（talk_sweet）
-///   5. 50 款短促動態呼吸氣音與嬌喘（moan_breath）
-///   6. 各部位互動觸摸嬌喘（touch_breast, touch_pussy, touch_body, touch_mouth）
-///   7. 興奮絕頂與事後高潮語音（climax, insert）
-///   8. 動態背景安眠呼吸嬌喘音軌（ambient），依快感值平滑淡入淡出。
-///   9. 發聲即時聯動嘴型開合動畫（IsVoicePlaying / NotifyVoiceSpeak）。
+///   2. 隨高潮度自動提升無說話時的嬌喘頻率（UpdateIdleMoan）
+///   3. 中間高潮專屬語音（PlayTrMiniClimaxVoice，源自 01_絕頂與去了：イクッ、イクッイクッ、いきたいっっ）
+///   4. 大高潮絕頂專屬語音（PlayTrClimaxVoice，いっちゃうよぉぉぉ、いぐぅぅぅ！！、いかせてっ！！）
+///   5. 發聲說話開合嘴型聯動（NotifyVoiceSpeakForText / NotifyVoiceSpeak）
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -21,9 +17,10 @@ public partial class TrainingRoomRuntime
     readonly Dictionary<string, AudioStream> _voiceCache = new();
 
     float _ambientTargetVol = 0f;
+    float _idleMoanTimer = -1f;
 
-    /// <summary>當前是否有語音正在播放，供嘴型聯動判斷</summary>
-    public bool IsVoicePlaying => (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer) && _trVoicePlayer.Playing) || _voiceMouthT > 0.01f;
+    /// <summary>當前是否有語音正在播放</summary>
+    public bool IsVoicePlaying => _trVoicePlayer != null && IsInstanceValid(_trVoicePlayer) && _trVoicePlayer.Playing;
 
     void InitTrVoice()
     {
@@ -66,10 +63,12 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>每幀更新背景嬌喘呼吸音軌音量</summary>
+    /// <summary>每幀更新背景嬌喘呼吸音軌音量與待機時隨快感上升的嬌喘</summary>
     public void UpdateTrVoice(float dt)
     {
         InitTrVoice();
+        UpdateIdleMoan(dt);
+
         if (_trAmbientPlayer == null || !IsInstanceValid(_trAmbientPlayer)) return;
 
         // 語音整體音量設為原本的 50%
@@ -101,6 +100,37 @@ public partial class TrainingRoomRuntime
         if (_ambientTargetVol > 0.001f && !_trAmbientPlayer.Playing)
         {
             _trAmbientPlayer.Play();
+        }
+    }
+
+    /// <summary>隨著高潮度增加沒有說話的時候的嬌喘聲音</summary>
+    void UpdateIdleMoan(float dt)
+    {
+        if (IsVoicePlaying || _isTalking) return;
+
+        float c = ClimaxLevel;
+        if (c < 15f)
+        {
+            _idleMoanTimer = -1f;
+            return;
+        }
+
+        if (_idleMoanTimer < 0f)
+        {
+            // 隨高潮度提升，待機嬌喘間隔縮短（高潮度越高喘得越頻繁）
+            if (c < 40f)
+                _idleMoanTimer = (float)GD.RandRange(8.0, 13.0);
+            else if (c < 70f)
+                _idleMoanTimer = (float)GD.RandRange(4.0, 7.0);
+            else
+                _idleMoanTimer = (float)GD.RandRange(2.0, 3.8);
+        }
+
+        _idleMoanTimer -= dt;
+        if (_idleMoanTimer <= 0f)
+        {
+            _idleMoanTimer = -1f;
+            PlayBreathMoan();
         }
     }
 
@@ -147,9 +177,6 @@ public partial class TrainingRoomRuntime
         _trVoicePlayer.Stream = stream;
         _trVoicePlayer.VolumeLinear = baseVol * volScale;
         _trVoicePlayer.Play();
-
-        // 觸發嘴巴說話/開合動畫
-        NotifyVoiceSpeak(0.65f);
     }
 
     /// <summary>隨機挑選一首播放</summary>
@@ -165,12 +192,44 @@ public partial class TrainingRoomRuntime
     {
         int idx = (int)(GD.Randi() % 50) + 1;
         PlayTrVoice($"moan_breath/breath_{idx}.wav");
+        NotifyVoiceSpeak(1);
     }
 
-    /// <summary>依莉奈所說的台詞內容與當前狀態，自動配對最合適的情景語音</summary>
+    /// <summary>播放中間高潮／小高潮語音（源自 01_絕頂與去了：イクッ、イクッイクッ、いきたいっっ）</summary>
+    public void PlayTrMiniClimaxVoice()
+    {
+        PlayTrVoiceRandom(
+            "climax/mini_climax_1.wav",
+            "climax/mini_climax_2.wav",
+            "climax/mini_climax_3.wav",
+            "climax/mini_climax_4.wav",
+            "climax/mini_climax_5.wav"
+        );
+        NotifyVoiceSpeak(2);
+    }
+
+    /// <summary>播放大高潮絕頂語音（源自 01_絕頂與去了：いっちゃうよぉぉぉ、いぐぅぅぅ！！、いかせてっ！！）</summary>
+    public void PlayTrClimaxVoice()
+    {
+        PlayTrVoiceRandom(
+            "climax/climax_long_1.wav",
+            "climax/climax_igu_1.wav",
+            "climax/climax_ikaw_1.wav",
+            "climax/climax_ikaw_2.wav",
+            "climax/climax_fall_1.wav",
+            "climax/climax_fall_2.wav",
+            "climax/climax_fall_3.wav"
+        );
+        NotifyVoiceSpeak(3);
+    }
+
+    /// <summary>依莉奈所說的台詞內容與當前狀態，自動配對最合適的情景語音並依字數開合嘴巴</summary>
     public void PlayGirlVoiceForText(string text)
     {
         if (string.IsNullOrEmpty(text)) return;
+
+        // 通知嘴巴依照台詞長度開合（短句1次，最多4次，結束還原小嘴巴）
+        NotifyVoiceSpeakForText(text);
 
         // 1. 雌小鬼調侃、嘲諷、罵人
         if (text.Contains("雜魚") || text.Contains("弱雞") || text.Contains("哼") || text.Contains("這點本事") ||
@@ -259,11 +318,13 @@ public partial class TrainingRoomRuntime
             text.Contains("堕ちちゃう") || text.Contains("いくっ"))
         {
             PlayTrVoiceRandom(
+                "climax/climax_long_1.wav",
+                "climax/climax_igu_1.wav",
+                "climax/climax_ikaw_1.wav",
+                "climax/climax_ikaw_2.wav",
                 "climax/climax_fall_1.wav",
                 "climax/climax_fall_2.wav",
                 "climax/climax_fall_3.wav",
-                "climax/climax_iku_1.wav",
-                "climax/climax_iku_2.wav",
                 "talk_mumble/mumble_mada.wav"
             );
             return;
@@ -272,7 +333,6 @@ public partial class TrainingRoomRuntime
         // 7. 氣音嬌喘反應（如「嗯…」、「哈啊…」、「唔嗯…」、「呼…」、「啊…♡」）
         if (text.Contains("嗯") || text.Contains("哈") || text.Contains("啊") || text.Contains("呼") || text.Contains("唔") || text.Contains("…"))
         {
-            // 高快感值且帶愛心時，有機率穿插耳邊恍惚或口齒不清喘息
             if (ClimaxLevel > 65f && text.Contains("♡") && (GD.Randi() % 100 < 35))
             {
                 PlayTrVoiceRandom(
@@ -308,6 +368,7 @@ public partial class TrainingRoomRuntime
     /// <summary>播放部位觸控反應專用語音</summary>
     public void PlayPartTouchVoice(string part)
     {
+        NotifyVoiceSpeak(1);
         switch (part)
         {
             case "breast":
@@ -370,17 +431,5 @@ public partial class TrainingRoomRuntime
                 PlayBreathMoan();
                 break;
         }
-    }
-
-    /// <summary>播放高潮絕頂語音</summary>
-    public void PlayTrClimaxVoice()
-    {
-        PlayTrVoiceRandom(
-            "climax/climax_fall_1.wav",
-            "climax/climax_fall_2.wav",
-            "climax/climax_fall_3.wav",
-            "climax/climax_iku_1.wav",
-            "climax/climax_iku_2.wav"
-        );
     }
 }

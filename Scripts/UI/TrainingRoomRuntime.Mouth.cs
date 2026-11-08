@@ -3,12 +3,11 @@ using Godot;
 /// <summary>
 /// TrainingRoomRuntime — 嘴巴外觀與說話動作控制系統：
 /// 支援：
-///   1. 常態基礎嘴型：以可愛的「小嘴巴」為基底（ZZZ 睡覺表情時為「張嘴1」）。
-///   2. 發聲說話開合嘴型（Lip-sync）：當有語音播放或發出聲音時，嘴巴瞬間放大縮小，
-///      並配合「倒過來的笑」（Y 軸反轉翻轉拱形弧度）與「小嘴巴」交替開合，呈現自然生動的說話反應。
-///   3. 舒服與笑臉：觸發愛心或心情良好時呈現「笑」。
-///   4. 快感與快高潮反應：隨高潮度提升小嘴巴漸進放大，滿了轉為「小嘴吐舌」。
-///   5. 極度不舒服時微縮抖動。
+///   1. 常態基礎嘴型：說完台詞或平時皆為可愛的「小嘴巴」（ZZZ 睡覺表情時為「張嘴1」）。
+///   2. 依照台詞字數節奏開合：短台詞僅開合 1 次，長台詞最多 4 次，絕不頻繁抖動。
+///   3. 倒笑寬度壓縮：翻轉倒笑（Y 軸 -1.25）時，水平左右壓縮（X 軸 0.48），使其寬度與小嘴巴一致。
+///   4. 說完台詞後立刻平穩變回「小嘴巴」。
+///   5. 快感與快高潮反應：隨高潮度提升小嘴巴漸進放大，滿了轉為「小嘴吐舌」。
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -29,14 +28,31 @@ public partial class TrainingRoomRuntime
 
     [ExportGroup("說話嘴巴開合動畫")]
     [Export] public bool  MouthTalkAnimEnabled = true;
-    [Export] public float MouthTalkCycleSec    = 0.15f; // 說話開合一個週期的時間（秒）
-    float _voiceMouthTimer = 0f;
-    float _voiceMouthT = 0f;
+    [Export] public float MouthFlapDuration    = 0.28f; // 每次開合持續時間（秒）：開 0.15s + 閉 0.13s
 
-    /// <summary>通知嘴巴開始說話開合動畫</summary>
-    public void NotifyVoiceSpeak(float duration = 0.65f)
+    float _talkTimer = 0f;
+    int   _targetFlaps = 0;
+    bool  _isTalking = false;
+
+    /// <summary>通知嘴巴依台詞字數開始說話開合動作（字少僅 1 次，最多 4 次，說完還原小嘴巴）</summary>
+    public void NotifyVoiceSpeak(int flapCount = 1)
     {
-        _voiceMouthT = Mathf.Max(_voiceMouthT, duration);
+        _targetFlaps = Mathf.Clamp(flapCount, 1, 4);
+        _talkTimer = 0f;
+        _isTalking = true;
+    }
+
+    /// <summary>依台詞字數長度換算開合次數</summary>
+    public void NotifyVoiceSpeakForText(string text)
+    {
+        int len = string.IsNullOrEmpty(text) ? 1 : text.Length;
+        int flaps = 1;
+        if (len > 7) flaps = 4;
+        else if (len > 5) flaps = 3;
+        else if (len > 3) flaps = 2;
+        else flaps = 1;
+
+        NotifyVoiceSpeak(flaps);
     }
 
     /// <summary>「快高潮」程度 0~100</summary>
@@ -55,10 +71,9 @@ public partial class TrainingRoomRuntime
     static readonly string[] _mouthFreeExprs =
         { "", "ZZZ", "害怕", "有點驚訝", "忍耐", "害羞", "開心", "舒服", "傲嬌" };
 
-    [Export] public float MouthBigScale = 2.0f;   // 被插入／被射精時嘴巴放大的倍率
-    [Export] public float MouthBigSec   = 0.25f;  // 放大／縮回的平滑時間（秒）
+    [Export] public float MouthBigScale = 2.0f;
+    [Export] public float MouthBigSec   = 0.25f;
 
-    // 各嘴巴圖的中心點（貼圖 2000x3200 像素）
     static readonly System.Collections.Generic.Dictionary<string, Vector2> _mouthCenters = new()
     {
         ["小嘴"] = new Vector2(964f, 753.5f),
@@ -115,7 +130,6 @@ public partial class TrainingRoomRuntime
     void UpdateMouthOperateCore(float dt)
     {
         _mouthSmileT -= dt;
-        if (_voiceMouthT > 0f) _voiceMouthT -= dt;
         _mouthNearTarget = 1f;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
@@ -132,7 +146,6 @@ public partial class TrainingRoomRuntime
         bool free = System.Array.IndexOf(_mouthFreeExprs, expr) >= 0;
         bool busy = _tongueOn || _lickOn || _jijiPhase != 0;
         bool operating = _browLingerT > 0f;
-        bool isVocalizing = IsVoicePlaying;
 
         if (_mouthSmileHold && (!free || busy || (_browUncomfy && _browLingerT > 0f) || CurrentGirlTalkState() == GirlTalkState.Pain))
         {
@@ -146,47 +159,44 @@ public partial class TrainingRoomRuntime
         if (!free || busy)
         {
             if (_mouthShown != null) ReleaseMouth(expr);
-            _voiceMouthTimer = 0f;
+            _isTalking = false;
             return;
         }
 
         // ════════════════════════════════════════════════════════════
-        //  1. 發聲說話開合嘴型（瞬間放大縮小 ＋ 倒過來的笑）
+        //  1. 依照台詞開合說話動畫（頂多4次，少則1次，說完必成小嘴巴）
         // ════════════════════════════════════════════════════════════
-        if (MouthTalkAnimEnabled && isVocalizing)
+        if (MouthTalkAnimEnabled && _isTalking)
         {
-            _voiceMouthTimer += dt;
-            float cycle = Mathf.Max(0.08f, MouthTalkCycleSec);
-            float phase = (_voiceMouthTimer % cycle) / cycle;
-            int cycleIdx = (int)(_voiceMouthTimer / cycle);
+            _talkTimer += dt;
+            float flapDur = Mathf.Max(0.18f, MouthFlapDuration);
+            int currentFlap = (int)(_talkTimer / flapDur);
 
-            if (phase < 0.60f)
+            if (currentFlap < _targetFlaps)
             {
-                // 張嘴說話階段：配合「倒過來的笑」（上下翻轉）或瞬間放大
-                if (cycleIdx % 2 == 0)
+                float flapPhase = (_talkTimer % flapDur) / flapDur;
+                if (flapPhase < 0.55f)
                 {
-                    // 倒過來的笑：Y 軸 -1.25f 形成開口拱形，水平微寬 1.2f
+                    // 張嘴階段：倒笑壓縮左右（X=0.48 寬度與小嘴巴約32px一致，Y=-1.25 翻轉成開口拱形）
                     ShowOnlyMouth("笑");
-                    ApplyMouthScale("笑", new Vector2(1.20f, -1.25f));
+                    ApplyMouthScale("笑", new Vector2(0.48f, -1.25f));
                 }
                 else
                 {
-                    // 小嘴巴瞬間放大：1.35x
+                    // 閉嘴階段：小嘴巴
                     ShowOnlyMouth("小嘴巴");
-                    ApplyMouthScale("小嘴巴", new Vector2(1.35f, 1.30f));
+                    ApplyMouthScale("小嘴巴", Vector2.One);
                 }
+                return;
             }
             else
             {
-                // 微閉／回彈階段：小嘴巴微縮
+                // 開合次數已滿：說完台詞都會變成小嘴巴
+                _isTalking = false;
                 ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(1.0f, 0.95f));
+                ApplyMouthScale("小嘴巴", Vector2.One);
+                return;
             }
-            return;
-        }
-        else
-        {
-            _voiceMouthTimer = 0f;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -247,7 +257,7 @@ public partial class TrainingRoomRuntime
         _mouthShown = name;
     }
 
-    /// <summary>停手：還原成目前表情本來指定的嘴巴（沒有指定就用小嘴巴）。</summary>
+    /// <summary>停手或還原：回到小嘴巴（ZZZ 表情時為張嘴1）。</summary>
     void ReleaseMouth(string expr)
     {
         string orig = FaceController.GetExpressionMouth(expr);
