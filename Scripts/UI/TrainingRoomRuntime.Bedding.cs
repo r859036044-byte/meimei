@@ -10,7 +10,7 @@ public partial class TrainingRoomRuntime
     [Export] public float DuvetOffsetY = -20f;     // 蓋著的被子整體往上 20px（背景本地 px，負＝往上）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBleach = 0f;   // 漂白（降低飽和，去掉偏紫）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBright = 0f;   // 提亮
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintAmount = 0.3f;   // 粉紅（覆蓋混合）「右邊最濃」時的強度（左邊漸層到 0）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintAmount = 0f;   // 粉紅（覆蓋混合）「右邊最濃」時的強度（左邊漸層到 0）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintFadeU0 = 0f;   // 粉紅濾鏡漸層起點（貼圖左右位置，0＝最左）：這裡以左完全沒有
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintFadeU1 = 1f;   // 漸層終點（1＝最右）：這裡以右達到完整強度
     [Export] public Color DuvetTint = new Color(1f, 0.78f, 0.87f);               // 粉紅濾鏡顏色
@@ -33,7 +33,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTopRightScale = 0.3f;   // 蓋著的被子右上角偏藍的比例（1＝跟左上一樣，越小越淡）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTopBlueScale = 0.5f;   // 蓋著的被子「上面」偏藍增值的比例（只影響上面，1＝原本）
     [Export] public Color DuvetDiagColor = new Color(0.49f, 0.50f, 0.83f);   // 被子左上角斜切變暗的顏色（色彩增值）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetDiagAmount = 0.3f;   // 強度
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetDiagAmount = 0f;   // 強度
     [Export(PropertyHint.Range, "0,2,0.01")] public float DuvetDiagPos = 0.7f;      // 斜線的位置（左上角往右下推；0＝沒有，2＝整張）
     [Export(PropertyHint.Range, "0.001,0.5,0.001")] public float DuvetDiagSoft = 0.15f;   // 斜線邊緣柔和程度（小＝俐落的斜切）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedDiagAmount = 0f;   // 踢開的被子的左上角斜切變暗強度（預設 0＝踢開的被子不變）
