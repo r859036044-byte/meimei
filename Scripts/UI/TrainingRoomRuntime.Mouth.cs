@@ -135,6 +135,7 @@ public partial class TrainingRoomRuntime
     public void TriggerMouthSmile() { }
 
     string _mouthShown;
+    bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
     float  _mouthScaleX = 1f;
 
     void UpdateMouthOperate(float dt)
@@ -158,6 +159,20 @@ public partial class TrainingRoomRuntime
         _mouthSmileT -= dt;
         _mouthNearTarget = 1f;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
+
+        // 捏臉（按住臉頰拖動）時：嘴巴換成倒笑（「笑」上下翻轉，跟說話張嘴用的是同一招）；放手就還原
+        if (_pinchDrag)
+        {
+            _pinchMouthOn = true;
+            ShowOnlyMouth("笑");
+            ApplyMouthScale("笑", new Vector2(1f, -1f));
+            return;
+        }
+        if (_pinchMouthOn)
+        {
+            _pinchMouthOn = false;
+            ReleaseMouth("");
+        }
 
         // 若正在用舌頭親嘴（_tongueOn），嘴巴圖層由 TongueOverlay 遮蓋，不顯示底層嘴巴
         if (_tongueOn)
