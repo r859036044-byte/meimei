@@ -713,9 +713,9 @@ public partial class FaceExpressionController : Node
     {
         var mouthOverrides = new Dictionary<string, string>
         {
-            { "插入1",      "抖動嘴"    },
+            { "插入1",      "小嘴巴"    },
             { "插入2",      "小嘴巴"    },   // 完全突破：小嘴巴
-            { "做愛(半閉)", "表情/嘴巴" },
+            { "做愛(半閉)", "小嘴巴"    },
             { "做愛(全閉)", "小嘴巴"    },
             { "做愛3",      "小嘴巴"    },
             { "做愛4",      "小嘴巴"    },

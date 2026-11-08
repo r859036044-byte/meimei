@@ -8,8 +8,7 @@ using System.Collections.Generic;
 ///   1. 直接讀取 16-bit PCM WAV 音訊（避開舊版快取雜音並停用背景環境底噪循環）
 ///   2. 重要事件語音優先鎖定（破處、進入階段三、高潮、液體釋放不被一般氣泡台詞覆蓋）
 ///   3. 觸碰輕柔（0.60x~0.68x）vs 階段三深入互動強烈（1.15x~1.35x）的明顯音量與情緒對比
-///   4. 隨高潮度與抽插速度自動提升無說話時的純嬌喘頻率（UpdateIdleMoan）
-///   5. 發聲說話開合嘴型聯動（NotifyVoiceSpeakForText / NotifyVoiceSpeak）
+///   4. 純嬌喘／叫聲不換嘴開合；只有真正說台詞時才用倒笑壓扁開合嘴型，叫聲很大時用小嘴巴放大 200%
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -137,11 +136,11 @@ public partial class TrainingRoomRuntime
             {
                 float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
                 if (normSpeed > 0.7f)
-                    _idleMoanTimer = (float)GD.RandRange(0.7, 1.4);
+                    _idleMoanTimer = (float)GD.RandRange(0.8, 1.5);
                 else if (normSpeed > 0.35f)
-                    _idleMoanTimer = (float)GD.RandRange(1.2, 2.2);
+                    _idleMoanTimer = (float)GD.RandRange(1.4, 2.4);
                 else
-                    _idleMoanTimer = (float)GD.RandRange(1.8, 3.0);
+                    _idleMoanTimer = (float)GD.RandRange(2.0, 3.2);
             }
             else
             {
@@ -151,7 +150,7 @@ public partial class TrainingRoomRuntime
                 else if (c < 70f)
                     _idleMoanTimer = (float)GD.RandRange(4.0, 7.0);
                 else
-                    _idleMoanTimer = (float)GD.RandRange(2.0, 3.8);
+                    _idleMoanTimer = (float)GD.RandRange(2.2, 4.0);
             }
         }
 
@@ -170,12 +169,13 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>播放高優先級關鍵語音（破處、進入階段三、高潮、內射等），鎖定一段時間不被一般反應覆蓋</summary>
+    /// <summary>播放高優先級關鍵語音（破處、進入階段三、高潮、內射等），鎖定一段時間不被一般反應覆蓋，並觸發小嘴巴放大 200%</summary>
     public void PlayTrVoicePriority(string relativePath, float lockSeconds = 2.5f, float customVolScale = 1.25f)
     {
         _voicePriorityLockTimer = 0f;
         PlayTrVoice(relativePath, forcePriority: true, customVolScale: customVolScale);
         _voicePriorityLockTimer = lockSeconds;
+        TriggerLoudCryMouth(Mathf.Min(lockSeconds, 2.2f));
     }
 
     /// <summary>播放指定路徑的 TR 語音（相對 res://Resources/Audio/Voice/TR/）</summary>
@@ -255,15 +255,14 @@ public partial class TrainingRoomRuntime
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
     }
 
-    /// <summary>播放短促動態嬌喘氣音（從 50 款真實素材隨機挑選）</summary>
+    /// <summary>播放短促動態嬌喘氣音（純氣音不換嘴開合）</summary>
     public void PlayBreathMoan()
     {
         int idx = (int)(GD.Randi() % 50) + 1;
         PlayTrVoice($"moan_breath/breath_{idx}.wav");
-        NotifyVoiceSpeak(1);
     }
 
-    /// <summary>播放中間高潮／小高潮語音（源自 01_絕頂與去了：イクッ、イクッイクッ、いきたいっっ）</summary>
+    /// <summary>播放中間高潮／小高潮語音（叫聲較大：小嘴巴放大 200%）</summary>
     public void PlayTrMiniClimaxVoice()
     {
         PlayTrVoicePriorityRandom(2.0f, 1.20f,
@@ -273,10 +272,10 @@ public partial class TrainingRoomRuntime
             "climax/mini_climax_4.wav",
             "climax/mini_climax_5.wav"
         );
-        NotifyVoiceSpeak(2);
+        TriggerLoudCryMouth(1.8f);
     }
 
-    /// <summary>播放大高潮絕頂語音（源自 01_絕頂與去了：いっちゃうよぉぉぉ、いぐぅぅぅ！！、いかせてっ！！）</summary>
+    /// <summary>播放大高潮絕頂語音（叫聲很大：小嘴巴放大 200%）</summary>
     public void PlayTrClimaxVoice()
     {
         PlayTrVoicePriorityRandom(3.2f, 1.30f,
@@ -288,7 +287,7 @@ public partial class TrainingRoomRuntime
             "climax/climax_fall_2.wav",
             "climax/climax_fall_3.wav"
         );
-        NotifyVoiceSpeak(3);
+        TriggerLoudCryMouth(2.5f);
     }
 
     /// <summary>當開始進入階段三（抵住入口／準備突破）時的立即語音與氣泡反應</summary>
@@ -313,7 +312,7 @@ public partial class TrainingRoomRuntime
             );
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "唔…那裡還…！", false);
         }
-        NotifyVoiceSpeak(2);
+        TriggerLoudCryMouth(1.5f);
     }
 
     /// <summary>當頂住入口用力推擠（_resistBlocking）時的反應語音</summary>
@@ -329,18 +328,18 @@ public partial class TrainingRoomRuntime
             "moan/mid_1.wav",
             "moan/mid_2.wav"
         );
-        NotifyVoiceSpeak(2);
+        TriggerLoudCryMouth(1.2f);
     }
 
-    /// <summary>依莉奈所說的台詞內容與當前狀態，自動配對最合適的情景語音並依字數開合嘴巴</summary>
+    /// <summary>依莉奈所說的台詞內容與當前狀態，自動配對最合適的情景語音；僅在真正說台詞（非純嬌喘叫聲）時才開合嘴巴</summary>
     public void PlayGirlVoiceForText(string text)
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        // 通知嘴巴依照台詞長度開合（短句1次，最多4次，說完還原小嘴巴）
+        // 通知嘴巴：內部會自動檢查是否為純叫聲（IsSoundOnly）或教程，只有真正台詞才會用倒笑壓扁開合嘴巴
         NotifyVoiceSpeakForText(text);
 
-        // 若高優先級語音正在播放（如破處、高潮、內射），只動嘴巴與顯示氣泡，不覆蓋音訊
+        // 若高優先級語音正在播放（如破處、高潮、內射），不覆蓋音訊
         if (_voicePriorityLockTimer > 0f && IsVoicePlaying)
         {
             return;
@@ -385,7 +384,7 @@ public partial class TrainingRoomRuntime
                 return;
             }
 
-            // 抽插進行中（Stage >= 1）：一律播放依速度分級的激烈本番嬌喘，絕不使用微弱的待機氣音！
+            // 抽插進行中（Stage >= 1）：一律播放依速度分級的激烈本番嬌喘
             if (_jijiStage >= 1)
             {
                 PlayThrustMoanVoice();
@@ -393,7 +392,6 @@ public partial class TrainingRoomRuntime
             }
             else
             {
-                // Stage 0 頂住入口階段
                 PlayInsertionResistVoice();
                 return;
             }
@@ -524,10 +522,9 @@ public partial class TrainingRoomRuntime
         PlayBreathMoan();
     }
 
-    /// <summary>播放部位觸控反應專用語音</summary>
+    /// <summary>播放部位觸控反應專用語音（純觸碰嬌哼不換嘴開合）</summary>
     public void PlayPartTouchVoice(string part)
     {
-        NotifyVoiceSpeak(1);
         switch (part)
         {
             case "breast":
@@ -585,7 +582,7 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>依抽插速度播放純嬌喘喘息（無台詞純呼吸嬌喘，分三級速度）</summary>
+    /// <summary>依抽插速度播放純嬌喘喘息（純嬌喘不換成倒笑碎動；高速激烈嬌喘叫聲很大時將小嘴巴放大 200%）</summary>
     public void PlayThrustMoanVoice()
     {
         float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
@@ -598,7 +595,6 @@ public partial class TrainingRoomRuntime
                 "moan/mid_1.wav",
                 "moan/mid_2.wav"
             );
-            NotifyVoiceSpeak(2);
         }
         else if (normSpeed < 0.7f)
         {
@@ -609,7 +605,6 @@ public partial class TrainingRoomRuntime
                 "moan/mid_3.wav",
                 "moan/mid_4.wav"
             );
-            NotifyVoiceSpeak(2);
         }
         else
         {
@@ -621,7 +616,8 @@ public partial class TrainingRoomRuntime
                 "moan/high_2.wav",
                 "moan/high_4.wav"
             );
-            NotifyVoiceSpeak(3);
+            // 叫聲很大：小嘴巴放大 200%
+            TriggerLoudCryMouth(1.4f);
         }
     }
 
@@ -637,13 +633,13 @@ public partial class TrainingRoomRuntime
             }
             PlayTrVoicePriority("insert/ejac_climax.wav", 3.5f, 1.35f);
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "要、要去了～！！♡", false);
-            NotifyVoiceSpeak(3);
+            TriggerLoudCryMouth(3.0f);
         }
         else
         {
             PlayTrVoicePriority("insert/ejac_normal.wav", 3.5f, 1.35f);
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "不、不行啊～！！", false);
-            NotifyVoiceSpeak(3);
+            TriggerLoudCryMouth(3.0f);
         }
     }
 }
