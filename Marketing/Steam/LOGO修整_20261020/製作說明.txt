@@ -1,1 +1,0 @@
-工具：內建 image_gen。依現有 TitleName.png 清理白灰殘邊、粉色雜點與不規則透明輪廓，保留原繁中文字、換行、金棕描邊、奶白與粉彩字面及主要愛心。遊戲使用 Resources/UI/TitleName.png；原圖備份於同資料夾。
