@@ -495,7 +495,7 @@ void fragment() {
         _canvas.AddChild(bgBase);
         MainMenuRuntime.ApplyPointAnchor(bgBase, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
             BackgroundOffset, BackgroundSize);   // 與 BG 完全相同，避免位移後邊緣露出第二張背景（BackgroundBase* 參數已停用）
-        var texBase = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_room");
+        var texBase = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed(night)");
         if (texBase != null) { bgBase.Texture = texBase; bgBase.Modulate = Colors.White; }
         else bgBase.Modulate = new Color(0.12f, 0.08f, 0.18f);
 
@@ -509,21 +509,9 @@ void fragment() {
         _canvas.AddChild(bg);
         MainMenuRuntime.ApplyPointAnchor(bg, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
             BackgroundOffset, BackgroundSize);
-        var tex = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_room");
+        var tex = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed(night)");
         if (tex != null) { bg.Texture = tex; bg.Modulate = Colors.White; }
         else bg.Modulate = new Color(0.05f, 0.02f, 0.08f);
-
-        // 床鋪獨立透明圖層，沿用背景變換並位於角色下方。
-        var bed = new TextureRect
-        {
-            Name = "BedLayer",
-            Texture = ResourceHelper.LoadTexAny("Backgrounds/bg_LinaiBed_night_bed"),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.Scale,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        bg.AddChild(bed);
-        bed.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
     }
 
     // ── 2. 立繪（分層系統，與 BedroomRuntime 相同架構）──────────────
