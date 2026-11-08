@@ -4,13 +4,15 @@ using System.Collections.Generic;
 /// <summary>
 /// TrainingRoomRuntime — 莉奈（みづきゆうか 聲線）語音與呼吸嬌喘系統。
 /// 支援：
-///   1. 傲嬌/雌小鬼嘲諷台詞（talk_brat）
-///   2. 口齒不清、微弱不堅定、低語小聲台詞（talk_mumble）
-///   3. 融化依賴、撒嬌喜歡台詞（talk_sweet）
-///   4. 40 種短促動態呼吸氣音與嬌喘（moan_breath）
-///   5. 各部位互動觸摸嬌喘（touch_breast, touch_pussy, touch_body, touch_mouth）
-///   6. 興奮絕頂與事後高潮語音（climax, insert）
-///   7. 動態背景蘿莉呼吸嬌喘音軌（ambient/loli_aegi.wav），依快感值平滑淡入淡出。
+///   1. 50% 柔和基礎音量控制（耳邊低語與弱氣台詞再額外降至 0.70x~0.75x）
+///   2. 傲嬌/雌小鬼嘲諷台詞（talk_brat）
+///   3. 口齒不清、微弱不堅定、低語小聲台詞（talk_mumble）
+///   4. 融化依賴、撒嬌喜歡台詞（talk_sweet）
+///   5. 50 款短促動態呼吸氣音與嬌喘（moan_breath）
+///   6. 各部位互動觸摸嬌喘（touch_breast, touch_pussy, touch_body, touch_mouth）
+///   7. 興奮絕頂與事後高潮語音（climax, insert）
+///   8. 動態背景安眠呼吸嬌喘音軌（ambient），依快感值平滑淡入淡出。
+///   9. 發聲即時聯動嘴型開合動畫（IsVoicePlaying / NotifyVoiceSpeak）。
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -19,6 +21,9 @@ public partial class TrainingRoomRuntime
     readonly Dictionary<string, AudioStream> _voiceCache = new();
 
     float _ambientTargetVol = 0f;
+
+    /// <summary>當前是否有語音正在播放，供嘴型聯動判斷</summary>
+    public bool IsVoicePlaying => (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer) && _trVoicePlayer.Playing) || _voiceMouthT > 0.01f;
 
     void InitTrVoice()
     {
@@ -41,7 +46,12 @@ public partial class TrainingRoomRuntime
             };
             AddChild(_trAmbientPlayer);
 
-            string ambPath = "res://Resources/Audio/Voice/TR/ambient/loli_aegi.wav";
+            // 優先使用精選溫柔安眠喘息音軌
+            string ambPath = "res://Resources/Audio/Voice/TR/ambient/slow_gentle_breath.wav";
+            if (!ResourceLoader.Exists(ambPath))
+            {
+                ambPath = "res://Resources/Audio/Voice/TR/ambient/loli_aegi.wav";
+            }
             if (ResourceLoader.Exists(ambPath))
             {
                 var s = GD.Load<AudioStream>(ambPath);
@@ -62,7 +72,8 @@ public partial class TrainingRoomRuntime
         InitTrVoice();
         if (_trAmbientPlayer == null || !IsInstanceValid(_trAmbientPlayer)) return;
 
-        float masterVol = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        // 語音整體音量設為原本的 50%
+        float masterVol = (SettingsManager.Instance?.VoiceVolume ?? 1f) * 0.50f;
         if (masterVol <= 0.001f)
         {
             _trAmbientPlayer.VolumeLinear = 0f;
@@ -77,8 +88,8 @@ public partial class TrainingRoomRuntime
         if (c > 15f || anyTouch || thrusting)
         {
             float intensity = Mathf.Clamp((c - 15f) / 75f, 0f, 1f);
-            float baseVol = (thrusting || anyTouch) ? 0.22f : 0.12f;
-            _ambientTargetVol = (baseVol + intensity * 0.25f) * masterVol;
+            float baseVol = (thrusting || anyTouch) ? 0.18f : 0.09f;
+            _ambientTargetVol = (baseVol + intensity * 0.18f) * masterVol;
         }
         else
         {
@@ -86,7 +97,7 @@ public partial class TrainingRoomRuntime
         }
 
         // 平滑漸層淡入淡出
-        _trAmbientPlayer.VolumeLinear = Mathf.MoveToward(_trAmbientPlayer.VolumeLinear, _ambientTargetVol, dt * 0.4f);
+        _trAmbientPlayer.VolumeLinear = Mathf.MoveToward(_trAmbientPlayer.VolumeLinear, _ambientTargetVol, dt * 0.35f);
         if (_ambientTargetVol > 0.001f && !_trAmbientPlayer.Playing)
         {
             _trAmbientPlayer.Play();
@@ -99,26 +110,27 @@ public partial class TrainingRoomRuntime
         if (string.IsNullOrEmpty(relativePath)) return;
         InitTrVoice();
 
-        float baseVol = SettingsManager.Instance?.VoiceVolume ?? 1f;
+        // 依使用者要求：基礎語音音量為原本的 50%
+        float baseVol = (SettingsManager.Instance?.VoiceVolume ?? 1f) * 0.50f;
         if (baseVol <= 0.001f) return;
 
-        // 依語音類型做合適的音量調整：口齒不清、弱氣與耳邊低語盡量小聲溫柔
+        // 依語音類型做合適的音量調整：口齒不清、弱氣與耳邊低語更加輕柔小聲
         float volScale = 1f;
         if (relativePath.StartsWith("talk_mumble/"))
         {
-            volScale = 0.75f; // 口齒不清、動搖、小聲低語
+            volScale = 0.70f; // 口齒不清、動搖、小聲低語
         }
         else if (relativePath.StartsWith("talk_sweet/"))
         {
-            volScale = 0.80f; // 撒嬌溫存
+            volScale = 0.75f; // 撒嬌溫存
         }
         else if (relativePath.StartsWith("moan_breath/"))
         {
-            volScale = 0.85f; // 嬌喘短促氣音
+            volScale = 0.75f; // 嬌喘短促氣音
         }
         else if (relativePath.StartsWith("touch_"))
         {
-            volScale = 0.88f; // 觸碰嬌哼
+            volScale = 0.80f; // 觸碰嬌哼
         }
 
         string fullPath = "res://Resources/Audio/Voice/TR/" + relativePath.TrimStart('/');
@@ -135,6 +147,9 @@ public partial class TrainingRoomRuntime
         _trVoicePlayer.Stream = stream;
         _trVoicePlayer.VolumeLinear = baseVol * volScale;
         _trVoicePlayer.Play();
+
+        // 觸發嘴巴說話/開合動畫
+        NotifyVoiceSpeak(0.65f);
     }
 
     /// <summary>隨機挑選一首播放</summary>
@@ -145,10 +160,10 @@ public partial class TrainingRoomRuntime
         PlayTrVoice(pick);
     }
 
-    /// <summary>播放短促動態嬌喘氣音（從 40 款真實素材隨機挑選）</summary>
+    /// <summary>播放短促動態嬌喘氣音（從 50 款真實素材隨機挑選）</summary>
     public void PlayBreathMoan()
     {
-        int idx = (int)(GD.Randi() % 40) + 1;
+        int idx = (int)(GD.Randi() % 50) + 1;
         PlayTrVoice($"moan_breath/breath_{idx}.wav");
     }
 
@@ -178,11 +193,12 @@ public partial class TrainingRoomRuntime
             return;
         }
 
-        // 3. 口齒不清、舌頭打結、微弱不堅定、耳邊低語小聲（らめ、もうだめでしゅ、みないでぇ等）
+        // 3. 口齒不清、舌頭打結、微弱不堅定、耳邊低語小聲（らめ、もうだめでしゅ、みないでぇ、やだ等）
         if (text.Contains("不要") || text.Contains("不行") || text.Contains("住手") || text.Contains("慢一點") ||
             text.Contains("別看") || text.Contains("痛") || text.Contains("みないで") || text.Contains("無理") ||
             text.Contains("むり") || text.Contains("だめ") || text.Contains("らめ") || text.Contains("打結") ||
-            text.Contains("口齒不清") || text.Contains("放開") || text.Contains("壞心"))
+            text.Contains("口齒不清") || text.Contains("放開") || text.Contains("壞心") || text.Contains("討厭") ||
+            text.Contains("やだ"))
         {
             PlayTrVoiceRandom(
                 "talk_mumble/mumble_rame.wav",
@@ -195,7 +211,11 @@ public partial class TrainingRoomRuntime
                 "talk_mumble/mumble_moudame_1.wav",
                 "talk_mumble/mumble_moudame_2.wav",
                 "talk_mumble/mumble_damea.wav",
-                "talk_mumble/mumble_iyanano.wav"
+                "talk_mumble/mumble_iyanano.wav",
+                "talk_mumble/mumble_yada.wav",
+                "talk_mumble/mumble_sleep_rame_1.wav",
+                "talk_mumble/mumble_sleep_rame_2.wav",
+                "talk_mumble/mumble_endure.wav"
             );
             return;
         }
@@ -214,7 +234,9 @@ public partial class TrainingRoomRuntime
                 "talk_sweet/sweet_gyutte.wav",
                 "talk_sweet/sweet_sukisuki.wav",
                 "talk_sweet/sweet_ecchi.wav",
-                "talk_sweet/sweet_aha.wav"
+                "talk_sweet/sweet_aha.wav",
+                "talk_sweet/sweet_sleep_gyutte.wav",
+                "talk_sweet/sweet_sleep_soko.wav"
             );
             return;
         }
@@ -292,13 +314,15 @@ public partial class TrainingRoomRuntime
                 PlayTrVoiceRandom(
                     "touch_breast/breast_touch_1.wav",
                     "touch_breast/breast_touch_2.wav",
-                    "touch_breast/breast_touch_3.wav"
+                    "touch_breast/breast_touch_3.wav",
+                    "touch_breast/breast_touch_4.wav",
+                    "touch_breast/breast_touch_5.wav"
                 );
                 break;
             case "nipple":
                 PlayTrVoiceRandom(
                     "touch_breast/breast_touch_2.wav",
-                    "touch_breast/breast_touch_3.wav",
+                    "touch_breast/breast_touch_4.wav",
                     "talk_sweet/sweet_sokosuki_2.wav"
                 );
                 break;
@@ -306,7 +330,10 @@ public partial class TrainingRoomRuntime
                 PlayTrVoiceRandom(
                     "touch_mouth/mouth_kiss_1.wav",
                     "touch_mouth/mouth_kiss_2.wav",
-                    "touch_mouth/mouth_kiss_3.wav"
+                    "touch_mouth/mouth_kiss_3.wav",
+                    "touch_mouth/sleep_kiss_1.wav",
+                    "touch_mouth/sleep_kiss_2.wav",
+                    "touch_mouth/sleep_kiss_3.wav"
                 );
                 break;
             case "pussy":
@@ -314,6 +341,7 @@ public partial class TrainingRoomRuntime
                     "touch_pussy/pussy_touch_1.wav",
                     "touch_pussy/pussy_touch_2.wav",
                     "touch_pussy/pussy_touch_3.wav",
+                    "touch_pussy/pussy_touch_4.wav",
                     "talk_mumble/mumble_rame.wav"
                 );
                 break;
@@ -321,7 +349,11 @@ public partial class TrainingRoomRuntime
             case "body":
                 PlayTrVoiceRandom(
                     "touch_body/body_touch_1.wav",
-                    "touch_body/body_touch_2.wav"
+                    "touch_body/body_touch_2.wav",
+                    "touch_body/sleep_hum_1.wav",
+                    "touch_body/sleep_hum_2.wav",
+                    "touch_body/sleep_sigh_1.wav",
+                    "touch_body/sleep_sigh_2.wav"
                 );
                 break;
             case "thrust":
