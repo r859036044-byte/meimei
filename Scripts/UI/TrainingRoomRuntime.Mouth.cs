@@ -3,9 +3,12 @@ using Godot;
 /// <summary>
 /// TrainingRoomRuntime — 嘴巴外觀與說話動作控制系統：
 ///   1. 教程（操作說明面板開啟）或尚未對莉奈進行任何身體互動前，不更換原本的嘴巴（張嘴1）。
-///   2. 一旦被摸或被插（以及互動進行中、說完話後），一律使用「小嘴巴」或高快感時的「小嘴吐舌」，絕不變回原本的嘴巴（張嘴1／表情嘴巴／抖動嘴）。
-///   3. 只有真正說台詞時才動嘴巴（純嬌喘／叫聲不換嘴），並使用「笑」倒過來壓扁（X=0.45, Y=-0.38）搭配「小嘴巴」呈現自然的閉嘴張嘴說話效果。
-///   4. 當叫聲很大時（破處、高潮、小高潮、內射、激烈抽插高音嬌喘），使用「小嘴巴」放大 200%（Scale = 2.0, 2.0）。
+///   2. 插入過程三段式反應：
+///      ① 剛抵住入口時（Stage 0）：先是「小嘴巴」（正常大小 1.0x）
+///      ② 按住推擠破處阻力時（_resistBlocking）：換成「抖動嘴」
+///      ③ 突破瞬間與插入完成（Stage >= 1）：換成「小嘴巴放大」（200% 大叫，之後保持微張大嘴）
+///   3. 說台詞時使用「笑」倒過來壓扁（X=0.45, Y=-0.38）搭配「小嘴巴」開合，說完話動作中絕不變回原本的嘴巴。
+///   4. 叫聲很大時（破處、高潮、小高潮、內射、激烈抽插），使用「小嘴巴」放大 200%（Scale = 2.0, 2.0）。
 /// </summary>
 public partial class TrainingRoomRuntime
 {
@@ -183,7 +186,57 @@ public partial class TrainingRoomRuntime
         string baseMouth = GetActiveBaseMouth();
 
         // ════════════════════════════════════════════════════════════
-        //  1. 叫聲很大時：用「小嘴巴」放大 200%（Scale = 2.0, 2.0）
+        //  1. 插入過程三段式嘴巴反應：先是小嘴巴 -> 抖動嘴 -> 小嘴巴放大
+        // ════════════════════════════════════════════════════════════
+        if (_jijiPhase == 3)
+        {
+            // ① 剛抵住入口、還沒頂到底或未進入阻力推擠時（Stage 0）：先是小嘴巴
+            if (_jijiStage == 0 && !_resistBlocking)
+            {
+                ShowOnlyMouth("小嘴巴");
+                ApplyMouthScale("小嘴巴", Vector2.One);
+                return;
+            }
+
+            // ② 按住左鍵用力推擠破處阻力時（_resistBlocking）：換成抖動嘴
+            if (_resistBlocking)
+            {
+                ShowOnlyMouth("抖動嘴");
+                ApplyMouthScale("抖動嘴", Vector2.One);
+                return;
+            }
+
+            // ③ 突破瞬間（OnBreakthroughWetCheck）或處於破處高潮叫聲中：小嘴巴放大 200%
+            if (_loudCryMouthT > 0f)
+            {
+                ShowOnlyMouth("小嘴巴");
+                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                return;
+            }
+
+            // ④ 突破後 / Stage >= 1 插入中：小嘴巴放大（依抽插深度與速度脈動放大 1.35x ~ 1.85x）
+            bool thrustingNow = _jijiStage >= 1 && !_s2Paused;
+            float normSpeedNow = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
+            if (normSpeedNow >= 0.65f || ClimaxLevel >= 85f)
+            {
+                ShowOnlyMouth("小嘴巴");
+                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                return;
+            }
+
+            // 說台詞時才開合，沒說話時保持小嘴巴放大
+            if (!(_isTalking && MouthTalkAnimEnabled))
+            {
+                string insertMouth = (baseMouth == "小嘴吐舌") ? "小嘴吐舌" : "小嘴巴";
+                ShowOnlyMouth(insertMouth);
+                float insertScale = thrustingNow ? Mathf.Lerp(1.35f, 1.80f, normSpeedNow) : 1.45f;
+                ApplyMouthScale(insertMouth, new Vector2(insertScale, insertScale));
+                return;
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════
+        //  2. 叫聲很大時：用「小嘴巴」放大 200%（Scale = 2.0, 2.0）
         // ════════════════════════════════════════════════════════════
         if (_loudCryMouthT > 0f || _mouthClimaxShakeT > 0f || _spasmsRunning || _insertEjacActive || _ejacRunning)
         {
@@ -194,7 +247,7 @@ public partial class TrainingRoomRuntime
         }
 
         // ════════════════════════════════════════════════════════════
-        //  2. 說台詞時的張嘴閉嘴動畫：用「笑」倒過來壓扁替代張嘴閉嘴效果
+        //  3. 說台詞時的張嘴閉嘴動畫：用「笑」倒過來壓扁替代張嘴閉嘴效果
         //     說完話直接回到小嘴巴（或小嘴吐舌），絕不變回原本的嘴巴
         // ════════════════════════════════════════════════════════════
         if (MouthTalkAnimEnabled && _isTalking)
@@ -231,22 +284,8 @@ public partial class TrainingRoomRuntime
         }
 
         // ════════════════════════════════════════════════════════════
-        //  3. 被摸或是被插的時候（以及互動後）：一律用「小嘴巴」或「小嘴吐舌」
-        //     若抽插速度很快或高潮將近（叫聲較大），小嘴巴放大至 200%
+        //  4. 一般被摸或待機（互動後）：一律用「小嘴巴」或「小嘴吐舌」
         // ════════════════════════════════════════════════════════════
-        bool thrusting = _jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused;
-        if (thrusting)
-        {
-            float normSpeed = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
-            if (normSpeed >= 0.65f || ClimaxLevel >= 85f)
-            {
-                // 激烈抽插叫聲很大：小嘴巴放大 200%
-                ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
-                return;
-            }
-        }
-
         ShowOnlyMouth(baseMouth);
         ApplyMouthScale(baseMouth, Vector2.One);
     }
