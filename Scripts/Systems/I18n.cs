@@ -1156,6 +1156,12 @@ public static class I18n
             "んん……",
             "으응……");
 
+        Add("睡覺還是雌小鬼的樣子嗎？",
+            "睡觉还是雌小鬼的样子吗？",
+            "Are you still a brat even while sleeping?",
+            "寝てる時までメスガキのままなのかよ？",
+            "자면서까지 메스가키 모습인 거야?");
+
         Add("我哪有命令你，只是問問你要不要而已。",
             "我哪有命令你，只是问问你要不要而已。",
             "I'm not ordering you, just asking if you'd like to.",

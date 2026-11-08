@@ -58,7 +58,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MLegCamSmooth = 1f;   // M 腿拉近／縮回的縮放速度（越小越慢；滾輪縮放仍用 CamZoomSmooth）
     float _camSmoothOverride = -1f;
     float _mLegPrevZoomTarget = 1.1f;
-    float _mLegZoomFloor = 1.1f;   // M 腿中滾輪可縮到的最小倍率
+    float _mLegSetZoom = -1f;   // 進入 M 腿時鏡頭自動設定的倍率（離開時若玩家沒再用滾輪調過才縮回原倍率）
 
     /// <summary>進入 M 腿：鏡頭以胸部為中心拉近 20%；離開 M 腿：縮回進入前的倍率。</summary>
     void MLegCameraFocus(bool opening)
@@ -74,8 +74,10 @@ public partial class TrainingRoomRuntime
                 if (Layers.TryGetValue(name, out var c) && c != null)
                 { sum += ScreenToWorld(c.GetGlobalRect().GetCenter()); n++; }
             Vector2 chestWorld = n > 0 ? sum / n : ScreenToWorld(vp * 0.5f);
-            _camZoomTarget = Mathf.Clamp(_camZoomTarget * MLegCamZoomMul, 1.1f, Mathf.Max(1.1f, CamZoomMax));
-            _mLegZoomFloor = _camZoomTarget;
+            // 已經拉近到 M 腿該有的倍率以上就不再多拉（原本是直接乘上去，拉近時抬腳會變得更近、還卡在上限）
+            float mLegZoom = Mathf.Clamp(1.1f * MLegCamZoomMul, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+            if (_camZoomTarget < mLegZoom) _camZoomTarget = mLegZoom;
+            _mLegSetZoom = _camZoomTarget;
             // X 不位移：以目前畫面中心的 X 當錨點；Y 才對準胸部（畫面中央）
             float centerWorldX = (vp.X * 0.5f - _camOffset.X) / _camZoom;
             _camAnchorWorld  = new Vector2(centerWorldX, chestWorld.Y);
@@ -83,7 +85,9 @@ public partial class TrainingRoomRuntime
         }
         else
         {
-            _camZoomTarget = _mLegPrevZoomTarget;
+            // 玩家在 M 腿中用滾輪調過倍率就尊重他的設定，不強制縮回
+            if (Mathf.IsEqualApprox(_camZoomTarget, _mLegSetZoom)) _camZoomTarget = _mLegPrevZoomTarget;
+            _mLegSetZoom = -1f;
             _camAnchorScreen = vp * 0.5f;
             _camAnchorWorld  = (vp * 0.5f - _camOffset) / _camZoom;   // 以目前畫面中心為中心縮回
         }
@@ -111,8 +115,7 @@ public partial class TrainingRoomRuntime
             {
                 if (IsPointerOverUi()) return false;
                 float f = mb.ButtonIndex == MouseButton.WheelUp ? CamZoomStep : 1f / CamZoomStep;
-                // M 腿中：滾輪不能縮到比 M 腿拉近的倍率更小（要縮回請解除 M 腿）
-                float minZ = _mLegOpen ? _mLegZoomFloor : 1.1f;
+                float minZ = 1.1f;   // M 腿中滾輪也可以自由縮放
                 _camZoomTarget = Mathf.Clamp(_camZoomTarget * f, minZ, Mathf.Max(minZ, CamZoomMax));
                 _camSmoothOverride = -1f;
                 _camAnchorScreen = mb.Position;
@@ -142,7 +145,6 @@ public partial class TrainingRoomRuntime
         }
         else if (e is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.Home)
         {
-            if (_mLegOpen) return true;   // M 腿中不能重置縮小（要縮回請解除 M 腿）
             _camZoomTarget = 1.1f;
             _camOffset = CamDefaultOffset();   // Home 鍵重置也回到預設鏡頭位置
             return true;

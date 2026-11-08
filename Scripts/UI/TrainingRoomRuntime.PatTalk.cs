@@ -8,8 +8,8 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("摸頭台詞")]
     [Export] public bool     PatTalkEnabled   = true;
-    [Export] public string[] PatPlayerLines   = { "摸摸頭～", "這樣摸舒服嗎？", "平常嘴那麼硬，摸頭倒是挺老實的嘛～", "小鬼頭…♪" };
-    [Export] public string[] PatPlayerLinesSex = { "乖…放輕鬆…我抱緊妳…", "摸摸頭…好孩子…", "有我在…放鬆一點…" };
+    [Export] public string[] PatPlayerLines   = { "摸摸頭～", "這樣摸舒服吧。", "平常嘴那麼硬，摸頭倒是挺老實的嘛～", "小鬼頭…♪" };
+    [Export] public string[] PatPlayerLinesSex = { "放輕鬆…我抱緊妳…", "摸摸頭…好孩子…", "放鬆一點哦…" };
     [Export] public string[] PatGirlLinesSex   = { "呼…摸頭的話…好安心…♡", "哥哥…抱緊我…♡", "哈啊…一邊做一邊摸頭…好舒服…♡", "嗯…♡ 不要放開我喔…" };
     [Export] public string[] PatGirlLines     = { "哼～別以為摸摸頭我就會聽話喔…笨蛋雜魚♡", "才沒有覺得很舒服呢…雜魚♡", "嘻嘻…再多摸一下也不是不行啦♪", "唔…別把我當小孩子啦！", "笨蛋雜魚…♪" };
     [Export] public float    PatTalkFirstDelay = 0.8f;   // 開始摸頭後多久出現第一句

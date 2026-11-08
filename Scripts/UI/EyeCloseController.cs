@@ -26,6 +26,7 @@ public partial class EyeCloseController : Node
         [Export] public float   CloseOffsetX = 0f;
         [Export] public float   CloseOffsetY = -30f;
         [Export] public float   CloseRotateZ = 0f;
+        public bool    IsLowerLash  = false;   // 下睫毛（ZZZ 時可額外往上移，見 LowerLashExtraUpY）
         [Export] public int     EyeGroup     = 0;
         [Export] public Vector2 OpenPos;
         [Export] public float   OpenRotateZ;
@@ -121,6 +122,8 @@ public partial class EyeCloseController : Node
     /// 睜眼狀態（t=0）完全不受影響。目前只有 ZZZ（睡覺）表情會設這個值，見
     /// FaceExpressionController.cs 的 _eyeExtraCloseOffsetMap。</summary>
     [Export] public float ClosedExtraOffsetY = 0f;
+    /// <summary>閉眼時「下睫毛」額外往上移的量（只有 ZZZ 會設值）。</summary>
+    [Export] public float LowerLashExtraUpY = 0f;
 
     /// <summary>閉眼時左右眼各自的高度校正（Godot 座標，正值＝往下，負值＝往上）。
     /// 實際遊戲截圖量測：沒校正時，閉眼後畫面右眼（群組1）比左眼（群組2）低約 16px（角色畫布座標）。
@@ -548,7 +551,7 @@ public partial class EyeCloseController : Node
             // Unity Y 朝上 → Godot Y 朝下，CloseOffsetY 在 Unity 是負值=下移，Godot 裡正值=下移
             // ClosedExtraOffsetY：額外的「閉眼時整體再往下」偏移量（目前只有 ZZZ 表情會用到）。
             float groupFixY = p.EyeGroup == 1 ? ClosedOffsetYGroup1 : p.EyeGroup == 2 ? ClosedOffsetYGroup2 : 0f;
-            Vector2 closePos = p.OpenPos + new Vector2(p.CloseOffsetX, -p.CloseOffsetY + ClosedExtraOffsetY + groupFixY);
+            Vector2 closePos = p.OpenPos + new Vector2(p.CloseOffsetX, -p.CloseOffsetY + ClosedExtraOffsetY + groupFixY - (p.IsLowerLash ? LowerLashExtraUpY : 0f));
             p.RT.Position = p.OpenPos.Lerp(closePos, et) + breathV;
 
             // ClosedExtraRotateZ：額外的「閉眼時垂下」旋轉角度（目前只有 ZZZ 表情會用到）。

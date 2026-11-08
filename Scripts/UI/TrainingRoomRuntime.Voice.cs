@@ -113,6 +113,7 @@ public partial class TrainingRoomRuntime
         InitTrVoice();
         if (_voicePriorityLockTimer > 0f) _voicePriorityLockTimer -= dt;
         if (_resistVoiceCd > 0f) _resistVoiceCd -= dt;
+        UpdateVoiceSeq();
         UpdateIdleMoan(dt);
     }
 
@@ -182,6 +183,7 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoice(string relativePath, bool forcePriority = false, float customVolScale = -1f)
     {
         if (string.IsNullOrEmpty(relativePath)) return;
+        if (!_seqAdvancing) { _voiceSeq.Clear(); _seqCurrent = false; }   // 別的語音插進來就取消依序佇列
         InitTrVoice();
 
         // 若目前正在播放高優先級語音（如破處、高潮、剛插入），一般語音不可打斷覆蓋
@@ -255,10 +257,54 @@ public partial class TrainingRoomRuntime
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
     }
 
+    static readonly int[] BreathIds = { 1,2,3,4,5,6,7,8,9, 11,12, 15, 21,22,23,24,25,26, 30,31, 33, 35,36,37,38, 41,42,43,44,45,46,47,48,49,50 };
+
+    // ── 無觸碰固定語音：依序播放（前一個播完才接下一個，不再隨機）──
+    readonly System.Collections.Generic.Queue<string> _voiceSeq = new();
+    bool _seqCurrent;      // 目前播的是依序語音
+    bool _seqAdvancing;    // 正在由佇列接下一個（不要清佇列）
+
+    /// <summary>依序播放指定語音（同一句內前一個播完才接下一個）；新台詞出現時立刻中斷上一輪、直接播最新的。</summary>
+    public void PlayTrVoiceSeq(params string[] paths)
+    {
+        if (paths == null || paths.Length == 0) return;
+        _voiceSeq.Clear();
+        PlayTrVoice(paths[0], forcePriority: true);
+        _seqCurrent = true;
+        for (int i = 1; i < paths.Length; i++) _voiceSeq.Enqueue(paths[i]);
+    }
+
+    void UpdateVoiceSeq()
+    {
+        if (_voiceSeq.Count == 0 || IsVoicePlaying) return;
+        _seqAdvancing = true;
+        PlayTrVoice(_voiceSeq.Dequeue(), forcePriority: true);
+        _seqAdvancing = false;
+        _seqCurrent = true;
+    }
+
+    /// <summary>無觸碰時的固定語音（台詞→音檔）。回傳 true＝有處理。</summary>
+    bool TryPlayIdleFixedVoice(string text)
+    {
+        const string F = "talk_brat/fun.wav", S = "talk_brat/sono_teido.wav";
+        const string Z1 = "talk_brat/brat_zako_1.wav", Z2 = "talk_brat/brat_zako_2.wav";
+        const string B = "talk_brat/brat_baka.wav", T = "talk_brat/brat_taunt.wav";
+        if (text.Contains("雜魚好沒用"))      { PlayTrVoiceSeq(T); return true; }
+        if (text.Contains("雜魚也敢命令我"))  { PlayTrVoiceSeq(F, S); return true; }
+        if (text.Contains("才不聽你的"))      { PlayTrVoiceSeq(F, B); return true; }
+        if (text.Contains("笨蛋笨蛋"))        { PlayTrVoiceSeq(B); return true; }
+        if (text.Contains("弱雞"))            { PlayTrVoiceSeq(Z2); return true; }
+        if (text.Contains("哼") && text.Contains("雜魚")) { PlayTrVoiceSeq(F, Z1); return true; }
+        if (text.Contains("等好久"))          { PlayTrVoiceSeq(F); return true; }
+        return false;
+    }
+
+
     /// <summary>播放短促動態嬌喘氣音（純氣音不換嘴開合）</summary>
     public void PlayBreathMoan()
     {
-        int idx = (int)(GD.Randi() % 50) + 1;
+        // 只用指定編號：1~9、11~12、15、21~26、30~31、33、35~38、41~50
+        int idx = BreathIds[(int)(GD.Randi() % (uint)BreathIds.Length)];
         PlayTrVoice($"moan_breath/breath_{idx}.wav");
     }
 
@@ -386,6 +432,13 @@ public partial class TrainingRoomRuntime
                 PlayInsertionResistVoice();
                 return;
             }
+        }
+
+        // 0.5 無觸碰（沒有任何部位被碰）：指定語音、依序播放
+        {
+            var ff = _reactFlags;
+            bool anyTouch = ff.breast || ff.nipple || ff.mouth || ff.head || ff.pussy || ff.thrust;
+            if (!anyTouch && TryPlayIdleFixedVoice(text)) return;
         }
 
         // 1. 雌小鬼調侃、嘲諷、罵人
@@ -561,9 +614,7 @@ public partial class TrainingRoomRuntime
                         "talk_brat/brat_zako_1.wav",
                         "talk_brat/brat_zako_2.wav",
                         "talk_brat/brat_taunt.wav",
-                        "talk_sweet/sweet_aha.wav",
-                        "touch_body/sleep_hum_1.wav",
-                        "touch_body/sleep_hum_2.wav"
+                        "talk_sweet/sweet_aha.wav"
                     );
                 }
                 break;

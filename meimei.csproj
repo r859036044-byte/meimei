@@ -4,4 +4,8 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>meimei</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Duplicate of Scripts/UI/SpineChar.cs; excluded to avoid CS0102 duplicate definitions -->
+    <Compile Remove="Scripts/SpineChar.cs" />
+  </ItemGroup>
 </Project>
