@@ -135,6 +135,8 @@ public partial class TrainingRoomRuntime
     public void TriggerMouthSmile() { }
 
     string _mouthShown;
+    [Export] public Vector2 MouthTouchShakeSec = new Vector2(1f, 2f);   // 剛被碰到小穴／胸部時，抖動嘴持續幾秒（隨機 X~Y）
+    float  _touchShakeT; bool _touchShakePrev;
     bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
     readonly System.Collections.Generic.Dictionary<string, (bool vis, Vector2 scale, Vector2 pivot)> _pinchMouthSnap = new();
     [Export(PropertyHint.Range, "0,5,0.1")] public float PinchFrownDelaySec = 1f;   // 捏住多久才換成倒笑
@@ -175,6 +177,11 @@ public partial class TrainingRoomRuntime
     {
         _mouthSmileT -= dt;
         _mouthNearTarget = 1f;
+        // 被觸碰小穴或胸部的瞬間：嘴巴抖動 1~2 秒（只在「剛碰到」那一刻觸發，不是按著一直重觸發）
+        bool tsTouch_ = _reactFlags.breast || _reactFlags.pussy;
+        if (tsTouch_ && !_touchShakePrev) { _touchShakeT = (float)GD.RandRange(MouthTouchShakeSec.X, MouthTouchShakeSec.Y); _hasBeenTouched = true; }
+        _touchShakePrev = tsTouch_;
+        if (_touchShakeT > 0f) _touchShakeT -= dt;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
 
         // 捏臉（按住臉頰拖動）：捏滿 PinchFrownDelaySec 秒才換成倒笑（一捏就換太突兀）；放手就還原
@@ -228,6 +235,14 @@ public partial class TrainingRoomRuntime
         }
 
         string baseMouth = GetActiveBaseMouth();
+
+        // 剛被碰到小穴／胸部：抖動嘴 1~2 秒（插入中由下面三段式嘴巴負責，不在這裡處理）
+        if (_touchShakeT > 0f && _jijiPhase != 3)
+        {
+            ShowOnlyMouth("抖動嘴");
+            ApplyMouthScale("抖動嘴", Vector2.One);
+            return;
+        }
 
         // ════════════════════════════════════════════════════════════
         //  1. 插入過程三段式嘴巴反應：先是小嘴巴 -> 抖動嘴 -> 小嘴巴放大
