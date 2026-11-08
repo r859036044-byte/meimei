@@ -137,8 +137,10 @@ public partial class TrainingRoomRuntime
     string _mouthShown;
     [Export] public Vector2 MouthTouchShakeSec = new Vector2(1f, 2f);   // 剛被碰到小穴／胸部時，抖動嘴持續幾秒（隨機 X~Y）
     float  _touchShakeT; bool _touchShakePrev;
+    bool   _bratSpoke;   // 雌小鬼說過話（說完／捏完之後要回到雌小鬼嘴）
+    /// <summary>雌小鬼嘴＝笑臉「張嘴1」（雌小鬼值 ≥ MouthBratSmileAt 時）</summary>
+    bool BratMouthOn => BratEnabled && BratValue >= MouthBratSmileAt;
     bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
-    readonly System.Collections.Generic.Dictionary<string, (bool vis, Vector2 scale, Vector2 pivot)> _pinchMouthSnap = new();
     [Export(PropertyHint.Range, "0,5,0.1")] public float PinchFrownDelaySec = 1f;   // 捏住多久才換成倒笑
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleX = 0.45f;   // 倒笑嘴左右壓縮（0.45＝跟小嘴巴同寬）
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleY = 1f;      // 倒笑嘴上下大小（1＝翻轉後不壓扁）
@@ -179,7 +181,8 @@ public partial class TrainingRoomRuntime
         _mouthNearTarget = 1f;
         // 被觸碰小穴或胸部的瞬間：嘴巴抖動 1~2 秒（只在「剛碰到」那一刻觸發，不是按著一直重觸發）
         bool tsTouch_ = _reactFlags.breast || _reactFlags.pussy;
-        if (tsTouch_ && !_touchShakePrev) { _touchShakeT = (float)GD.RandRange(MouthTouchShakeSec.X, MouthTouchShakeSec.Y); _hasBeenTouched = true; }
+        if (_bratLineType == 1) _bratSpoke = true;
+        if (tsTouch_ && !_touchShakePrev) { if (_bratLineType == 0) _bratSpoke = false; _touchShakeT = (float)GD.RandRange(MouthTouchShakeSec.X, MouthTouchShakeSec.Y); _hasBeenTouched = true; }
         _touchShakePrev = tsTouch_;
         if (_touchShakeT > 0f) _touchShakeT -= dt;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
@@ -187,13 +190,7 @@ public partial class TrainingRoomRuntime
         // 捏臉（按住臉頰拖動）：捏滿 PinchFrownDelaySec 秒才換成倒笑（一捏就換太突兀）；放手就還原
         if (_pinchDrag && _pinchPressT >= PinchFrownDelaySec)
         {
-            if (!_pinchMouthOn)
-            {   // 剛要換成倒笑：先記下現在每個嘴巴圖層的顯示／縮放（有雌小鬼時放手要還原成這個初始嘴）
-                _pinchMouthSnap.Clear();
-                foreach (var n in _mouthLayerNames)
-                    if (Layers.TryGetValue(n, out var nd) && nd is Control nc) _pinchMouthSnap[n] = (nc.Visible, nc.Scale, nc.PivotOffset);
-                _pinchMouthOn = true;
-            }
+            _pinchMouthOn = true;
             ShowOnlyMouth("笑");
             ApplyFrownMouth();
             return;
@@ -201,13 +198,12 @@ public partial class TrainingRoomRuntime
         if (_pinchMouthOn && !_pinchDrag)
         {
             _pinchMouthOn = false;
-            if (BratEnabled && BratValue >= MouthBratSmileAt && _pinchMouthSnap.Count > 0)
-            {   // 有雌小鬼：變回捏之前的初始雌小鬼嘴
-                foreach (var kv in _pinchMouthSnap)
-                    if (Layers.TryGetValue(kv.Key, out var nd) && nd is Control nc) { nc.Visible = kv.Value.vis; nc.Scale = kv.Value.scale; nc.PivotOffset = kv.Value.pivot; }
+            if (BratMouthOn)
+            {   // 有雌小鬼：變回雌小鬼嘴（笑臉張嘴1）
+                ShowOnlyMouth("張嘴1");
+                ApplyMouthScale("張嘴1", Vector2.One);
             }
             else ReleaseMouth("");
-            _pinchMouthSnap.Clear();
         }
 
         // 若正在用舌頭親嘴（_tongueOn），嘴巴圖層由 TongueOverlay 遮蓋，不顯示底層嘴巴
@@ -336,7 +332,7 @@ public partial class TrainingRoomRuntime
             {
                 // 說完台詞：普通摸頭回到笑，其他回到小嘴巴（或小嘴吐舌），不會變回原本的嘴巴
                 _isTalking = false;
-                string talkEndMouth = (_patOn && _jijiPhase != 3) ? "笑" : baseMouth;
+                string talkEndMouth = (_patOn && _jijiPhase != 3) ? "笑" : ((_bratSpoke && BratMouthOn) ? "張嘴1" : baseMouth);
                 ShowOnlyMouth(talkEndMouth);
                 ApplyMouthScale(talkEndMouth, Vector2.One);
                 return;
@@ -352,6 +348,14 @@ public partial class TrainingRoomRuntime
         {
             ShowOnlyMouth("笑");
             ApplyMouthScale("笑", Vector2.One);
+            return;
+        }
+
+        // 雌小鬼對話之後：回到雌小鬼嘴（笑臉張嘴1）
+        if (_bratSpoke && BratMouthOn)
+        {
+            ShowOnlyMouth("張嘴1");
+            ApplyMouthScale("張嘴1", Vector2.One);
             return;
         }
 
