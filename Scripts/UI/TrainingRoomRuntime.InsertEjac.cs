@@ -81,6 +81,7 @@ public partial class TrainingRoomRuntime
 
             FaceController?.SetExpression("插入2");
             await MoveInsertAsync(baseY, deep, 0.15f);
+            PlayRinaEjacReaction();
             await PulseAsync(deep, 2);
             await MoveInsertAsync(deep, back, 0.2f);
             await WaitSecAsync(0.1f);

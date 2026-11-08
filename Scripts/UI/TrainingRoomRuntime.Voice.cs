@@ -467,4 +467,26 @@ public partial class TrainingRoomRuntime
             NotifyVoiceSpeak(3);
         }
     }
+
+    /// <summary>莉奈被射時的台詞反應：高潮時「要、要去了～！！♡」，沒高潮時「不、不行啊～！！」</summary>
+    public void PlayRinaEjacReaction()
+    {
+        bool rinaClimax = _spasmsRunning || ClimaxLevel >= 50f;
+        if (rinaClimax)
+        {
+            if (ClimaxLevel >= 50f && !_spasmsRunning)
+            {
+                TriggerClimax();
+            }
+            PlayTrVoice("insert/ejac_climax.wav");
+            ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "要、要去了～！！♡", false);
+            NotifyVoiceSpeak(3);
+        }
+        else
+        {
+            PlayTrVoice("insert/ejac_normal.wav");
+            ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, "不、不行啊～！！", false);
+            NotifyVoiceSpeak(3);
+        }
+    }
 }
