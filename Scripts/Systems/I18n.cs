@@ -90,6 +90,14 @@ public static class I18n
 
     public static void RegisterToGodot()
     {
+        // 註冊繁體中文 (zh_TW)，映射自身繁體文字，防止 Godot 在找不到 zh_TW 時自動回退 (fallback) 到 zh_CN
+        var trTW = new Translation { Locale = "zh_TW" };
+        foreach (var key in Dictionaries["zh_CN"].Keys)
+        {
+            trTW.AddMessage(key, key);
+        }
+        TranslationServer.AddTranslation(trTW);
+
         string[] locales = { "zh_CN", "en", "ja", "ko" };
         foreach (var loc in locales)
         {
