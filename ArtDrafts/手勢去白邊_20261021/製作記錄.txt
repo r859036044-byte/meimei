@@ -1,3 +1,0 @@
-內建 image_gen 清理既有兩張手部素材的白色殘邊與碎點，無新增外部素材。原素材權利沿用既有記錄。覆蓋 Resources/Sprites/游標.png、捏臉手_右手.png。
-提示：
-Precise alpha edge cleanup ONLY of supplied hand sprite. Remove all white/cream background remnants, white fringe, isolated pale speckles outside silhouette, especially jagged white scraps along the cut wrist at lower right and below wrist. Outside intended dark outline and skin must be true zero-alpha transparency. Preserve exactly the hand gesture, anatomy, colors, shading, framing, dimensions, fingertip position and wrist position. Do not redraw, relight or change pose. Close wrist cut edge cleanly with the existing dark brown outline and crisp antialiased contour. No added backgrounds or checkerboard. Output transparent PNG.
