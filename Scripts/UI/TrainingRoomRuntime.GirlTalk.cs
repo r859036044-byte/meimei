@@ -232,6 +232,7 @@ public partial class TrainingRoomRuntime
     /// <summary>莉奈說一句台詞：支援「|」分段、「=>」男主回應，並依舒服／不舒服加工。allowReply＝false 時不播男主回應（例如這時男主對話框已經是選項）。回傳這句有沒有帶男主回應。</summary>
     bool GirlSayRich(string raw, bool allowReply = true)
     {
+        raw = I18n.TLine(raw);
         ParseGirlLine(raw, out var segs, out var reply);
         _lastGirlLineSoundOnly = IsSoundOnly(string.Join("", segs));
         if (_lastGirlLineSoundOnly) reply = null;   // 只有「嗯…」「啊哈…」這種聲音：男主不回應

@@ -32,12 +32,14 @@ public partial class SettingsManager : Node
     // ═══════════════════════════════════════════════════════════
     //  常數
     // ═══════════════════════════════════════════════════════════
-    public static readonly string[] Languages  = { "繁體中文", "简体中文", "English", "日本語" };
+    public static readonly string[] Languages  = { "繁體中文", "简体中文", "English", "日本語", "한국어" };
+    public static readonly string[] Locales    = { "zh_TW", "zh_CN", "en", "ja", "ko" };
     public static readonly string[] TextSpeeds = { "慢", "普通", "快" };
     public static readonly float[]  TypeValues = { 0.06f, 0.03f, 0.01f };
 
     /// <summary>音量變更時觸發，供各場景即時更新音量</summary>
     public static event Action OnVolumeChanged;
+    public static event Action OnLanguageChanged;
 
     // 設定檔路徑
     private const string ConfigPath    = "user://settings.cfg";
@@ -56,6 +58,7 @@ public partial class SettingsManager : Node
             return;
         }
         Instance = this;
+        I18n.RegisterToGodot();
         Load();
 
         // 延遲一幀確保視窗設定生效，避免被引擎初始化覆蓋
@@ -104,8 +107,10 @@ public partial class SettingsManager : Node
     public void SetLanguage(int i)
     {
         LanguageIndex = Mathf.Clamp(i, 0, Languages.Length - 1);
-        string[] locales = { "zh_TW", "zh_CN", "en", "ja" };
-        TranslationServer.SetLocale(locales[LanguageIndex]);
+        string loc = Locales[LanguageIndex];
+        TranslationServer.SetLocale(loc);
+        I18n.CurrentLocale = loc;
+        OnLanguageChanged?.Invoke();
     }
     public void SetResolution(int i)
     {
