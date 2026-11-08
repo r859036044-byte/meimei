@@ -179,8 +179,8 @@ public partial class TrainingRoomRuntime
     {
         _mouthSmileT -= dt;
         _mouthNearTarget = 1f;
-        // 被觸碰小穴或胸部的瞬間：嘴巴抖動 1~2 秒（只在「剛碰到」那一刻觸發，不是按著一直重觸發）
-        bool tsTouch_ = _reactFlags.breast || _reactFlags.pussy;
+        // 被觸碰小穴、胸部或乳頭的瞬間：嘴巴抖動 1~2 秒（只在「剛碰到」那一刻觸發，不是按著一直重觸發）
+        bool tsTouch_ = _reactFlags.breast || _reactFlags.nipple || _reactFlags.pussy;
         if (_bratLineType == 1) _bratSpoke = true;
         if (tsTouch_ && !_touchShakePrev) { if (_bratLineType == 0) _bratSpoke = false; _touchShakeT = (float)GD.RandRange(MouthTouchShakeSec.X, MouthTouchShakeSec.Y); _hasBeenTouched = true; }
         _touchShakePrev = tsTouch_;
