@@ -131,8 +131,10 @@ public partial class TrainingRoomRuntime
             ClimaxLevel = Mathf.Clamp(ClimaxLevel - pen, 0f, 100f);
             GD.Print($"[Play] 濕度不夠就突破（{w:F0}/{BreakWetNeed:F0}）→ 穴高潮值 -{pen:F0}");
         }
-        PlayTrVoice(enough ? "insert/break_wet.wav" : "insert/break_dry.wav");
+        // 突破／破處時一律高優先級播放使用者指定的破處專屬語音，鎖定 3.6 秒不被後續氣泡覆蓋
+        PlayTrVoicePriority("insert/break_virgin.wav", 3.6f, 1.35f);
         ReactLine(enough ? ReactBreakWet : ReactBreakDry, true);
+        _reactCd = 3.6f;
         ShowEmote(enough ? EmoteBubble.Kind.Exclaim : EmoteBubble.Kind.Tangle);   // 濕度足夠＝驚嘆號；不夠＝毛線團
     }
 
@@ -151,6 +153,8 @@ public partial class TrainingRoomRuntime
     [Export] public string[] ReactBreast = { "嗯…", "唔嗯…", "哈…" };
     [Export] public string[] ReactNipple = { "啊…！", "嗯…！", "呀…" };
     [Export] public string[] ReactHead   = { "嗯……", "呼嗯…", "嗯…♪" };
+    [Export] public string[] ReactHeadNormal = { "哼～笨蛋雜魚♪", "才沒有覺得很舒服呢…雜魚♡", "嘻嘻…雜魚大哥哥摸得還挺舒服的嘛♪", "唔…別把我當小孩子啦！", "哼…笨蛋…♪", "再多摸一下也可以喔…♡" };
+    [Export] public string[] ReactHeadSex    = { "呼…摸頭的話…好安心…♡", "哥哥…抱緊我…♡", "哈啊…摸摸頭…好舒服…♡", "嗯…♡" };
     [Export] public string[] ReactPussy  = { "啊…", "嗯啊…", "哈啊…" };
     [Export] public string[] ReactThrust = { "啊、啊…", "嗯、嗯…", "哈、哈啊…" };
     [Export] public string[] ReactKiss   = { "嗯…唔…", "唔嗯…", "嗯…♡", "唔…", "嗯嗯…" };   // 親嘴中（嘴巴被佔住，只用這組）
@@ -180,9 +184,11 @@ public partial class TrainingRoomRuntime
         _reactPrevCount = count;
 
         if (count == 0) { _reactNext = -1f; return; }
-        if (_reactNext < 0f) _reactNext = (float)GD.RandRange(ReactInterval.X, ReactInterval.Y);
+        float minInt = thrust ? 2.2f : ReactInterval.X;
+        float maxInt = thrust ? 4.0f : ReactInterval.Y;
+        if (_reactNext < 0f) _reactNext = (float)GD.RandRange(minInt, maxInt);
         _reactNext -= dt;
-        if (_reactNext <= 0f) { ReactNow(mouth); _reactNext = (float)GD.RandRange(ReactInterval.X, ReactInterval.Y); }
+        if (_reactNext <= 0f) { ReactNow(mouth); _reactNext = (float)GD.RandRange(minInt, maxInt); }
     }
 
     (bool breast, bool nipple, bool mouth, bool head, bool pussy, bool thrust) _reactFlags;
@@ -198,13 +204,21 @@ public partial class TrainingRoomRuntime
         float c = ClimaxLevel, w = Wetness;
         bool sleeping = FaceController != null && FaceController.CurrentExpression == "ZZZ";
         if (sleeping && c < 35f) Add(ReactSleep, 2);
-        Add(c < 35f ? ReactLow : c < 75f ? ReactMid : ReactHigh, 2);
         var f = _reactFlags;
+        bool isOnlyHeadPat = f.head && !f.breast && !f.nipple && !f.pussy && !f.thrust && _jijiPhase != 3;
+        if (isOnlyHeadPat)
+        {
+            Add(ReactHeadNormal, 3);
+            ReactLine(pool.ToArray(), false);
+            return;
+        }
+
+        Add(c < 35f ? ReactLow : c < 75f ? ReactMid : ReactHigh, 2);
         if (f.breast) Add(ReactBreast);
         if (f.nipple) Add(ReactNipple);
-        if (f.head)   Add(ReactHead);
+        if (f.head)   Add(_jijiPhase == 3 ? ReactHeadSex : ReactHead);
         if (f.pussy)  Add(ReactPussy);
-        if (f.thrust) Add(ReactThrust);
+        if (f.thrust) Add(ReactThrust, 3);
         if (w >= ReactWetAt) Add(ReactWet);
         if (f.thrust && w < ReactDryAt) Add(ReactDryThrust, 2);
         if (c >= 90f) Add(ReactNearClimax, 2);
@@ -215,6 +229,7 @@ public partial class TrainingRoomRuntime
     {
         PlayTrClimaxVoice();
         ReactLine(ReactClimaxLines, true);
+        _reactCd = 3.2f;
     }
 
     void ReactLine(string[] lines, bool force)

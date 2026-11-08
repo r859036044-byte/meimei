@@ -159,8 +159,17 @@ public partial class TrainingRoomRuntime
     {
         "哈啊……❤別停下來…雜魚❤|快點滿足我❤",
         "哈啊……❤…雜魚❤…好舒服❤|快點…我想要……給我❤",
+        "哈啊……❤…❤|人家還想要更多啦…❤",
+        "嗯……❤才、才沒有覺得舒服呢❤",
+        "啊……❤那裡……討厭…❤",
+        "哈啊……❤|別停下來…快點給我啦…❤",
     };
-    [Export] public string[] BratNormalLinesWet = { "（很濕了：正常話 1）", "（很濕了：正常話 2）", "（很濕了：正常話 3）" };
+    [Export] public string[] BratNormalLinesWet = 
+    {
+        "哈啊……❤…身體感覺好奇怪……❤",
+        "嗯啊…❤…好舒服……❤",
+        "呼……❤…不要停……❤",
+    };
 
     [ExportGroup("莉奈台詞 8：男主選項與回應")]
     // 插入中，莉奈說「痛」或「要高潮了」時，男主在自己的對話框選擇怎麼回。選了之後男主會說出按鈕上那句話。
@@ -232,6 +241,7 @@ public partial class TrainingRoomRuntime
     /// <summary>莉奈說一句台詞：支援「|」分段、「=>」男主回應，並依舒服／不舒服加工。allowReply＝false 時不播男主回應（例如這時男主對話框已經是選項）。回傳這句有沒有帶男主回應。</summary>
     bool GirlSayRich(string raw, bool allowReply = true)
     {
+        raw = I18n.TLine(raw);
         ParseGirlLine(raw, out var segs, out var reply);
         _lastGirlLineSoundOnly = IsSoundOnly(string.Join("", segs));
         if (_lastGirlLineSoundOnly) reply = null;   // 只有「嗯…」「啊哈…」這種聲音：男主不回應

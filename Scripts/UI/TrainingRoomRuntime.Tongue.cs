@@ -138,11 +138,9 @@ public partial class TrainingRoomRuntime
     {
         _tongueOn = false;
         if (_tongueOverlay != null && IsInstanceValid(_tongueOverlay)) _tongueOverlay.Visible = false;
-        if (!_mouthTongueOut)
-            foreach (var kv in _mouthVisSaved)
-                if (Layers.TryGetValue(kv.Key, out var ml) && ml != null) ml.Visible = kv.Value;
         _mouthVisSaved.Clear();
         if (_mouthTongueOut) ApplyTongueOutMouth();
+        else ShowOnlyMouth(GetActiveBaseMouth());
     }
 
     /// <summary>嘴巴固定成吐舌頭：其他嘴巴圖層全藏，只顯示 TongueOutMouthLayer（每幀壓住，表情系統改不掉）。</summary>

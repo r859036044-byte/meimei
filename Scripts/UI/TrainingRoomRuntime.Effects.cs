@@ -645,6 +645,7 @@ public partial class TrainingRoomRuntime : Node
             if (_ejacStop) goto EjacEnd;
 
             // ── ① 近射：2~3 次脈動，間隔不均、力道漸強（1 → 1.25）──────────────────
+            PlayRinaEjacReaction();
             for (int wave = 0, waveN = EjacWaves(3); wave < waveN; wave++)
             {
                 float k = waveN <= 1 ? 1f : wave / (float)(waveN - 1);

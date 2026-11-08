@@ -521,6 +521,7 @@ void fragment() {
         _jijiLastMouse = GetViewport().GetMousePosition();
         var pdm = PlayerDataManager.Instance;
         if (pdm != null) { pdm.TodayDidNothing = false; pdm.TodayInserted = true; }
+        PlayInsertionStartVoice();
         GD.Print("[Jiji] → Phase 3（開始插入 Stage 0）");
     }
 
@@ -1088,6 +1089,7 @@ void fragment() {
                 // 緩慢撐開前進
                 _jijiInsertY = Mathf.Min(_jijiInsertY + ResistJijiSlowSpeed * dt, stageMaxY + ResistJijiSlowRange);
                 _resistBodyPushY = ResistProgressNorm * ResistBodyPushMaxY;
+                PlayInsertionResistVoice();
 
                 if (_resistProgress >= _resistTarget) Breakthrough();
             }

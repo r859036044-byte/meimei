@@ -73,6 +73,7 @@ public partial class TrainingRoomRuntime
         TriggerMouthSmile();
         if (!_pantyGone) _pantyUnder = Mathf.Min(1f, _pantyUnder + 0.15f);   // 小高潮：內褲再濕開一點
         GD.Print("[MiniClimax] 小高潮");
+        PlayTrMiniClimaxVoice();
         if (!_pantyGone) return;   // 內褲還穿著：水被內褲擋住，只會濕開，不會噴出來
         TaskLogger.Run(MiniSquirtAsync(), "MiniSquirt");
     }
