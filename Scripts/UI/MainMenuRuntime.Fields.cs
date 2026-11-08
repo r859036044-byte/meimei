@@ -335,11 +335,13 @@ public partial class MainMenuRuntime : Control
 
         // 訂閱音量變更事件（Unity 的 OnEnable）
         SettingsManager.OnVolumeChanged += ApplyVolumes;
+        SettingsManager.OnLanguageChanged += RefreshLocalizedUI;
 
         // 套用 SettingsManager 儲存的音量
         ApplyVolumes();
 
         Build();
+        RefreshLocalizedUI();
 
         // 開發者模式（密技召喚 + 解鎖後 F9 開關）現在由 autoload 的
         // DevModeManager 全域常駐處理，不用在每個場景各自建立監聽節點。
@@ -363,6 +365,7 @@ public partial class MainMenuRuntime : Control
         CleanupOpBgmBus();
         // 取消訂閱（Unity 的 OnDisable）
         SettingsManager.OnVolumeChanged -= ApplyVolumes;
+        SettingsManager.OnLanguageChanged -= RefreshLocalizedUI;
 
         // 中止所有進行中的 async 流程
         _lifeCts?.Cancel();

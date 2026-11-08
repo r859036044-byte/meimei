@@ -373,6 +373,11 @@ public partial class MainMenuRuntime : Control
             SettingsManager.Instance?.SetFullscreen((int)selected == 0);
             SettingsManager.Instance?.Save();
         };
+        _settingsDropdowns["語言"].ItemSelected += selected => {
+            _settLangIdx[0] = (int)selected;
+            SettingsManager.Instance?.SetLanguage((int)selected);
+            SettingsManager.Instance?.Save();
+        };
         Txt(panel, "SettingsHint", "選擇解析度會切換至視窗模式；全螢幕使用螢幕原生大小。", 16, new Color("a7778e"), UAlign.MiddleCenter,
             V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(0, -272), V2(660, 32));
         var apply = Btn(panel, "SetBtn7", "套用設定", Colors.White, V2(0.5f, 0.5f), SetBtnApplyPos, SetBtnApplySize.X, SetBtnApplySize.Y);
@@ -542,5 +547,70 @@ public partial class MainMenuRuntime : Control
         var index = idxRef; var legacyLabel = displayTxt;
         selector.ItemSelected += selected => { index[0] = (int)selected; legacyLabel.Text = options[(int)selected]; };
         return row;
+    }
+
+    void RefreshLocalizedUI()
+    {
+        SetControlBtnText(_btnStartRT, "開始遊戲");
+        SetControlBtnText(_btnLoadRT, "繼續遊戲");
+        SetControlBtnText(_btnSettRT, "設　　定");
+        SetControlBtnText(_btnQuitRT, "退出遊戲");
+        SetControlBtnText(_btnGalleryRT, "圖　　鑒");
+
+        if (_setHeadTxt != null && IsInstanceValid(_setHeadTxt))
+            _setHeadTxt.Text = I18n.T("偏好設定");
+        if (_setBtn7Txt != null && IsInstanceValid(_setBtn7Txt))
+            _setBtn7Txt.Text = I18n.T("套用設定");
+        if (_setBtn8Txt != null && IsInstanceValid(_setBtn8Txt))
+            _setBtn8Txt.Text = I18n.T("返回");
+
+        UpdateRowLabel("Row_音樂", "音樂");
+        UpdateRowLabel("Row_音效", "音效");
+        UpdateRowLabel("Row_語音", "語音");
+        UpdateRowLabel("Row_解析度", "解析度");
+        UpdateRowLabel("Row_語言", "語言");
+        UpdateRowLabel("Row_文字速度", "文字速度");
+        UpdateRowLabel("Row_顯示模式", "顯示模式");
+        UpdateRowLabel("Row_AllAges", "全年齡");
+
+        if (_settingsPanel != null && IsInstanceValid(_settingsPanel))
+        {
+            var hint = _settingsPanel.GetNodeOrNull<Label>("SettingsHint");
+            if (hint != null) hint.Text = I18n.T("選擇解析度會切換至視窗模式；全螢幕使用螢幕原生大小。");
+            var check = _settingsPanel.GetNodeOrNull<CheckBox>("Row_AllAges/AllAgesCheck");
+            if (check != null) check.Text = I18n.T("使用全年齡模式（取消勾選為 R18 版）");
+        }
+
+        if (_skipPanel != null && IsInstanceValid(_skipPanel))
+        {
+            var box = _skipPanel.GetNodeOrNull<Control>("Box");
+            if (box != null)
+            {
+                var title = box.GetNodeOrNull<Label>("Title");
+                if (title != null) title.Text = I18n.T("要先看看故事的開始嗎？");
+                var sub = box.GetNodeOrNull<Label>("Subtitle");
+                if (sub != null) sub.Text = I18n.T("慢慢讀完序章，或直接開始遊戲");
+                SetControlBtnText(box.GetNodeOrNull<Control>("BtnWatch"), "觀看劇情");
+                SetControlBtnText(box.GetNodeOrNull<Control>("BtnSkip"), "直接開始");
+            }
+        }
+    }
+
+    void SetControlBtnText(Control c, string key)
+    {
+        if (c == null || !IsInstanceValid(c)) return;
+        var lbl = c.GetNodeOrNull<Label>("T");
+        if (lbl != null) lbl.Text = I18n.T(key);
+        else if (c is Button b) b.Text = I18n.T(key);
+    }
+
+    void UpdateRowLabel(string rowName, string key)
+    {
+        if (_settingsPanel == null || !IsInstanceValid(_settingsPanel)) return;
+        var row = _settingsPanel.GetNodeOrNull<Control>(rowName);
+        if (row == null) return;
+        var lbl = row.GetNodeOrNull<Label>("Lbl/T");
+        if (lbl == null) lbl = row.GetNodeOrNull<Label>("T");
+        if (lbl != null) lbl.Text = I18n.T(key);
     }
 }

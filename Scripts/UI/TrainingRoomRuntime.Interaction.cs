@@ -690,6 +690,7 @@ public partial class TrainingRoomRuntime : Node
                 HadBreastTouch = true;
                 PlayerDataManagerTouch();
                 ToggleHandTouchAnim(true);
+                PlayPartTouchVoice("breast");
                 break;
             case 3: // 胸2（右手）→ 點一次觸發手部觸摸動畫，再點一次取消
                 if (_tongueTool) { ToggleLick("R"); break; }
@@ -697,10 +698,11 @@ public partial class TrainingRoomRuntime : Node
                 HadBreastTouch = true;
                 PlayerDataManagerTouch();
                 ToggleHandTouchAnim(false);
+                PlayPartTouchVoice("breast");
                 break;
             case 4: // B：雞雞沒出現 → 用手摸 B（再點一次取消）；按了🍆雞雞出現後 → 雞雞靠近/插入
                 if (_jijiPhase == 0 && _tongueTool) ToggleLick("B");   // 選了 👅：舔 B
-                else if (_jijiPhase == 0) ToggleBTouch();
+                else if (_jijiPhase == 0) { ToggleBTouch(); PlayPartTouchVoice("pussy"); }
                 else OnJijiHotspotDown();
                 break;
             case 5: // 尻
@@ -748,6 +750,7 @@ public partial class TrainingRoomRuntime : Node
         // 輕微增加胸部舒服度，讓數值面板有視覺回饋
         ComfortChest = Mathf.Min(100f, ComfortChest + 10f);
         UpdateClimaxHud();
+        PlayPartTouchVoice("breast");
         GD.Print("[TrainingRoom] 摸了 → TodayDidNothing=false, BreastUse+1, HadBreastTouch=true");
     }
 
@@ -763,6 +766,7 @@ public partial class TrainingRoomRuntime : Node
         pdm.TodayDidNothing  = false;
         pdm.TodayInsertOrgasm = true;
         ClimaxLevel = 100f;
+        PlayTrClimaxVoice();
         TriggerClimax();
         GD.Print("[TrainingRoom] 高潮 → TodayDidNothing=false, TodayInsertOrgasm=true");
     }

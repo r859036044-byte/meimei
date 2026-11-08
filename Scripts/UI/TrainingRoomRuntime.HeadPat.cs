@@ -117,7 +117,7 @@ public partial class TrainingRoomRuntime
             if (mb.Pressed)
             {
                 _patDragOwner = false;
-                if (_jijiPhase == 3 || IsPointerOverUi() || !InPatZone(mb.Position)) return;
+                if (IsPointerOverUi() || !InPatZone(mb.Position)) return;
                 _patDragOwner = true;
                 _patLastMouseY = mb.Position.Y;
                 if (!_patOn) StartPat();

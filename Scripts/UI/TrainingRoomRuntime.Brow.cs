@@ -43,10 +43,7 @@ public partial class TrainingRoomRuntime
         if (_tongueDragOwner)       mask |= 1 << 6;   // 嘴
         if (_jijiPhase != 0)        mask |= 1 << 7;   // 雞雞出現／插入
 
-        bool operating = BrowReactOnOperate && (mask != 0 ||
-            Input.IsMouseButtonPressed(MouseButton.Left) ||
-            Input.IsMouseButtonPressed(MouseButton.Right) ||
-            Input.IsMouseButtonPressed(MouseButton.Middle));
+        bool operating = BrowReactOnOperate && mask != 0;
 
         _browTouchCd -= dt;
         bool wasOn = _browLingerT > 0f;

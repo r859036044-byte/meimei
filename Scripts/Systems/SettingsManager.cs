@@ -21,23 +21,25 @@ public partial class SettingsManager : Node
     public float SFXVolume     { get; private set; } = 0.5f;
     public float VoiceVolume   { get; private set; } = 0.5f;
     public int   LanguageIndex { get; private set; } = 0;
-    public bool  IsFullscreen  { get; private set; } = true;
+    public bool  IsFullscreen  { get; private set; } = false;
     public int   TextSpeed     { get; private set; } = 1;
     /// <summary>調教房互動物件（手、舌頭）的不透明度 0.2~1。</summary>
     public float InteractAlpha { get; private set; } = 0.85f;
-    public int ResolutionIndex { get; private set; } = 4;
+    public int ResolutionIndex { get; private set; } = 3;
     public static readonly Vector2I[] Resolutions = { new(960, 540), new(1280, 720), new(1366, 768), new(1600, 900), new(1920, 1080), new(2560, 1440), new(3840, 2160) };
     public static readonly string[] ResolutionLabels = { "960 × 540", "1280 × 720", "1366 × 768", "1600 × 900", "1920 × 1080", "2560 × 1440", "3840 × 2160" };
 
     // ═══════════════════════════════════════════════════════════
     //  常數
     // ═══════════════════════════════════════════════════════════
-    public static readonly string[] Languages  = { "繁體中文", "简体中文", "English", "日本語" };
+    public static readonly string[] Languages  = { "繁體中文", "简体中文", "English", "日本語", "한국어" };
+    public static readonly string[] Locales    = { "zh_TW", "zh_CN", "en", "ja", "ko" };
     public static readonly string[] TextSpeeds = { "慢", "普通", "快" };
     public static readonly float[]  TypeValues = { 0.06f, 0.03f, 0.01f };
 
     /// <summary>音量變更時觸發，供各場景即時更新音量</summary>
     public static event Action OnVolumeChanged;
+    public static event Action OnLanguageChanged;
 
     // 設定檔路徑
     private const string ConfigPath    = "user://settings.cfg";
@@ -56,6 +58,7 @@ public partial class SettingsManager : Node
             return;
         }
         Instance = this;
+        I18n.RegisterToGodot();
         Load();
 
         // 延遲一幀確保視窗設定生效，避免被引擎初始化覆蓋
@@ -104,8 +107,10 @@ public partial class SettingsManager : Node
     public void SetLanguage(int i)
     {
         LanguageIndex = Mathf.Clamp(i, 0, Languages.Length - 1);
-        string[] locales = { "zh_TW", "zh_CN", "en", "ja" };
-        TranslationServer.SetLocale(locales[LanguageIndex]);
+        string loc = Locales[LanguageIndex];
+        TranslationServer.SetLocale(loc);
+        I18n.CurrentLocale = loc;
+        OnLanguageChanged?.Invoke();
     }
     public void SetResolution(int i)
     {
@@ -201,11 +206,11 @@ public partial class SettingsManager : Node
         SFXVolume     = (float)cfg.GetValue(Section, "sfx",     0.5f);
         VoiceVolume   = (float)cfg.GetValue(Section, "voice",   0.5f);
         LanguageIndex = (int)cfg.GetValue(SectionUI, "language",   0);
-        IsFullscreen  = (bool)cfg.GetValue(SectionUI, "fullscreen", true);
+        IsFullscreen  = (bool)cfg.GetValue(SectionUI, "fullscreen", false);
         TextSpeed     = (int)cfg.GetValue(SectionUI, "textspeed",  1);
         SetInteractAlpha((float)cfg.GetValue(SectionUI, "interact_alpha", 0.85f));
 
-        SetResolution((int)cfg.GetValue(SectionUI, "resolution", 4));
+        SetResolution((int)cfg.GetValue(SectionUI, "resolution", 3));
         SetLanguage(LanguageIndex);
         SetTextSpeed(TextSpeed);
         // 全年齡 / R18 設定（預設 true = R18 開啟）

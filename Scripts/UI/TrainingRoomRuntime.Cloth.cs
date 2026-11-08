@@ -1222,6 +1222,31 @@ void fragment() {
         _charRoot.MoveChild(node, li < ai ? ai - 1 : ai);
     }
 
+    // ── 舉腳（M 腿）時：手（手2）要在腿／腳／足下面 ──
+    // 手2 平常被 ApplyClothOnTop 搬到「衣服」前面（在 M 腿各層的上面）；M 腿時衣服是靠遮罩把腿的範圍裁掉，
+    // 所以排在腿上面的手2 會直接蓋在腿上。M 腿打開（含切換中）就把手2 移到 M 腿最底下那一層的前面，
+    // 關掉 M 腿再搬回衣服前面（維持原本「手在裙子下面」）。每幀檢查，後面有別處重排順序也會被拉回來。
+    bool _handUnderMLeg;
+    void UpdateHandUnderMLeg()
+    {
+        if (_charRoot == null) return;
+        if (!Layers.TryGetValue("手2", out var hand) || hand == null || hand.GetParent() != _charRoot) return;
+        if (_mLegOpen)
+        {
+            Control lowest = null; int lowIdx = int.MaxValue;
+            foreach (var n in LegMaskLayers)
+                if (Layers.TryGetValue(n, out var l) && l != null && l.GetParent() == _charRoot && l.GetIndex() < lowIdx) { lowest = l; lowIdx = l.GetIndex(); }
+            if (lowest == null) return;
+            if (hand.GetIndex() > lowIdx) MoveBefore(hand, lowest);
+            _handUnderMLeg = true;
+        }
+        else if (_handUnderMLeg)
+        {
+            if (Layers.TryGetValue("衣服", out var cloth) && cloth != null && cloth.GetParent() == _charRoot) MoveBefore(hand, cloth);
+            _handUnderMLeg = false;
+        }
+    }
+
     void ApplyClothOnTop()
     {
         if (_charRoot == null) return;
@@ -1954,6 +1979,7 @@ void fragment() {
             && Layers.TryGetValue("衣服", out var cth) && cth != null && cth.GetParent() == _charRoot && _duvet.GetIndex() < cth.GetIndex())
             _clothTopInit = false;   // 被子後來才建立／被移動，重新排一次
         ApplyClothOnTop();
+        UpdateHandUnderMLeg();   // 舉腳時手在腿下面（見上面說明）
         UpdateMPantyFollow();   // 內褲先移到這一幀跟著抽插／呼吸的最終位置，下面的遮罩和撥開才不會差一步（抽插時裁切才會跟著動）
         UpdateClothLegMask();
         UpdateClothThrust();

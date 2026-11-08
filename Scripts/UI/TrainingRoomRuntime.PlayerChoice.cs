@@ -39,7 +39,7 @@ public partial class TrainingRoomRuntime
     {
         _playerChoiceSetting = true;
         _playerChoiceActive = false;   // 讓 ShowBubble 的「選項中不被蓋掉」檢查放行這一次
-        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, string.IsNullOrEmpty(prompt) ? "…" : prompt, true);
+        ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, string.IsNullOrEmpty(prompt) ? "…" : I18n.T(prompt), true);
         _playerChoiceSetting = false;
         if (_bubblePlayer == null || !IsInstanceValid(_bubblePlayer)) return;
 
@@ -58,7 +58,7 @@ public partial class TrainingRoomRuntime
         for (int i = 0; i < labels.Length; i++)
         {
             var act = actions[i];
-            _playerChoiceRow.AddChild(BratMakeBtn(labels[i], () => { act?.Invoke(); }));
+            _playerChoiceRow.AddChild(BratMakeBtn(I18n.T(labels[i]), () => { act?.Invoke(); }));
         }
         _playerChoiceRow.Visible = true;
         _playerChoiceActive = true;

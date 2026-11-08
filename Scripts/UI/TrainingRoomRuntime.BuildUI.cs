@@ -668,7 +668,7 @@ void fragment() {
         bar.AddThemeStyleboxOverride("panel", MkCardStyle());
         _canvas.AddChild(bar);
 
-        MkLabel(bar, "ClimaxLabel", "💗 高潮度", 20, UiAccent, new Vector2(18, 13), new Vector2(120, 34));
+        MkLabel(bar, "ClimaxLabel", "💗 " + I18n.T("高潮度"), 20, UiAccent, new Vector2(18, 13), new Vector2(120, 34));
 
         _climaxBar = new ProgressBar { Name = "ClimaxBar", MinValue = 0, MaxValue = 100, Value = 0, ShowPercentage = false };
         _climaxBar.Position = new Vector2(140, 21); _climaxBar.Size = new Vector2(330, 18);
@@ -706,7 +706,7 @@ void fragment() {
         panel.AddThemeStyleboxOverride("panel", MkCuteCardStyle());
         _canvas.AddChild(panel);
 
-        MkLabel(panel, "StatsTitle", "♡ 狀態", 16, CuteTitle, new Vector2(16, 8), new Vector2(120, 26));
+        MkLabel(panel, "StatsTitle", "♡ " + I18n.T("狀態"), 16, CuteTitle, new Vector2(16, 8), new Vector2(120, 26));
 
         (_moodLabel, _moodBar)                 = StatRow(panel, "心情",     38,  Mood,         100);
         (_comfortMouthLabel, _comfortMouthBar) = StatRow(panel, "嘴巴舒服", 70,  ComfortMouth, 100);
@@ -718,7 +718,7 @@ void fragment() {
 
     (Label, ProgressBar) StatRow(Control parent, string label, float y, float val, float max)
     {
-        MkLabel(parent, label + "L", label, 15, CuteText, new Vector2(16, y), new Vector2(84, 26));
+        MkLabel(parent, label + "L", I18n.T(label), 15, CuteText, new Vector2(16, y), new Vector2(84, 26));
         var bar = new ProgressBar { MinValue = 0, MaxValue = max, Value = val, ShowPercentage = false };
         bar.Position = new Vector2(100, y + 6); bar.Size = new Vector2(148, 14);
         StyleBar(bar, new Color(0.93f, 0.36f, 0.60f), CuteBarBack);
@@ -827,12 +827,12 @@ void fragment() {
         _btnTongue.Pressed += () => ToggleTongueTool();
         RefreshTongueButton();
 
-        _btnDrag = MkFloatBtn("BtnDrag", "衣服模式（只拖衣服／被子，忽略綠點）", Colors.White, idxDrag, count);
+        _btnDrag = MkFloatBtn("BtnDrag", I18n.T("衣服模式（只拖衣服／被子，忽略綠點）"), Colors.White, idxDrag, count);
         _btnDrag.Icon = MkDressIcon(); _btnDrag.IconAlignment = HorizontalAlignment.Center;   // 白色連衣裙
         _btnDrag.Pressed += () => ToggleDragTool();
         RefreshDragButton();
 
-        _btnMouse = MkFloatBtn("BtnMouse", "滑鼠（預設操作；選其他工具時取消選取）", Colors.White, idxMouse, count);
+        _btnMouse = MkFloatBtn("BtnMouse", I18n.T("滑鼠（預設操作；選其他工具時取消選取）"), Colors.White, idxMouse, count);
         _btnMouse.Icon = MkCursorIcon(); _btnMouse.IconAlignment = HorizontalAlignment.Center;   // 滑鼠游標箭頭
         _btnMouse.Pressed += () => SelectMouseTool();
         RefreshMouseButton();
@@ -841,11 +841,11 @@ void fragment() {
         // 跟雞雞按鈕一起「男主說硬了」才出現（HudGate.cs），也是獨立節點，版面編輯器可以單獨拖動。
         {
             float gaugeRight = 20f + W + Gap + StamPanelW + Gap + StamPanelW / 2f + 48f;   // 雞雞按鈕右緣（跟 BuildStaminaSemenBars 的算法一致）
-            _endureBtn = MkIconBtn(_canvas, "BtnEndure", "忍耐（精力快滿時按，可以忍回去；抽插太快會忍不住）", new Color(0.78f, 0.90f, 0.80f), Vector2.Zero);
+            _endureBtn = MkIconBtn(_canvas, "BtnEndure", I18n.T("忍耐（精力快滿時按，可以忍回去；抽插太快會忍不住）"), new Color(0.78f, 0.90f, 0.80f), Vector2.Zero);
             _endureBtn.AnchorLeft = 0; _endureBtn.AnchorRight = 0; _endureBtn.AnchorTop = 1; _endureBtn.AnchorBottom = 1;
             _endureBtn.OffsetLeft = gaugeRight + 8f; _endureBtn.OffsetRight = gaugeRight + 8f + IconBtnSize;
             _endureBtn.OffsetBottom = -20f; _endureBtn.OffsetTop = -20f - IconBtnSize;
-            _endureBtn.Text = "忍耐";   // 文字，不用表情符號
+            _endureBtn.Text = I18n.T("忍耐");   // 文字，不用表情符號
             _endureBtn.AddThemeFontSizeOverride("font_size", 20);
             _endureBtn.AddThemeColorOverride("font_color", Colors.Black);
             _endureBtn.Pressed += OnEndurePressed;
@@ -855,7 +855,7 @@ void fragment() {
         // 射精：蓋在雞雞圖標正下方（雞雞圖標往上抬），跟雞雞一起出現，也是獨立節點可拖動
         {
             float gaugeRight = 20f + W + Gap + StamPanelW + Gap + StamPanelW / 2f + 48f;   // 雞雞圖標右緣
-            _ejacBtn = new Button { Name = "BtnEjac", Text = "💦 射精", FocusMode = Control.FocusModeEnum.None, Visible = false, TooltipText = "射精（精力夠高才能按）" };
+            _ejacBtn = new Button { Name = "BtnEjac", Text = "💦 " + I18n.T("射精"), FocusMode = Control.FocusModeEnum.None, Visible = false, TooltipText = I18n.T("射精（精力夠高才能按）") };
             _ejacBtn.AnchorLeft = 0; _ejacBtn.AnchorRight = 0; _ejacBtn.AnchorTop = 1; _ejacBtn.AnchorBottom = 1;
             _ejacBtn.OffsetLeft = gaugeRight - 96f; _ejacBtn.OffsetRight = gaugeRight;
             _ejacBtn.OffsetBottom = -20f; _ejacBtn.OffsetTop = -20f - EjacBtnH;
@@ -877,14 +877,14 @@ void fragment() {
             leave.AddThemeStyleboxOverride("panel", MkCuteCardStyle((int)(LW / 2f)));
             leave.Visible = !DemoMode.Enabled;   // 試玩版：不要離開按鈕（只隱藏）
             _canvas.AddChild(leave);
-            var btnLeave = MkIconBtn(leave, "BtnLeave", "離開房間（結束今天）", new Color(1.00f, 0.70f, 0.70f), new Vector2(Pad, Pad));
+            var btnLeave = MkIconBtn(leave, "BtnLeave", I18n.T("離開房間（結束今天）"), new Color(1.00f, 0.70f, 0.70f), new Vector2(Pad, Pad));
             btnLeave.Text = "🚪";
             btnLeave.AddThemeFontSizeOverride("font_size", 30);
             btnLeave.Pressed += () => EndToday();
         }
 
         // 精力：獨立的直條面板（使用者要求不要跟按鈕條合在一起），放在按鈕條右側，由下往上填
-        var stPanel = new Panel { Name = "StaminaPanel", TooltipText = "精力" };
+        var stPanel = new Panel { Name = "StaminaPanel", TooltipText = I18n.T("精力") };
         stPanel.AnchorLeft = 0; stPanel.AnchorTop = 1; stPanel.AnchorRight = 0; stPanel.AnchorBottom = 1;
         stPanel.OffsetLeft = 20 + W + Gap; stPanel.OffsetRight = 20 + W + Gap + StamPanelW;
         float Hs = Mathf.Max(StamPanelW * 2f, H * StaminaBarHeightFrac);   // 精力條縮短（原本跟按鈕條一樣長）
@@ -896,7 +896,7 @@ void fragment() {
 
         _staminaBar = new ProgressBar
         {
-            Name = "StaminaBar", TooltipText = "精力（男主感覺，90 可射）",
+            Name = "StaminaBar", TooltipText = I18n.T("精力（男主感覺，90 可射）"),
             FillMode = (int)ProgressBar.FillModeEnum.BottomToTop,
             MinValue = 0, MaxValue = 120, Value = Stamina, ShowPercentage = false,
         };
@@ -1032,53 +1032,53 @@ void fragment() {
         _canvas.AddChild(side);
 
         float y = 12;
-        var locName = MkLabel(side, "LocName", "調教室", 30, UiAccent, new Vector2(0, y), new Vector2(W, 44));
+        var locName = MkLabel(side, "LocName", I18n.T("調教室"), 30, UiAccent, new Vector2(0, y), new Vector2(W, 44));
         locName.HorizontalAlignment = HorizontalAlignment.Center;
         y += 52;
 
         // 流程
-        MkSection(side, "SecFlow", "流程", W, ref y);
-        var end = MkButtonSimple(side, "BtnEnd", "結束今晚", new Color(0.30f, 0.10f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 48));
+        MkSection(side, "SecFlow", I18n.T("流程"), W, ref y);
+        var end = MkButtonSimple(side, "BtnEnd", I18n.T("結束今晚"), new Color(0.30f, 0.10f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 48));
         end.Pressed += () => EndToday();
         y += 54;
-        var back = MkButtonSimple(side, "BtnBack", "← 返回", new Color(0.12f, 0.06f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 40));
+        var back = MkButtonSimple(side, "BtnBack", I18n.T("← 返回"), new Color(0.12f, 0.06f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 40));
         back.Pressed += () => _ = FadeAndLoadAsync("Apartment");
         y += 46;
-        var btnHome = MkButtonSimple(side, "BtnHome", "🏠 主畫面", new Color(0.08f, 0.04f, 0.12f), new Vector2(Pad, y), new Vector2(bw, 40));
+        var btnHome = MkButtonSimple(side, "BtnHome", I18n.T("🏠 主畫面"), new Color(0.08f, 0.04f, 0.12f), new Vector2(Pad, y), new Vector2(bw, 40));
         btnHome.Pressed += () => _ = FadeAndLoadAsync("MainMenu");
         y += 50;
 
         // 快速操作：摸了 / 高潮 / 插入 / 射精 / 清精液
-        MkSection(side, "SecQuick", "快速操作", W, ref y);
-        var btnTouched = MkButtonSimple(side, "BtnTouched", "✋ 摸了", new Color(0.22f, 0.10f, 0.32f), new Vector2(Pad, y), new Vector2(bw, 38));
+        MkSection(side, "SecQuick", I18n.T("快速操作"), W, ref y);
+        var btnTouched = MkButtonSimple(side, "BtnTouched", I18n.T("✋ 摸了"), new Color(0.22f, 0.10f, 0.32f), new Vector2(Pad, y), new Vector2(bw, 38));
         btnTouched.Pressed += () => OnTouchedPressed();
         y += 44;
-        var btnOrgasm = MkButtonSimple(side, "BtnOrgasm", "💗 高潮", new Color(0.38f, 0.06f, 0.18f), new Vector2(Pad, y), new Vector2(bw, 38));
+        var btnOrgasm = MkButtonSimple(side, "BtnOrgasm", I18n.T("💗 高潮"), new Color(0.38f, 0.06f, 0.18f), new Vector2(Pad, y), new Vector2(bw, 38));
         btnOrgasm.Pressed += () => OnOrgasmPressed();
         y += 44;
-        var btnInsert = MkButtonSimple(side, "BtnInsert", "🍑 插入", new Color(0.35f, 0.08f, 0.22f), new Vector2(Pad, y), new Vector2(bw, 38));
+        var btnInsert = MkButtonSimple(side, "BtnInsert", I18n.T("🍑 插入"), new Color(0.35f, 0.08f, 0.22f), new Vector2(Pad, y), new Vector2(bw, 38));
         btnInsert.Pressed += () => OnInsertPressed();
         y += 44;
-        var btnEjac = MkButtonSimple(side, "BtnEjac", "💦 射精", new Color(0.30f, 0.04f, 0.30f), new Vector2(Pad, y), new Vector2(bw, 38));
+        var btnEjac = MkButtonSimple(side, "BtnEjac", I18n.T("💦 射精"), new Color(0.30f, 0.04f, 0.30f), new Vector2(Pad, y), new Vector2(bw, 38));
         btnEjac.Pressed += () => TriggerEjaculation();
         y += 44;
-        var btnClear = MkButtonSimple(side, "BtnClearEjac", "✕ 清精液", new Color(0.12f, 0.04f, 0.16f), new Vector2(Pad, y), new Vector2(bw, 32));
+        var btnClear = MkButtonSimple(side, "BtnClearEjac", I18n.T("✕ 清精液"), new Color(0.12f, 0.04f, 0.16f), new Vector2(Pad, y), new Vector2(bw, 32));
         btnClear.Pressed += () => ClearEjacDebris();
         y += 42;
 
         // 設置
-        MkSection(side, "SecSettings", "設置", W, ref y);
-        AddToggle(side, "TogGreenCursor", "綠點游標變化", y, () => GreenDotCursorEnabled, v => { GreenDotCursorEnabled = v; if (!v) ApplyHandCursor(); }, Pad, bw); y += 38;
-        AddToggle(side, "TogHoverTip", "懸停提示氣泡", y, () => HoverTipEnabled, v => { HoverTipEnabled = v; if (!v) HoverTipHide(); }, Pad, bw); y += 38;
+        MkSection(side, "SecSettings", I18n.T("設置"), W, ref y);
+        AddToggle(side, "TogGreenCursor", I18n.T("綠點游標變化"), y, () => GreenDotCursorEnabled, v => { GreenDotCursorEnabled = v; if (!v) ApplyHandCursor(); }, Pad, bw); y += 38;
+        AddToggle(side, "TogHoverTip", I18n.T("懸停提示氣泡"), y, () => HoverTipEnabled, v => { HoverTipEnabled = v; if (!v) HoverTipHide(); }, Pad, bw); y += 38;
 
         // 劇情觸發開關
-        MkSection(side, "TrigSep", "劇情觸發", W, ref y);
-        AddToggle(side, "TogD2First",  "D2 首次進場", y, () => PendingDay2First,    v => PendingDay2First    = v, Pad, bw); y += 38;
-        AddToggle(side, "TogD3First",  "D3 首次進場", y, () => PendingDay3First,    v => PendingDay3First    = v, Pad, bw); y += 38;
-        AddToggle(side, "TogNight3",   "第三晚觸發",  y, () => PendingNight3,       v => PendingNight3       = v, Pad, bw); y += 38;
-        AddToggle(side, "TogBreast",   "摸胸已發生",  y, () => HadBreastTouch,      v => HadBreastTouch      = v, Pad, bw); y += 38;
-        AddToggle(side, "TogComfort",  "舒服路線",    y, () => BreastComfortRoute,  v => BreastComfortRoute  = v, Pad, bw); y += 38;
-        AddToggle(side, "TogMiniGame", "小遊戲直入",  y, () => PendingMiniGameOnly, v => PendingMiniGameOnly = v, Pad, bw); y += 38;
+        MkSection(side, "TrigSep", I18n.T("劇情觸發"), W, ref y);
+        AddToggle(side, "TogD2First",  I18n.T("D2 首次進場"), y, () => PendingDay2First,    v => PendingDay2First    = v, Pad, bw); y += 38;
+        AddToggle(side, "TogD3First",  I18n.T("D3 首次進場"), y, () => PendingDay3First,    v => PendingDay3First    = v, Pad, bw); y += 38;
+        AddToggle(side, "TogNight3",   I18n.T("第三晚觸發"), y, () => PendingNight3,       v => PendingNight3       = v, Pad, bw); y += 38;
+        AddToggle(side, "TogBreast",   I18n.T("摸胸已發生"), y, () => HadBreastTouch,      v => HadBreastTouch      = v, Pad, bw); y += 38;
+        AddToggle(side, "TogComfort",  I18n.T("舒服路線"), y, () => BreastComfortRoute,  v => BreastComfortRoute  = v, Pad, bw); y += 38;
+        AddToggle(side, "TogMiniGame", I18n.T("小遊戲直入"), y, () => PendingMiniGameOnly, v => PendingMiniGameOnly = v, Pad, bw); y += 38;
 
         side.OffsetBottom = Margin + y + Pad - 6;   // 卡片高度跟著內容走
     }

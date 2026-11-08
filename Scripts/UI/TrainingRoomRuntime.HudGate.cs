@@ -35,6 +35,13 @@ public partial class TrainingRoomRuntime
             GD.Print($"[MLegGuard] 腿底跟 M 腿同步 → {(_mLegOpen ? "顯示" : "隱藏")}（jijiPhase={_jijiPhase} holeLeftOpen={_holeLeftOpen} bTouch={_bTouchRunning}）");
         }
         if (_mLegOpen || _mLegTransitioning) return;
+        // 洞／開1／開上／插入／肚子：M 腿專用的疊層（名字不是 m腿 開頭，上面的迴圈抓不到），腿放下時一律藏起來
+        foreach (var n in new[] { "洞", "開1", "開上", "插入", "肚子" })
+            if (Layers.TryGetValue(n, out var ov) && ov != null && ov.Visible)
+            {
+                ov.Visible = false; ov.Scale = Vector2.One;
+                GD.Print($"[MLegGuard] 非 M 腿卻開著 {n} → 已藏起來（jijiPhase={_jijiPhase} holeLeftOpen={_holeLeftOpen} bTouch={_bTouchRunning}）");
+            }
         foreach (var kv in Layers)
             if (kv.Key.StartsWith("m腿") && kv.Value != null && kv.Value.Visible)
             {

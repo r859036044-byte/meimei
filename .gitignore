@@ -26,3 +26,11 @@ Scripts/UI/_backup*/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local backups & archives (Chinese naming)
+_備份/
+*備份*/
+*備份*
+_使用中音檔/
+無觸碰音效原備份/
+台詞修改備份*.json

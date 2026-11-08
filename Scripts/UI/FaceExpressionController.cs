@@ -95,8 +95,8 @@ public partial class FaceExpressionController : Node
             // 之後如果視覺上還想要眉毛角度更斜垂，可以再加 RotZ 微調）。
             { "ZZZ", new ExprTransform[]
                 {
-                    new ExprTransform { LayerPath = "眉毛1", OffsetY = 15f },
-                    new ExprTransform { LayerPath = "眉毛2", OffsetY = 15f },
+                    new ExprTransform { LayerPath = "眉毛1", OffsetY = 9f },
+                    new ExprTransform { LayerPath = "眉毛2", OffsetY = 9f },
                 }
             },
         };
@@ -117,6 +117,8 @@ public partial class FaceExpressionController : Node
     /// 不會有翻轉支點沒抓對、整張透明畫布鏡射跑位的風險。</summary>
     // 旋轉下垂的嘗試（ClosedExtraRotateZ）沒有達到使用者要的效果，使用者明確要求改用
     // 翻轉眼皮（全閉3）做這個「垂下」視覺，所以這裡先清空，機制保留但目前沒有表情在用。
+    static readonly Dictionary<string, float> _lowerLashUpMap = new Dictionary<string, float> { { "ZZZ", 6f } };   // ZZZ：下睫毛再往上一點點
+
     static readonly Dictionary<string, float> _eyeExtraCloseRotateMap
         = new Dictionary<string, float>();
 
@@ -201,7 +203,7 @@ public partial class FaceExpressionController : Node
                 _eyeCloseCtrl?.SnapToTarget();   // 預設表情的眼睛直接到位，不要看到睜眼→閉眼的過渡
             }
             else
-                SetLayerActive("小嘴", true);
+                SetLayerActive("小嘴巴", true);
         }
         catch (System.Exception e)
         {
@@ -262,6 +264,7 @@ public partial class FaceExpressionController : Node
             // 設好，因為 EyeCloseController._Process() 下一幀就會立刻用這個值計算 Apply()。
             _eyeCloseCtrl.ClosedExtraOffsetY =
                 _eyeExtraCloseOffsetMap.TryGetValue(expressionName, out var extraY) ? extraY : 0f;
+            _eyeCloseCtrl.LowerLashExtraUpY = _lowerLashUpMap.TryGetValue(expressionName, out var lashUp) ? lashUp : 0f;
             _eyeCloseCtrl.ClosedExtraRotateZ =
                 _eyeExtraCloseRotateMap.TryGetValue(expressionName, out var extraRot) ? extraRot : 0f;
 
@@ -713,12 +716,12 @@ public partial class FaceExpressionController : Node
     {
         var mouthOverrides = new Dictionary<string, string>
         {
-            { "插入1",      "抖動嘴"    },
+            { "插入1",      "小嘴巴"    },
             { "插入2",      "小嘴巴"    },   // 完全突破：小嘴巴
-            { "做愛(半閉)", "表情/嘴巴" },
-            { "做愛(全閉)", "小嘴"      },
-            { "做愛3",      "小嘴"      },
-            { "做愛4",      "小嘴"      },
+            { "做愛(半閉)", "小嘴巴"    },
+            { "做愛(全閉)", "小嘴巴"    },
+            { "做愛3",      "小嘴巴"    },
+            { "做愛4",      "小嘴巴"    },
             { "高潮1",      "小嘴吐舌"  },
             { "高潮2",      "小嘴吐舌"  },
             { "高潮",       "小嘴吐舌"  },
@@ -729,7 +732,7 @@ public partial class FaceExpressionController : Node
             // 圖層名稱，不用額外加新的 PartGroup 圖層或多寫貼圖替換的程式碼。
             { "ZZZ",        "張嘴1"     },
         };
-        const string defaultMouth = "小嘴";
+        const string defaultMouth = "小嘴巴";
 
         if (Expressions == null) return;
         foreach (var expr in Expressions)
