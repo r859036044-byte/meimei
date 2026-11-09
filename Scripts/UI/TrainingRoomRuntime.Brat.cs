@@ -125,7 +125,7 @@ public partial class TrainingRoomRuntime
         {
             BratHideChoices();
             if (_bratTimer < 0f) _bratTimer = (float)GD.RandRange(BratLineInterval.X, BratLineInterval.Y);
-            _bratTimer -= dt;
+            _bratTimer -= dt / TalkTouchedMul();   // 有觸碰時說話間隔拉長（沒觸碰＝正常）
             if (_bratTimer <= 0f && _lessonT <= 0f)
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));

@@ -145,6 +145,17 @@ public partial class TrainingRoomRuntime
     [Export] public bool     ReactEnabled     = true;
     [Export] public float    ReactCooldown    = 2.5f;   // 兩句反應最短間隔（秒）
     [Export] public Vector2  ReactInterval    = new Vector2(4f, 7f);   // 互動進行中，每隔幾秒（隨機）再來一句
+    [Export(PropertyHint.Range, "1,5,0.1")] public float TouchedTalkIntervalMul = 2f;   // 對莉奈有觸碰時，所有台詞（點擊反應、定時說話、摸頭台詞）的間隔變成幾倍（1＝不變；沒觸碰時不受影響）
+
+    /// <summary>目前有沒有在碰莉奈（胸、乳頭、嘴、摸頭、小穴、抽插、舌頭…）。</summary>
+    bool TalkTouched()
+    {
+        var f = _reactFlags;
+        return f.breast || f.nipple || f.mouth || f.head || f.pussy || f.thrust || _bTouchRunning || _patOn || _tongueOn;
+    }
+
+    /// <summary>台詞間隔倍率：有觸碰＝TouchedTalkIntervalMul，沒觸碰＝1。</summary>
+    float TalkTouchedMul() => TalkTouched() ? Mathf.Max(1f, TouchedTalkIntervalMul) : 1f;
     // 台詞：反應時把「穴高潮值分段」＋「正在被弄的部位」＋「目前狀態」的台詞混在一起隨機挑（不會連續重複同一句）。自行增減。
     [Export] public string[] ReactLow   = { "嗯…", "唔…", "……嗯", "嗯？", "呼…", "……", "嗯嗯…", "唔…嗯", "哼嗯…", "嗯…？" };
     [Export] public string[] ReactMid   = { "嗯…啊…", "哈啊…", "唔嗯…", "嗯…♡", "呼…哈…", "啊…", "嗯…哈啊…", "哈…嗯…", "唔…啊…", "啊嗯…" };
@@ -184,8 +195,9 @@ public partial class TrainingRoomRuntime
         _reactPrevCount = count;
 
         if (count == 0) { _reactNext = -1f; return; }
-        float minInt = thrust ? 2.2f : ReactInterval.X;
-        float maxInt = thrust ? 4.0f : ReactInterval.Y;
+        float tMul_ = TalkTouchedMul();   // 有觸碰時台詞間隔拉長
+        float minInt = (thrust ? 2.2f : ReactInterval.X) * tMul_;
+        float maxInt = (thrust ? 4.0f : ReactInterval.Y) * tMul_;
         if (_reactNext < 0f) _reactNext = (float)GD.RandRange(minInt, maxInt);
         _reactNext -= dt;
         if (_reactNext <= 0f) { ReactNow(mouth); _reactNext = (float)GD.RandRange(minInt, maxInt); }
@@ -241,6 +253,6 @@ public partial class TrainingRoomRuntime
         if (string.IsNullOrEmpty(t)) return;
         _reactLast = t;
         GirlSayRich(t);   // 支援「|」分段、「=>」男主回應；舒服加愛心、不舒服加「不要…」（GirlTalk.cs）
-        _reactCd = ReactCooldown;
+        _reactCd = ReactCooldown * TalkTouchedMul();
     }
 }

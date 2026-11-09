@@ -95,7 +95,7 @@ public partial class TrainingRoomRuntime
             if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
             _patTalkStep = 2; _patTalkT = 0f;
         }
-        else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat)
+        else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat * TalkTouchedMul())
         {
             _patTalkStep = 0; _patTalkT = PatTalkFirstDelay;   // 下一輪立刻開始
         }
