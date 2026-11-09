@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
-        ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、雙手碰胸的那段；再按一次還原）
+        ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、雙手碰胸的那段；再按一次收手）
     };
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
@@ -298,7 +298,7 @@ public partial class TrainingRoomRuntime
     bool _promoChestOn;
 
     /// <summary>4 號鍵：被子拿掉（左下角）→ 左右手碰胸（肩帶、衣服不動） → 鏡頭（同 1 號鍵的倍率與移動方式）移到胸前。
-    /// 再按一次：手收掉、被子蓋回去、鏡頭慢慢回原位。不需要任何前置。</summary>
+    /// 再按一次：只收手（取消摸胸動作），鏡頭和被子不動。不需要任何前置。</summary>
     void PromoChestTouch()
     {
         if (_canvas == null) return;
@@ -306,14 +306,10 @@ public partial class TrainingRoomRuntime
         bool instant = PromoCamSmooth <= 0.01f;
         _camSmoothOverride = instant ? -1f : PromoCamSmooth;
         if (_promoChestOn)
-        {
+        {   // 再按一次：只取消摸胸動作（收手）；鏡頭、被子都維持原樣不動
             _promoChestOn = false;
             if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
             if (_touchAnimRunningRight) CancelHandTouchAnim(false);
-            DuvetState = 0;
-            if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
-            Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置（同 1 號鍵還原）
-            PromoCamGoto(1.1f, (vp * 0.5f - defOff) / 1.1f, vp * 0.5f, instant);
             return;
         }
 
