@@ -56,6 +56,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MLegCamZoomMul = 1.3f;   // 進入 M 腿時鏡頭再拉近的倍率（1.3＝再放大 30%；原本 1.48）
     [Export] public float MLegCamUpPx = 120f;   // 進入 M 腿時視角再往上移的螢幕 px（胸部在畫面中會偏下）
     [Export] public float MLegCamSmooth = 1f;   // M 腿拉近／縮回的縮放速度（越小越慢；滾輪縮放仍用 CamZoomSmooth）
+    [Export(PropertyHint.Range, "1.1,3,0.01")] public float MLegCamMinZoom = 1.25f;   // 莉奈抬腳（M 腿）時，滾輪縮小鏡頭的下限倍率：可以縮小，但不能縮到比這個還小（一般狀態下限是 1.1）。要微調就改這個；＝1.1 就等於沒有限制
     float _camSmoothOverride = -1f;
     float _mLegPrevZoomTarget = 1.1f;
     float _mLegSetZoom = -1f;   // 進入 M 腿時鏡頭自動設定的倍率（離開時若玩家沒再用滾輪調過才縮回原倍率）
@@ -106,6 +107,9 @@ public partial class TrainingRoomRuntime
         return p != null && p != _canvas;   // 滑鼠在 UI 層 / DEV 面板上 → 不縮放
     }
 
+    /// <summary>目前滾輪縮小鏡頭的下限：莉奈抬腳（M 腿開著或切換中）＝MLegCamMinZoom（可以縮小但有限制），否則 1.1。</summary>
+    float MLegMinZoomNow() => (_mLegOpen || _mLegTransitioning) ? Mathf.Clamp(MLegCamMinZoom, 1.1f, Mathf.Max(1.1f, CamZoomMax)) : 1.1f;
+
     /// <summary>由 _Input 呼叫；有處理就回傳 true。</summary>
     bool HandleCameraInput(InputEvent e)
     {
@@ -115,7 +119,7 @@ public partial class TrainingRoomRuntime
             {
                 if (IsPointerOverUi()) return false;
                 float f = mb.ButtonIndex == MouseButton.WheelUp ? CamZoomStep : 1f / CamZoomStep;
-                float minZ = 1.1f;   // M 腿中滾輪也可以自由縮放
+                float minZ = MLegMinZoomNow();   // 抬腳（M 腿）時縮小有下限（MLegCamMinZoom），其他時候 1.1
                 _camZoomTarget = Mathf.Clamp(_camZoomTarget * f, minZ, Mathf.Max(minZ, CamZoomMax));
                 _camSmoothOverride = -1f;
                 _camAnchorScreen = mb.Position;
@@ -145,7 +149,7 @@ public partial class TrainingRoomRuntime
         }
         else if (e is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.Home)
         {
-            _camZoomTarget = 1.1f;
+            _camZoomTarget = MLegMinZoomNow();   // 抬腳中回到「縮到最小」也要守下限
             _camOffset = CamDefaultOffset();   // Home 鍵重置也回到預設鏡頭位置
             return true;
         }
