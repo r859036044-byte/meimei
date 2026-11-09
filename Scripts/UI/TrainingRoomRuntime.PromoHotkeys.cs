@@ -526,7 +526,7 @@ public partial class TrainingRoomRuntime
             }
             GD.Print($"[Promo] 插入：完成 phase={_jijiPhase} stage={_jijiStage} 深度={_promoDeepT:F2}");
             if (!moveCamera) PromoFaceShot(true);   // 7 號鍵：插入過程中遊戲／護欄可能動過鏡頭，抽插開始前再切一次，一定要在臉部特寫
-            if (thenThrust && _promoInsertOn && _jijiPhase == 3 && _jijiStage >= 1) PromoStartThrust(extras);
+            if (thenThrust && _promoInsertOn && (!extras || _promo7On) && _jijiPhase == 3 && _jijiStage >= 1) PromoStartThrust(extras);   // 7 自動插入途中又按了 7（＝取消）就不要再開始動作
         }
         finally { _promoInsertAuto = false; }
     }
@@ -538,7 +538,8 @@ public partial class TrainingRoomRuntime
     // 倍率用兩隻拳頭的間距跟床上鏡頭比（約 2.9 倍）換算出來，所以比 CamZoomMax 還大，7 號鍵不受 CamZoomMax 限制。
     // 臉的位置沿用 PromoFacePointTex／PromoFaceScreenPos（截圖裡的鼻子位置跟它一樣）。
     [Export(PropertyHint.Range, "0.5,4,0.01")] public float PromoFace7PxPerTex = 1.89f;   // 7 號鍵臉部特寫的大小（畫面像素／貼圖像素）；想再近／遠就調這個
-    bool _promoThrustOn;
+    bool _promoThrustOn;   // 抽插正在動（6 或 7 啟動的都算）
+    bool _promo7On;        // 7 號鍵的整組動作（臉部特寫＋抽插＋親嘴＋摸胸）正在進行
 
     /// <summary>臉部特寫鏡頭（7 號鍵；8 號鍵從這裡開始放大；對準點同 1 號鍵、倍率用 PromoFace7PxPerTex；不動 UI、不動被子）。</summary>
     void PromoFaceShot(bool instant)
@@ -575,7 +576,7 @@ public partial class TrainingRoomRuntime
     /// <summary>停止 7 號鍵的全部動作：抽插、親嘴、摸胸（鏡頭不動）。</summary>
     void PromoStopThrust()
     {
-        _promoThrustOn = false;
+        _promoThrustOn = false; _promo7On = false;
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         PromoKissStop();
         if (_tongueOn) StopTongue();
@@ -589,10 +590,12 @@ public partial class TrainingRoomRuntime
     void PromoFaceThrust()
     {
         if (_canvas == null) return;
-        if (_promoThrustOn) { PromoStopThrust(); return; }
+        if (_promo7On) { PromoStopThrust(); return; }   // 7 自己已經在動：再按一次＝全部停止（抽插、親嘴、摸胸；鏡頭不動）
+        // 注意：6 號鍵的抽插（_promoThrustOn）正在動也不算「7 在動」——這時按 7 要照樣切鏡頭、加上親嘴和摸胸
+        _promo7On = true;
         PromoFaceShot(true);   // 即時：直接切過去
-        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(); PromoFaceShot(true); return; }   // 開始動作後再確認一次鏡頭在臉部特寫
-        if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
+        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(); PromoFaceShot(true); return; }   // 已插入：抽插（已在動就重設速度）＋親嘴＋摸胸；開始動作後再確認一次鏡頭在臉部特寫
+        if (_mLegTransitioning) { GD.Print("[Promo] 7：M 腿切換中，請稍後再按"); _promo7On = false; return; }
         _promoInsertOn = true; _promoDeepT = 0f;
         TaskLogger.Run(PromoInsertAsync(moveCamera: false, thenThrust: true), "TrainingRoom.PromoFaceThrust");
     }
@@ -779,13 +782,18 @@ public partial class TrainingRoomRuntime
     }
 
 
-    /// <summary>6 號鍵：抽插。不演「靠近、推進去」的過程，按下去就直接是已經插進去、在抽插的畫面。不動鏡頭；男人身體後面的空隙由鏡頭護欄擋住。
+    /// <summary>6 號鍵：抽插。不演「靠近、推進去」的過程，按下去就直接是已經插進去、在抽插的畫面。鏡頭＝插入鏡頭（以小穴為中心，即時切過去）；男人身體後面的空隙由鏡頭護欄擋住。
     /// 只有抽插，沒有親嘴和摸胸（那是 7 號鍵）。再按一次：停止抽插，鏡頭不動。速度在 PromoThrustLevel。</summary>
     void PromoThrust()
     {
         if (_canvas == null) return;
-        if (_promoThrustOn) { PromoStopThrust(); return; }
-        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(false); return; }   // 已經插入：直接抽（不動鏡頭）
+        if (_promoThrustOn)
+        {   // 再按一次：只停抽插（7 的親嘴、摸胸若在動就留著），鏡頭不動
+            _promoThrustOn = false;
+            if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
+            return;
+        }
+        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoInsertShot(true); PromoStartThrust(false); return; }   // 已經插入：鏡頭切到插入鏡頭，直接抽
         if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
         _promoInsertOn = true; _promoDeepT = 0f;
         TaskLogger.Run(PromoInstantThrustAsync(), "TrainingRoom.PromoThrust");
@@ -813,7 +821,7 @@ public partial class TrainingRoomRuntime
             if (!_promoInsertOn || !_mLegOpen) { _promoInsertOn = false; return; }
             await Frame(); await Frame();   // 讓小穴熱點先跟上 M 腿位置，雞雞才對得準
 
-            // 6 號鍵不自己動鏡頭（鏡頭由玩家／遊戲原本的 M 腿鏡頭決定）；男人身體後面的空隙由鏡頭護欄（Camera.cs BellyGapGuard）擋住
+            PromoInsertShot(instant: true);   // 鏡頭即時切到插入鏡頭（跟「插入」那個鏡頭一樣）；男人身體後面的空隙由鏡頭護欄（Camera.cs BellyGapGuard）擋住
 
             // 雞雞：直接就位（跳過淡入、靠近）
             _promoForceErect = true; _erectOn = true;
