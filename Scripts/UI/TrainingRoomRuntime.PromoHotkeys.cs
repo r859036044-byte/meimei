@@ -475,12 +475,16 @@ public partial class TrainingRoomRuntime
             if (!_promoInsertOn) return;
             OnJijiHotspotDown();   // 階段 1 → 2：滑到小穴
             await Wait(JijiAppearDuration / Mathf.Max(JijiPhase2SpeedMult, 0.1f) + 0.4f);
-            for (int i = 0; i < 4 && _promoInsertOn && _jijiPhase == 2; i++)   // 階段 2 → 3：位置有偏差時第一次只會重新對位，所以多按幾次
-            {
-                OnJijiHotspotDown();
-                await Wait(JijiAppearDuration + 0.3f);
-            }
-            if (!_promoInsertOn || _jijiPhase != 3) { GD.Print($"[Promo] 插入：沒進到插入階段（phase={_jijiPhase}）"); return; }
+            if (!_promoInsertOn) return;
+            GD.Print($"[Promo] 插入：靠近完成 phase={_jijiPhase} animating={_jijiAnimating} mLeg={_mLegOpen} pantyGone={_pantyGone}");
+            if (_jijiPhase == 1) { OnJijiHotspotDown(); await Wait(JijiAppearDuration + 0.4f); }   // 保險：第一次沒進階段 2 就再來一次
+            if (_jijiPhase != 2) { GD.Print($"[Promo] 插入：沒進到靠近階段（phase={_jijiPhase}）"); _promoInsertOn = false; return; }
+            // 不走 OnJijiHotspotDown（它在小穴位置有偏差時只會重新對位、不插入）：自己把雞雞對準現在的小穴，再直接開始插入
+            _jijiAnimCts?.Cancel(); _jijiAnimating = false;
+            _jijiPhase2Pos = CalcPhase2Offset(); _jijiOffset = _jijiPhase2Pos;
+            StartInsertion();
+            await Wait(0.2f);
+            if (!_promoInsertOn || _jijiPhase != 3) { GD.Print($"[Promo] 插入：沒進到插入階段（phase={_jijiPhase}；M 腿={_mLegOpen}；內褲擋住={MPantyBlocksInsert}）"); _promoInsertOn = false; return; }
 
             // 插進去：自己把插入深度從 0 推到突破點，再突破到深插（之後由遊戲原本的深插振盪接手）
             _promoInsertAuto = true;
