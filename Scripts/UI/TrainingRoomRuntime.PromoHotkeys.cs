@@ -450,7 +450,7 @@ public partial class TrainingRoomRuntime
     }
 
     /// <summary>插入鏡頭（6 號鍵）：影片裡插入那段的鏡頭，以小穴為中心；男人身體後面的空隙由鏡頭護欄（Camera.cs BellyGapGuard）擋住。</summary>
-    void PromoInsertShot()
+    void PromoInsertShot(bool instant = false)
     {
         if (_hotspotRTs != null && _hotspotRTs.Length > 4 && _hotspotRTs[4] != null && IsInstanceValid(_hotspotRTs[4]))
         {
@@ -458,9 +458,10 @@ public partial class TrainingRoomRuntime
             Vector2 pussyWorld = _hotspotRTs[4].GetGlobalRect().GetCenter();   // 已是場景座標
             float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
             float zoom = Mathf.Clamp(PromoInsertPxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
-            _camSmoothOverride = PromoCamSmooth <= 0.01f ? -1f : PromoCamSmooth;
+            bool inst = instant || PromoCamSmooth <= 0.01f;
+            _camSmoothOverride = inst ? -1f : PromoCamSmooth;
             PromoSetUiHidden(true);
-            PromoCamGoto(zoom, pussyWorld, vp * PromoInsertScreenPos, PromoCamSmooth <= 0.01f);
+            PromoCamGoto(zoom, pussyWorld, vp * PromoInsertScreenPos, inst);
             GD.Print($"[Promo] 插入鏡頭：小穴 場景{pussyWorld}；倍率 {zoom:F2}");
         }
     }
@@ -777,7 +778,7 @@ public partial class TrainingRoomRuntime
     }
 
 
-    /// <summary>6 號鍵：抽插。鏡頭＝插入鏡頭（以小穴為中心），鏡頭護欄保證看不到男人身體後面的空隙；還沒插入先自動插入（被子、內褲、M 腿一起處理）。
+    /// <summary>6 號鍵：抽插。不演「靠近、推進去」的過程，按下去就直接是已經插進去、在抽插的畫面。鏡頭＝插入鏡頭（以小穴為中心，即時切過去），鏡頭護欄保證看不到男人身體後面的空隙。
     /// 只有抽插，沒有親嘴和摸胸（那是 7 號鍵）。再按一次：停止抽插，鏡頭不動。速度在 PromoThrustLevel。</summary>
     void PromoThrust()
     {
@@ -786,7 +787,50 @@ public partial class TrainingRoomRuntime
         if (_jijiPhase == 3 && _jijiStage >= 1) { PromoInsertShot(); PromoStartThrust(false); return; }   // 已經插入：切到插入鏡頭，直接抽
         if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
         _promoInsertOn = true; _promoDeepT = 0f;
-        TaskLogger.Run(PromoInsertAsync(moveCamera: true, thenThrust: true, extras: false), "TrainingRoom.PromoThrust");
+        TaskLogger.Run(PromoInstantThrustAsync(), "TrainingRoom.PromoThrust");
+    }
+
+
+    /// <summary>6 號鍵還沒插入時：不演出現／靠近／推進，雞雞直接就位在「插入完成」的狀態再開始抽插。（被子拿掉、內褲脫掉、進 M 腿還是要的，M 腿淡入約 0.3 秒。）</summary>
+    async System.Threading.Tasks.Task PromoInstantThrustAsync()
+    {
+        async System.Threading.Tasks.Task Wait(float sec) => await ToSignal(GetTree().CreateTimer(sec), SceneTreeTimer.SignalName.Timeout);
+        async System.Threading.Tasks.Task Frame() => await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        try
+        {
+            if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+            if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+            if (_nipR.On) CancelNipple("NR");
+            if (_nipL.On) CancelNipple("NL");
+            if (_lickOn) StopLick();
+            if (_bTouchRunning) CancelBTouch();
+            if (_patOn) CancelPat();
+            _promoChestOn = false; _promoPussyOn = false;
+
+            PromoBedSetup();
+            for (float t = 0f; (_mLegTransitioning || !_mLegOpen) && t < 4f; t += 0.05f) await Wait(0.05f);   // 等 M 腿淡入完成
+            if (!_promoInsertOn || !_mLegOpen) { _promoInsertOn = false; return; }
+            await Frame(); await Frame();   // 讓小穴熱點先跟上 M 腿位置，雞雞才對得準
+
+            PromoInsertShot(instant: true);   // 鏡頭即時切到插入鏡頭
+
+            // 雞雞：直接就位（跳過淡入、靠近）
+            _promoForceErect = true; _erectOn = true;
+            if (_jijiPhase == 0) ShowJiji();
+            if (_jijiPhase != 1) { GD.Print("[Promo] 抽插：雞雞沒出現（ShowJiji 被擋）"); _promoInsertOn = false; _promoForceErect = false; return; }
+            _jijiAnimCts?.Cancel(); _jijiAnimating = false; _jijiAlpha = 1f;   // 取消淡入動畫，直接完全顯示
+            _jijiPhase2Pos = CalcPhase2Offset(); _jijiOffset = _jijiPhase2Pos; _jijiPhase = 2;
+
+            // 直接「插入完成」：開始插入 → 深度直接放到突破點 → 突破到深插（由遊戲原本的深插抽動接手）
+            _promoInsertAuto = true;
+            StartInsertion();
+            if (_jijiPhase != 3) { GD.Print($"[Promo] 抽插：沒進到插入階段（M 腿={_mLegOpen}；內褲擋住={MPantyBlocksInsert}）"); _promoInsertOn = false; return; }
+            _jijiInsertY = JijiStage1MaxY;
+            _promoInsertAuto = false;
+            Breakthrough();
+            PromoStartThrust(false);   // 只有抽插
+        }
+        finally { _promoInsertAuto = false; }
     }
 
     bool _promoPulling;
