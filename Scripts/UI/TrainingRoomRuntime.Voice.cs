@@ -276,19 +276,47 @@ public partial class TrainingRoomRuntime
         "嗯……", "呼嗯…", "嗯…♪",
     };
 
-    /// <summary>這句台詞（已加工過：可能被加了愛心或「不要…」）是不是指定要播正常音效的那 9 句之一。</summary>
+    /// <summary>台詞（已加工過：可能被加了愛心或「不要…」）是不是等於 line。愛心不比較，後面接的拒絕詞也算。</summary>
+    bool LineMatches(string text, string line)
+    {
+        static string Strip(string t) => t.Replace("\uFE0F", "").Replace("❤", "").Replace("♡", "").Replace("♥", "").Trim();
+        string s = Strip(text), l = Strip(line);
+        if (s == l) return true;
+        if (s.StartsWith(l, System.StringComparison.Ordinal) && GirlRefuseWords != null)
+        {   // 不舒服時台詞後面會被自動接上「不要…」之類的拒絕詞
+            string rest = s.Substring(l.Length).Trim();
+            foreach (var w in GirlRefuseWords) if (rest == w) return true;
+        }
+        return false;
+    }
+
+    /// <summary>這句台詞是不是指定要播正常音效的那 9 句之一。</summary>
     bool IsNormalVoiceLine(string text)
     {
         if (string.IsNullOrEmpty(text)) return false;
-        string s = text.Replace("\uFE0F", "").Replace("❤", "").Replace("♡", "").Replace("♥", "").Trim();
-        foreach (var line in NormalVoiceLines)
+        foreach (var line in NormalVoiceLines) if (LineMatches(text, line)) return true;
+        return false;
+    }
+
+    // 摸頭反應（ReactHeadNormal）6 句：各自指定音檔；寫多個＝依序輪流播（前一個播完才接下一個）
+    static readonly (string line, string[] files)[] HeadPatVoiceMap =
+    {
+        ("哼～笨蛋雜魚♪",                 new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav", "talk_brat/brat_zako_1.wav" }),
+        ("才沒有覺得很舒服呢…雜魚♡",       new[] { "talk_brat/fun.wav", "talk_brat/brat_zako_2.wav" }),
+        ("嘻嘻…雜魚大哥哥摸得還挺舒服的嘛♪", new[] { "talk_brat/brat_taunt.wav" }),
+        ("唔…別把我當小孩子啦！",           new[] { "normal/low_1.wav" }),
+        ("哼…笨蛋…♪",                    new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav" }),
+        ("再多摸一下也可以喔…♡",           new[] { "talk_brat/brat_zako_1.wav" }),
+    };
+
+    bool TryPlayHeadPatVoice(string text)
+    {
+        foreach (var (line, files) in HeadPatVoiceMap)
         {
-            if (s == line) return true;
-            if (s.StartsWith(line, System.StringComparison.Ordinal) && GirlRefuseWords != null)
-            {   // 不舒服時台詞後面會被自動接上「不要…」之類的拒絕詞
-                string rest = s.Substring(line.Length).Trim();
-                foreach (var w in GirlRefuseWords) if (rest == w) return true;
-            }
+            if (!LineMatches(text, line)) continue;
+            if (files.Length == 1 && files[0].StartsWith("normal/")) PlayTrVoice(files[0], false, NormalVoiceVolScale);
+            else PlayTrVoiceSeq(files);
+            return true;
         }
         return false;
     }
@@ -427,6 +455,9 @@ public partial class TrainingRoomRuntime
         {
             return;
         }
+
+        // 摸頭反應 6 句：各自指定的音檔（見 HeadPatVoiceMap）
+        if (TryPlayHeadPatVoice(text)) return;
 
         // 指定的 9 句台詞：用「正常音效」5 個檔隨機播一個（其他台詞、或 UseNormalVoiceForLines 關掉，走下面原本的關鍵字規則）
         if (UseNormalVoiceForLines && IsNormalVoiceLine(text))
