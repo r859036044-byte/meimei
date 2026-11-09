@@ -237,6 +237,9 @@ public partial class TrainingRoomRuntime
             || (_hotspotRTs != null && _hotspotRTs[hi] != null && _hotspotRTs[hi].GetGlobalRect().HasPoint(w));
     }
 
+    /// <summary>舔的舌頭大小：乳頭／小穴用 LickTongueSize；嘴巴（錄影親嘴）要小很多，乘 PromoKissScale。</summary>
+    float LickSizeOf(string target) => target == "M" ? LickTongueSize * PromoKissScale : LickTongueSize;
+
     void ToggleLick(string target)
     {
         if (_lickOn && _lickTarget == target) { StopLick(); return; }
@@ -254,7 +257,8 @@ public partial class TrainingRoomRuntime
         if (target == "L") CancelNipple("NL");
         if (target == "R") CancelNipple("NR");
 
-        var tex = TongueCursorTexture((int)LickTongueSize);
+        float ts0 = LickSizeOf(target);
+        var tex = TongueCursorTexture((int)ts0);
         if (tex == null) return;
         if (_touchHandLayer == null)
         {
@@ -267,9 +271,9 @@ public partial class TrainingRoomRuntime
             Name = "LickTongue", Texture = tex,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            Size = new Vector2(LickTongueSize, LickTongueSize),
+            Size = new Vector2(ts0, ts0),
         };
-        _lickTongue.PivotOffset = new Vector2(LickTongueSize * 0.5f, LickTongueSize);   // 以舌根（下緣）為軸
+        _lickTongue.PivotOffset = new Vector2(ts0 * 0.5f, ts0);   // 以舌根（下緣）為軸
         _touchHandLayer.AddChild(_lickTongue);
         _lickOn = true; _lickTarget = target; _lickT = 0f; _tongueSpeedLv = 0f;
         HadBreastTouch = true;
@@ -319,9 +323,9 @@ public partial class TrainingRoomRuntime
         }
         else if (_lickTarget == "M")
         {   // 嘴巴（錄影的親嘴）：動作跟舔乳頭、舔小穴完全一樣，只是位置在嘴巴熱點中心
-            tip = _hotspotRTs != null && _hotspotRTs.Length > 1 && _hotspotRTs[1] != null && IsInstanceValid(_hotspotRTs[1])
-                ? _hotspotRTs[1].GetGlobalRect().GetCenter()
-                : (Layers.TryGetValue("臉", out var fl) && fl != null ? fl.GetGlobalTransform() * new Vector2(990f, 760f) : Vector2.Zero);
+            // 嘴巴中心用貼圖座標（MouthCenterTex，所有圖層共用 2000×3200 畫布），經「臉」圖層的變換（含呼吸、摸頭晃動）轉成場景座標
+            tip = Layers.TryGetValue("臉", out var fl) && fl != null ? fl.GetGlobalTransform() * MouthCenterTex
+                : (_hotspotRTs != null && _hotspotRTs.Length > 1 && _hotspotRTs[1] != null ? _hotspotRTs[1].GetGlobalRect().GetCenter() : Vector2.Zero);
             tip += PromoKissNudge;
         }
         else
@@ -332,8 +336,14 @@ public partial class TrainingRoomRuntime
             TouchAnimOffset[nip] = push;
             tip = Layers.TryGetValue(nip, out var nc) && nc != null ? nc.GetGlobalTransform() * _nippleCenter[nip] : Vector2.Zero;
         }
-        float strokeScene = stroke * LickStrokePx * CharScreenScale();
-        _lickTongue.GlobalPosition = tip - new Vector2(LickTongueSize * 0.5f, LickTongueSize * 0.85f)
+        float ts = LickSizeOf(_lickTarget);
+        float strokeK = _lickTarget == "M" ? PromoKissScale : 1f;   // 嘴巴的舌頭小，舔的幅度也跟著縮
+        float strokeScene = stroke * LickStrokePx * strokeK * CharScreenScale();
+        if (_lickTarget == "M")
+            // 嘴巴：舌頭圖的中心放在嘴巴中心（不套乳頭用的 LickTongueNudge，那是為乳頭調的）
+            _lickTongue.GlobalPosition = tip - new Vector2(ts * 0.5f, ts * 0.5f) + new Vector2(0f, -strokeScene + LickStrokePx * strokeK * CharScreenScale() * 0.5f);
+        else
+        _lickTongue.GlobalPosition = tip - new Vector2(ts * 0.5f, ts * 0.85f)
                                    + LickTongueNudge + (_lickTarget == "B" || _lickTarget == "A" ? LickTongueNudgeB : Vector2.Zero) + new Vector2(0f, -strokeScene + LickStrokePx * CharScreenScale() * 0.5f);
         _lickTongue.RotationDegrees = Mathf.Sin(_lickT * Mathf.Tau) * 4f;
         _lickTongue.Modulate = new Color(1f, 1f, 1f, LickTongueAlpha);
