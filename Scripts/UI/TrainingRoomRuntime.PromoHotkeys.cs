@@ -524,9 +524,13 @@ public partial class TrainingRoomRuntime
 
     // 7 號鍵：鏡頭「即時」（不緩動）切到莉奈臉前＝1 號鍵那個親吻的臉鏡頭，同時抽插開始動；鏡頭之後一直留在臉前（不會被 M 腿／插入的鏡頭蓋掉）。
     [Export(PropertyHint.Range, "0,5,0.5")] public float PromoThrustLevel = 2f;   // 抽插速度等級（0＝最慢待機，5＝最快；太快男人身體後面的空隙可能露出來）
+    // 7 號鍵的臉前鏡頭＝使用者給的截圖：臉的特寫，鼻子在畫面（0.5、0.39）、兩隻拳頭在畫面兩側、胸口蝴蝶結在下方。
+    // 倍率用兩隻拳頭的間距跟床上鏡頭比（約 2.9 倍）換算出來，所以比 CamZoomMax 還大，7 號鍵不受 CamZoomMax 限制。
+    // 臉的位置沿用 PromoFacePointTex／PromoFaceScreenPos（截圖裡的鼻子位置跟它一樣）。
+    [Export(PropertyHint.Range, "0.5,4,0.01")] public float PromoFace7PxPerTex = 1.89f;   // 7 號鍵臉部特寫的大小（畫面像素／貼圖像素）；想再近／遠就調這個
     bool _promoThrustOn;
 
-    /// <summary>臉前鏡頭（同 1 號鍵的對準點與倍率；不動 UI、不動被子）。</summary>
+    /// <summary>臉部特寫鏡頭（7 號鍵；8 號鍵從這裡開始放大；對準點同 1 號鍵、倍率用 PromoFace7PxPerTex；不動 UI、不動被子）。</summary>
     void PromoFaceShot(bool instant)
     {
         if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
@@ -534,11 +538,12 @@ public partial class TrainingRoomRuntime
         Rect2 r = fl.GetGlobalRect();   // 已是場景座標（同 PromoCameraFace）
         Vector2 anchorWorld = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
         float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
-        float zoom = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+        float zoom = Mathf.Max(1.1f, PromoFace7PxPerTex / charScale);   // 不受 CamZoomMax 限制（特寫比一般放大上限還近）
         _camSmoothOverride = instant ? -1f : PromoCamSmooth;
         PromoSetUiHidden(true);
         PromoCamGoto(zoom, anchorWorld, vp * PromoFaceScreenPos, instant);
         _promoCamOnFace = true;
+        GD.Print($"[Promo] 臉部特寫鏡頭：倍率 {zoom:F2}");
     }
 
     void PromoStartThrust()
@@ -571,7 +576,7 @@ public partial class TrainingRoomRuntime
     // 8 號鍵：用 PromoZoomSec（7）秒慢慢放大鏡頭，放大的中心是 7 號鍵的臉前鏡頭（臉的位置不動，以臉為中心放大）；
     // 每一幀先預測「下一步放大後，男人身體（男人肚子圖層）的下緣會不會進到畫面裡」，快進來（PromoGapMarginPx）之前就停住，所以看不到身體下面的空隙。
     [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 7f;               // 放大花的時間（秒）
-    [Export(PropertyHint.Range, "1,6,0.1")] public float PromoZoomMul = 2.2f;              // 最多放大到目前倍率的幾倍（空隙會先擋住就停在擋住的位置）
+    [Export(PropertyHint.Range, "1,6,0.1")] public float PromoZoomMul = 1.25f;              // 最多放大到目前倍率的幾倍（空隙會先擋住就停在擋住的位置）
     [Export] public float PromoGapMarginPx = 40f;                                          // 身體下緣離畫面底邊還有幾 px 就先停（越大越保守）
     bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZTarget;
     Vector2 _promoZWorld, _promoZScreen0;
