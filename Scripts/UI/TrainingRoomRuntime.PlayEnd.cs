@@ -268,7 +268,7 @@ public partial class TrainingRoomRuntime
     /// <summary>射精。amountFrac＝這次只射出多少比例（1＝全射；忍耐失敗「漏出」時是 0.3~0.5）；sayLines＝射精當下男主說的話（null＝用 MaleEjacLines）。</summary>
     void MaleEjaculate(float amountFrac = 1f, string[] sayLines = null)
     {
-        if (DemoMode.Enabled) { ShowDemoEnd(); return; }   // 試玩版：射的瞬間就結束，黑屏顯示「試玩版已結束」（DemoEnd.cs）
+        if (DemoMode.Enabled && !PromoHotkeysEnabled) { ShowDemoEnd(); return; }   // 試玩版：射的瞬間就結束，黑屏顯示「試玩版已結束」（DemoEnd.cs）
         if (_ejacRunning || _insertEjacActive) return;
         CloseBreakChoicesKeepBubble();   // 破功選項還在的話先收掉（不然射精台詞會被選項擋住）
         float s01 = Mathf.Clamp(SemenStock / 100f, 0f, 1f);

@@ -586,7 +586,7 @@ public partial class TrainingRoomRuntime : Node
     /// <summary>觸發射精動畫。若上一次仍在播放則忽略本次呼叫。</summary>
     public void TriggerEjaculation()
     {
-        if (DemoMode.Enabled) { ShowDemoEnd(); return; }   // 試玩版：任何射精的入口都一樣，射的瞬間就結束（DemoEnd.cs）
+        if (DemoMode.Enabled && !PromoHotkeysEnabled) { ShowDemoEnd(); return; }   // 試玩版：任何射精的入口都一樣，射的瞬間就結束（DemoEnd.cs）
         if (_ejacRunning)
         {
             GD.Print("[TrainingRoom] TriggerEjaculation：動畫進行中，跳過。");
