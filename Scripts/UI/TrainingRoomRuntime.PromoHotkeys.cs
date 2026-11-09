@@ -631,8 +631,8 @@ public partial class TrainingRoomRuntime
 
 
     // 9 號鍵（外射精）：射到頭那裡
-    [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 射幾發
-    [Export] public Vector2 PromoEjacGap = new Vector2(0.35f, 0.6f);                       // 每發之間的間隔（秒）
+    [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 一次一起射幾發
+    [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
     /// <summary>9 號鍵：去掉親嘴、摸胸（還有抽插）→ 雞雞退出來 → 把精液連續射到頭那裡。射的時候再按 9 沒有作用。</summary>
@@ -673,11 +673,12 @@ public partial class TrainingRoomRuntime
         {
             PlayRinaEjacReaction();
             int n = Mathf.Max(2, PromoEjacWaves);
+            // 錄影：全部同時射（不是一發接一發）。每一發各自一道射流，同一瞬間從雞雞頂端飛向頭上不同的落點；力道只有一點點隨機，不遞減
+            var shots = new System.Collections.Generic.List<System.Threading.Tasks.Task>();
+            Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
             for (int i = 0; i < n; i++)
             {
-                float k = n <= 1 ? 0f : i / (float)(n - 1);   // 0 → 1：越射越弱，最後幾發只是流出來
                 Vector2 tipC = JijiTipCanvas();
-                Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
                 Vector2 tgt = (i % 3) switch
                 {
                     0 => hair + new Vector2(Rf(-80f, 80f), -Rf(60f, 150f)),   // 頭頂／劉海上方
@@ -685,12 +686,11 @@ public partial class TrainingRoomRuntime
                     _ => face + new Vector2(Rf(-60f, 60f), -Rf(20f, 80f)),    // 臉上半部（額頭）
                 };
                 tgt = PushOutOfNoShootZone(tgt);
-                float power = Mathf.Lerp(PromoEjacPower, PromoEjacPower * 0.5f, k * k);
-                float blob = Mathf.Lerp(EjacFarBlobScale, EjacFarBlobScale * 0.7f, k);
-                int seg = Mathf.Max(8, Mathf.RoundToInt(Mathf.Lerp(EjacFarSegCount, EjacFarSegCount * 0.6f, k)));
-                await ShootSemenAsync(tipC, tgt, seg, power, blob, addDrip: k > 0.6f);
-                await ToSignal(GetTree().CreateTimer(Rf(PromoEjacGap.X, PromoEjacGap.Y) * Mathf.Lerp(1f, 1.8f, k)), SceneTreeTimer.SignalName.Timeout);
+                float power = PromoEjacPower * Rf(0.9f, 1.1f);
+                shots.Add(ShootSemenAsync(tipC, tgt, EjacFarSegCount, power, EjacFarBlobScale, addDrip: i >= n - 3));
+                if (PromoEjacStagger > 0f && i < n - 1) await ToSignal(GetTree().CreateTimer(PromoEjacStagger), SceneTreeTimer.SignalName.Timeout);
             }
+            await System.Threading.Tasks.Task.WhenAll(shots);   // 等全部落地
             SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團
         }
         finally { _ejacRunning = false; }
