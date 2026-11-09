@@ -421,7 +421,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.2,2,0.01")] public float PromoInsertPxPerTex = 1.05f;     // 插入鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值）
     [Export(PropertyHint.Range, "0.5,12,0.5")] public float PromoInsertSec = 2f;            // 雞雞從入口推進到突破點的時間（秒）
     [Export(PropertyHint.Range, "0.5,12,0.5")] public float PromoDeepSec = 3f;               // 突破後「往上多拉」的時間（秒）
-    [Export(PropertyHint.Range, "0,1,0.05")] public float PromoInsertDepth = 0.7f;          // 往上拉到多深（0＝最淺、1＝最深）；想拉更多就調大
+    [Export(PropertyHint.Range, "0,1,0.05")] public float PromoInsertDepth = 0f;          // 突破後再往上多拉多深（0＝不多拉，只看到插進去；越大越深，但男人身體後面的空隙會露出來，建議保持 0）
     bool _promoInsertAuto, _promoForceErect, _promoInsertOn;
     float _promoDeepT;   // 突破後往上多拉的比例（Jiji.cs 的深插中心位置用）
 
