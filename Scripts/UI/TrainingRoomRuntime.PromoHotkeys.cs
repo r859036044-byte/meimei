@@ -632,6 +632,8 @@ public partial class TrainingRoomRuntime
 
     // 9 號鍵（外射精）：射到頭那裡
     [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 一次一起射幾發
+    [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacSpread = 1.8f;          // 7 發的落點分散程度：1＝原本集中，越大越分散（左右、上下都更開）
+    [Export] public float PromoEjacSpreadX = 140f;                                         // 最左到最右各離頭中心幾 px（角色畫布 px，再乘 PromoEjacSpread）
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
@@ -676,14 +678,21 @@ public partial class TrainingRoomRuntime
             // 錄影：全部同時射（不是一發接一發）。每一發各自一道射流，同一瞬間從雞雞頂端飛向頭上不同的落點；力道只有一點點隨機，不遞減
             var shots = new System.Collections.Generic.List<System.Threading.Tasks.Task>();
             Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
+            // 落點分散：左右均勻攤開（每一發佔一格，順序打亂），高低輪流在頭頂上方／劉海／額頭／頭兩側；PromoEjacSpread 控制攤開多寬
+            var order = new System.Collections.Generic.List<int>();
+            for (int q = 0; q < n; q++) order.Add(q);
+            for (int q = n - 1; q > 0; q--) { int r = (int)GD.RandRange(0, q); (order[q], order[r]) = (order[r], order[q]); }
             for (int i = 0; i < n; i++)
             {
                 Vector2 tipC = JijiTipCanvas();
-                Vector2 tgt = (i % 3) switch
+                float slot = n <= 1 ? 0f : order[i] / (float)(n - 1) * 2f - 1f;          // -1（最左）~ +1（最右）
+                float dx = slot * PromoEjacSpreadX * PromoEjacSpread + Rf(-25f, 25f) * PromoEjacSpread;
+                Vector2 tgt = (i % 4) switch
                 {
-                    0 => hair + new Vector2(Rf(-80f, 80f), -Rf(60f, 150f)),   // 頭頂／劉海上方
-                    1 => hair + new Vector2(Rf(-70f, 70f), Rf(-20f, 60f)),    // 劉海
-                    _ => face + new Vector2(Rf(-60f, 60f), -Rf(20f, 80f)),    // 臉上半部（額頭）
+                    0 => hair + new Vector2(dx, -Rf(110f, 210f) * PromoEjacSpread),     // 頭頂上方
+                    1 => hair + new Vector2(dx, Rf(-60f, 40f) * PromoEjacSpread),       // 劉海
+                    2 => face + new Vector2(dx, -Rf(30f, 110f) * PromoEjacSpread),      // 額頭
+                    _ => hair + new Vector2(dx * 1.15f, Rf(40f, 150f) * PromoEjacSpread), // 頭兩側（髮側）
                 };
                 tgt = PushOutOfNoShootZone(tgt);
                 float power = PromoEjacPower * Rf(0.9f, 1.1f);
