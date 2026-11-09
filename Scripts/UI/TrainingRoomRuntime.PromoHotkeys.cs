@@ -131,8 +131,9 @@ public partial class TrainingRoomRuntime
 
     [Export] public bool PromoHideUiAlways = true;   // 開始遊戲後 UI 一律隱藏（左側工具鈕、「?」、「☰ 選單」、HUD；錄影用）。要把 UI 叫回來：改成 false，或把 promo_hotkeys.json 某個鍵綁 ui_toggle
     [Export] public bool PromoHideBubbles = true;    // 開始遊戲後莉奈與男主的台詞氣泡一律隱藏（錄影用；台詞照常運作，只是看不到）
-    [Export(PropertyHint.Range, "40,400,5")] public float PromoHandSizePx = 140f;   // 2 號鍵拉被子的那隻手的大小（預設鏡頭下的畫面像素）
-    [Export(PropertyHint.Range, "0.3,0.95,0.01")] public float PromoPullU = 0.78f;   // 手抓被子上緣的水平位置（0＝最左、1＝最右；影片裡抓在右邊）
+    [Export(PropertyHint.Range, "0.05,0.5,0.01")] public float PromoHandRelSize = 0.16f;   // 2 號鍵拉被子的那隻手的寬度＝被子實際寬度的幾倍（跟鏡頭倍率無關；影片約 0.2，這裡再小一點）
+    [Export(PropertyHint.Range, "0.3,0.7,0.01")] public float PromoPullU = 0.58f;         // 手抓被子上緣的水平位置（以整張被子圖的寬度算：被子實際佔 0.33~0.68，0.58＝被子偏右）
+    [Export(PropertyHint.Range, "0,1.5,0.05")] public float PromoPullLeftRatio = 0.6f;   // 往下拉的同時往左移多少（以下拉距離為 1；0＝垂直往下，0.6＝往左下角）
     [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoPullSec = 1.1f;      // 往下拉的時間（秒）
     bool _promoUiHidden;                // 目前是不是由本系統隱藏著
     CanvasItem _promoMenuBtn;
@@ -286,7 +287,9 @@ public partial class TrainingRoomRuntime
         {
             layer = new CanvasLayer { Layer = 12, Name = "PromoHandLayer" };
             AddChild(layer);
-            float w = PromoHandSizePx * Mathf.Max(0.3f, _camZoom / 1.1f);   // 手跟著鏡頭倍率一起放大縮小
+            // 手的寬度＝被子實際內容寬度（約佔整張被子圖的 0.353）在畫面上的寬度 × PromoHandRelSize；所以不管鏡頭拉多近，手跟被子的比例都一樣
+            float duvetScreenW = (xf.BasisXform(new Vector2(0.353f * sz.X, 0f)) * _camZoom).Length();
+            float w = Mathf.Max(24f, duvetScreenW * PromoHandRelSize);
             handSize = new Vector2(w, w * tex.GetHeight() / Mathf.Max(1, tex.GetWidth()));
             hand = new TextureRect
             {
@@ -306,19 +309,26 @@ public partial class TrainingRoomRuntime
             sp.Y = Mathf.Clamp(sp.Y, -handSize.Y * 0.5f, vp.Y - handSize.Y * 0.5f);
             hand.Position = sp;
         }
-        PlaceHand(startW);
+        // 手從被子右邊外側「移動到被子上」：起點在抓點右方一個被子寬度的 0.45、稍微往下
+        Vector2 approachW = startW + xf.BasisXform(new Vector2(0.45f * 0.353f * sz.X, 0f)) + bandW * 0.5f;
+        PlaceHand(approachW);
 
         bool pullStarted = false;
         var tw = CreateTween();
-        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0.92f, 0.35);                          // 手淡入
-        tw.TweenMethod(Callable.From<float>(v => PlaceHand(startW, Mathf.Sin(v * Mathf.Pi * 2f) * 8f)), 0f, 1f, 0.7);   // 在被子上緣輕輕晃一下（還沒拉）
+        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0.92f, 0.3);                           // 手淡入
+        tw.TweenMethod(Callable.From<float>(v =>                                                      // 手移動到被子上緣的抓點
+        {
+            float e = v * v * (3f - 2f * v);
+            PlaceHand(approachW.Lerp(startW, e));
+        }), 0f, 1f, 0.7);
+        tw.TweenMethod(Callable.From<float>(v => PlaceHand(startW, Mathf.Sin(v * Mathf.Pi * 2f) * 6f)), 0f, 1f, 0.35);   // 抓住前輕輕動一下
         tw.TweenMethod(Callable.From<float>(v =>                                                      // 抓著往下拉
         {
             float p = v * v * (3f - 2f * v);   // 緩入緩出
             if (_duvet == null || !IsInstanceValid(_duvet)) return;
             _duvet.FoldSnap = true; _duvet.FoldTarget = p;
             if (!pullStarted && p > 0.02f) { pullStarted = true; _duvet.BeginPull(_duvet.PullX); }   // 新增一組皺褶線（跟玩家拉的時候一樣）
-            PlaceHand(startW + bandW * p);
+            PlaceHand(startW + bandW * p + new Vector2(-bandW.Length() * PromoPullLeftRatio * p, 0f));   // 往下拉的同時往左移＝往左下角拉
         }), 0f, 1f, PromoPullSec);
         tw.TweenCallback(Callable.From(() =>
         {   // 抓滿：被子被踢到左下角（跟玩家拉滿時一樣）
