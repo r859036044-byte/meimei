@@ -219,7 +219,7 @@ public partial class TrainingRoomRuntime
     {
         if (!PromoHotkeysEnabled) return;
         PromoSilenceTick();
-        if (_promoDeepT > 0f && _jijiPhase == 0) { _promoDeepT = 0f; _promoInsertOn = false; _promoForceErect = false; _promoThrustOn = false; }   // 雞雞被收起來：清掉 6／7 號鍵的狀態
+        if (_promoDeepT > 0f && _jijiPhase == 0) { _promoDeepT = 0f; _promoInsertOn = false; _promoForceErect = false; _promoThrustOn = false; _promo7On = false; }   // 雞雞被收起來：清掉 6／7 號鍵的狀態
         if (PromoHideBubbles)
         {   // 台詞氣泡：別的程式顯示它就每幀再藏起來（沒有閃一下：藏在同一幀畫面繪製之前）
             if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.Visible = false;
@@ -302,7 +302,8 @@ public partial class TrainingRoomRuntime
     bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
-        if (_promoZoomOn) { PromoZoomStep((float)GetProcessDeltaTime()); return; }
+        if (_promoZoomOn) { _promo7HoldT = 0f; PromoZoomStep((float)GetProcessDeltaTime()); return; }
+        if (_promo7HoldT > 0f) { _promo7HoldT -= (float)GetProcessDeltaTime(); PromoFaceShot(true); return; }   // 7 號鍵：鏡頭釘在臉部特寫
         if (_promoCamOffAnim)
         {
             float k = 1f - Mathf.Exp(-Mathf.Max(0.3f, PromoCamSmooth) * (float)GetProcessDeltaTime());
@@ -482,7 +483,7 @@ public partial class TrainingRoomRuntime
             PromoBedSetup();
             for (float t = 0f; (_mLegTransitioning || !_mLegOpen) && t < 4f; t += 0.05f) await Wait(0.05f);   // 等 M 腿淡入完成
             if (!_promoInsertOn || !_mLegOpen) { _promoInsertOn = false; return; }
-            if (!moveCamera) PromoFaceShot(true);   // 7 號鍵：進 M 腿時遊戲會把鏡頭搶去 M 腿鏡頭，這裡立刻切回臉前
+            if (!moveCamera) { PromoFaceShot(true); _promo7HoldT = 1.5f; }   // 7 號鍵：進 M 腿時遊戲會把鏡頭搶去 M 腿鏡頭，這裡立刻切回臉前並再釘住
 
             if (moveCamera) PromoInsertShot();
 
@@ -525,10 +526,10 @@ public partial class TrainingRoomRuntime
                 _promoDeepT = PromoInsertDepth * p * p * (3f - 2f * p);
             }
             GD.Print($"[Promo] 插入：完成 phase={_jijiPhase} stage={_jijiStage} 深度={_promoDeepT:F2}");
-            if (!moveCamera) PromoFaceShot(true);   // 7 號鍵：插入過程中遊戲／護欄可能動過鏡頭，抽插開始前再切一次，一定要在臉部特寫
+            if (!moveCamera) { PromoFaceShot(true); _promo7HoldT = 1.5f; }   // 7 號鍵：插入過程中遊戲／護欄可能動過鏡頭，抽插開始前再切一次並釘住，一定要在臉部特寫
             if (thenThrust && _promoInsertOn && (!extras || _promo7On) && _jijiPhase == 3 && _jijiStage >= 1) PromoStartThrust(extras);   // 7 自動插入途中又按了 7（＝取消）就不要再開始動作
         }
-        finally { _promoInsertAuto = false; }
+        finally { _promoInsertAuto = false; if (extras && thenThrust && !_promoThrustOn) _promo7On = false; }   // 7 的自動插入失敗／被取消：清掉「7 在動」旗標，下次按 7 才會重新開始
     }
 
 
@@ -539,6 +540,7 @@ public partial class TrainingRoomRuntime
     // 臉的位置沿用 PromoFacePointTex／PromoFaceScreenPos（截圖裡的鼻子位置跟它一樣）。
     [Export(PropertyHint.Range, "0.5,4,0.01")] public float PromoFace7PxPerTex = 1.89f;   // 7 號鍵臉部特寫的大小（畫面像素／貼圖像素）；想再近／遠就調這個
     bool _promoThrustOn;   // 抽插正在動（6 或 7 啟動的都算）
+    float _promo7HoldT;    // >0＝7 號鍵剛按下／剛插好：這段時間每幀都把鏡頭釘在臉部特寫，一定到得了
     bool _promo7On;        // 7 號鍵的整組動作（臉部特寫＋抽插＋親嘴＋摸胸）正在進行
 
     /// <summary>臉部特寫鏡頭（7 號鍵；8 號鍵從這裡開始放大；對準點同 1 號鍵、倍率用 PromoFace7PxPerTex；不動 UI、不動被子）。</summary>
@@ -590,10 +592,12 @@ public partial class TrainingRoomRuntime
     void PromoFaceThrust()
     {
         if (_canvas == null) return;
-        if (_promo7On) { PromoStopThrust(); return; }   // 7 自己已經在動：再按一次＝全部停止（抽插、親嘴、摸胸；鏡頭不動）
+        if (_promo7On && (_promoThrustOn || PromoKissOn || _nipR.On || _touchAnimRunningLeft)) { PromoStopThrust(); return; }   // 7 自己已經在動：再按一次＝全部停止（抽插、親嘴、摸胸；鏡頭不動）
+        // （旗標還亮著、但其實什麼都沒在動＝上一次 7 中途失敗卡住的旗標，不能當成「停止」，要重新開始）
         // 注意：6 號鍵的抽插（_promoThrustOn）正在動也不算「7 在動」——這時按 7 要照樣切鏡頭、加上親嘴和摸胸
         _promo7On = true;
         PromoFaceShot(true);   // 即時：直接切過去
+        _promo7HoldT = 1.5f;   // 接下來 1.5 秒每幀都把鏡頭釘在臉部特寫（M 腿切換、插入過程、護欄都可能把鏡頭拉走）
         if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(); PromoFaceShot(true); return; }   // 已插入：抽插（已在動就重設速度）＋親嘴＋摸胸；開始動作後再確認一次鏡頭在臉部特寫
         if (_mLegTransitioning) { GD.Print("[Promo] 7：M 腿切換中，請稍後再按"); _promo7On = false; return; }
         _promoInsertOn = true; _promoDeepT = 0f;
