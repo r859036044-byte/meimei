@@ -30,7 +30,7 @@ public partial class TrainingRoomRuntime
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("8", "zoom_jiji"),      // 從 7 號鍵的臉前鏡頭開始，用 7 秒以臉為中心慢慢放大，男人身體下面的空隙快露出來之前自動停住；再按一次中途停止
-        ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉前（親吻的鏡頭）＋抽插開始動，鏡頭始終在臉前；再按一次停止抽插（還沒插入會先自動插入）
+        ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
         ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
@@ -522,7 +522,7 @@ public partial class TrainingRoomRuntime
     }
 
 
-    // 7 號鍵：鏡頭「即時」（不緩動）切到莉奈臉前＝1 號鍵那個親吻的臉鏡頭，同時抽插開始動；鏡頭之後一直留在臉前（不會被 M 腿／插入的鏡頭蓋掉）。
+    // 7 號鍵：鏡頭「即時」（不緩動）切到莉奈臉部特寫，同時抽插＋親嘴＋摸胸一起開始；鏡頭之後一直留在臉前（不會被 M 腿／插入的鏡頭蓋掉）。
     [Export(PropertyHint.Range, "0,5,0.5")] public float PromoThrustLevel = 2f;   // 抽插速度等級（0＝最慢待機，5＝最快；太快男人身體後面的空隙可能露出來）
     // 7 號鍵的臉前鏡頭＝使用者給的截圖：臉的特寫，鼻子在畫面（0.5、0.39）、兩隻拳頭在畫面兩側、胸口蝴蝶結在下方。
     // 倍率用兩隻拳頭的間距跟床上鏡頭比（約 2.9 倍）換算出來，所以比 CamZoomMax 還大，7 號鍵不受 CamZoomMax 限制。
@@ -553,18 +553,31 @@ public partial class TrainingRoomRuntime
         _s2Paused = false; _pullActive = false;
         _s2SpeedLv = Mathf.Clamp(PromoThrustLevel, 0f, S2SpeedLvMax);
         GD.Print($"[Promo] 抽插開始：速度等級 {_s2SpeedLv:F1}");
+        // 同時：親嘴（舌頭動畫，同 3 號鍵）＋摸胸（左手摸胸＋右手摸右邊乳頭，同 4 號鍵）
+        if (!_tongueOn) StartTongue();
+        if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+        if (!_nipR.On) StartNipple("NR");
+        _promoChestOn = true;
     }
 
-    /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：停止抽插，鏡頭不動。</summary>
+    /// <summary>停止 7 號鍵的全部動作：抽插、親嘴、摸胸（鏡頭不動）。</summary>
+    void PromoStopThrust()
+    {
+        _promoThrustOn = false;
+        if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
+        if (_tongueOn) StopTongue();
+        if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+        if (_nipR.On) CancelNipple("NR");
+        _promoChestOn = false;
+    }
+
+    /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
     void PromoFaceThrust()
     {
         if (_canvas == null) return;
-        if (_promoThrustOn)
-        {
-            _promoThrustOn = false;
-            if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
-            return;
-        }
+        if (_promoThrustOn) { PromoStopThrust(); return; }
         PromoFaceShot(true);   // 即時：直接切過去
         if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(); return; }
         if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
