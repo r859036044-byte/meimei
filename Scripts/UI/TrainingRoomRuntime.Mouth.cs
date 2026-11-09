@@ -144,7 +144,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,5,0.1")] public float PinchFrownDelaySec = 1f;   // 捏住多久才換成倒笑
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleX = 0.45f;   // 倒笑嘴左右壓縮（0.45＝跟小嘴巴同寬）
     [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleY = 1f;      // 倒笑嘴上下大小（1＝翻轉後不壓扁）
-    [Export] public float PinchFrownCenterY = 752f;   // 倒笑嘴中心的貼圖 Y（757＝小嘴巴的中心，兩者位置對齊；往上減、往下加）
+    [Export] public float PinchFrownCenterY = 747f;   // 倒笑嘴中心的貼圖 Y（757＝小嘴巴的中心，兩者位置對齊；往上減、往下加）
 
     /// <summary>倒笑：「笑」上下翻轉＋左右壓縮，並讓翻轉後的嘴巴中心落在小嘴巴的位置。</summary>
     void ApplyFrownMouth()
