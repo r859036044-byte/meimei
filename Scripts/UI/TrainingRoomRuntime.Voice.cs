@@ -257,6 +257,25 @@ public partial class TrainingRoomRuntime
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
     }
 
+    // ── 台詞語音：全部換成「正常音效」5 個檔，每次隨機播其中一個 ──
+    [Export] public bool UseNormalVoiceForLines = true;   // true＝莉奈說台詞時一律播下面 5 個音效之一（false＝回到依台詞關鍵字配音的舊規則）
+    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float NormalVoiceVolScale = 0.7f;   // 這 5 個音效的音量倍率（跟一般觸碰語音差不多）
+    static readonly string[] NormalVoicePaths =
+    {
+        "normal/breast_touch_5.wav",
+        "normal/low_1.wav",
+        "normal/moan_breath_breath_1.wav",
+        "normal/sleep_kiss_2.wav",
+        "normal/touch_body_sleep_sigh_2.wav",
+    };
+
+    /// <summary>莉奈說台詞時的語音：從正常音效 5 個檔隨機挑一個（高優先語音正在播時不蓋掉，由呼叫端先判斷）。</summary>
+    void PlayNormalLineVoice()
+    {
+        string pick = NormalVoicePaths[(int)(GD.Randi() % (uint)NormalVoicePaths.Length)];
+        PlayTrVoice(pick, false, NormalVoiceVolScale);
+    }
+
     static readonly int[] BreathIds = { 1,2,3,4,5,6,7,8,9, 11,12, 15, 21,22,23,24,25,26, 30,31, 33, 35,36,37,38, 41,42,43,44,45,46,47,48,49,50 };
 
     // ── 無觸碰固定語音：依序播放（前一個播完才接下一個，不再隨機）──
@@ -382,6 +401,13 @@ public partial class TrainingRoomRuntime
         // 若高優先級語音正在播放（如破處、高潮、內射），不覆蓋音訊
         if (_voicePriorityLockTimer > 0f && IsVoicePlaying)
         {
+            return;
+        }
+
+        // 所有台詞統一用「正常音效」5 個檔隨機播一個（UseNormalVoiceForLines 關掉就走下面原本的關鍵字規則）
+        if (UseNormalVoiceForLines)
+        {
+            PlayNormalLineVoice();
             return;
         }
 
