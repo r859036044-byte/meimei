@@ -29,6 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -117,6 +118,7 @@ public partial class TrainingRoomRuntime
         ["duvet_pull"]  = ("拉開被子", () => PromoPullDuvet()),
         ["chest_touch"] = ("摸胸", () => PromoChestTouch()),
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
+        ["insert"]      = ("插入", () => PromoInsert()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
@@ -369,6 +371,17 @@ public partial class TrainingRoomRuntime
         GD.Print($"[Promo] 床上鏡頭：胸中心 場景{anchorWorld}；倍率 {zoom:F2}（目前倍率 {_camZoom:F2}）");
     }
 
+
+    /// <summary>床上的前置（5、6 號鍵共用）：被子拿掉（左下角）、內褲脫掉、進 M 腿（腿張開）。ToggleMLegModeAsync 開頭會自己把鏡頭拉到 M 腿鏡頭，呼叫端之後再蓋成影片鏡頭。</summary>
+    void PromoBedSetup()
+    {
+        DuvetState = 1;
+        if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+        if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
+        if (!_pantyGone) { _pantyGone = true; _pantyPullT = PantyDoneT; _pantyFadeA = 0f; }   // 跟玩家把內褲拉到底放手同一組狀態
+        if (!_mLegOpen && !_mLegTransitioning) TaskLogger.Run(ToggleMLegModeAsync(), "TrainingRoom.ToggleMLegMode");
+    }
+
     bool _promoPussyOn;
 
     /// <summary>5 號鍵：被子拿掉、內褲脫掉、進 M 腿（腿張開）、一根手指摸小穴；鏡頭＝影片的床上鏡頭（同 4 號鍵）。
@@ -388,16 +401,7 @@ public partial class TrainingRoomRuntime
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
         if (_patOn) CancelPat();
 
-        // 1) 被子拿掉（左下角）
-        DuvetState = 1;
-        if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
-        if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
-
-        // 2) 內褲脫掉（跟玩家把內褲拉到底放手同一組狀態）
-        if (!_pantyGone) { _pantyGone = true; _pantyPullT = PantyDoneT; _pantyFadeA = 0f; }
-
-        // 3) 進 M 腿（腿張開）；ToggleMLegModeAsync 開頭會自己把鏡頭拉到 M 腿鏡頭，下面再蓋成影片的床上鏡頭
-        if (!_mLegOpen) TaskLogger.Run(ToggleMLegModeAsync(), "TrainingRoom.ToggleMLegMode");
+        PromoBedSetup();
         PromoBedCamera(PromoCamSmooth <= 0.01f);
 
         // 4) M 腿淡入完成後，開始摸小穴（切換一開始會把摸 B 取消，所以要等切換完）
@@ -407,6 +411,90 @@ public partial class TrainingRoomRuntime
             if (!_promoPussyOn || !_mLegOpen) return;
             if (!_bTouchRunning) StartBTouch();
         };
+    }
+
+
+    // 6 號鍵（插入）的鏡頭＝影片裡插入那段：比床上鏡頭再拉近約 1.6 倍，以小穴為中心，小穴在畫面中央偏下（水平 0.5、垂直 0.46）。
+    // 影片的倍率換算出來比 CamZoomMax（預設 3）還大一點，會被擋在 CamZoomMax；想再近就把 CamZoomMax 調大。
+    [Export] public Vector2 PromoInsertScreenPos = new Vector2(0.5f, 0.46f);                 // 小穴要停在畫面的哪裡（0~1）
+    [Export(PropertyHint.Range, "0.2,2,0.01")] public float PromoInsertPxPerTex = 1.05f;     // 插入鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值）
+    [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoInsertSec = 1.6f;            // 雞雞推進去的時間（秒）
+    bool _promoInsertAuto, _promoForceErect, _promoInsertOn;
+
+    /// <summary>6 號鍵：被子拿掉、內褲脫掉、進 M 腿 → 鏡頭拉近到小穴 → 雞雞出現、靠近、插進去（直接突破到深插，不用按住滑鼠）。
+    /// 再按一次：雞雞收起來（鏡頭不動）。不需要任何前置。</summary>
+    void PromoInsert()
+    {
+        if (_canvas == null) return;
+        if (_promoInsertOn)
+        {
+            _promoInsertOn = false; _promoInsertAuto = false; _promoForceErect = false;
+            if (_jijiPhase > 0) HideJiji();
+            return;
+        }
+        if (_mLegTransitioning) { GD.Print("[Promo] 插入：M 腿切換中，請稍後再按"); return; }
+        _promoInsertOn = true;
+        TaskLogger.Run(PromoInsertAsync(), "TrainingRoom.PromoInsert");
+    }
+
+    async System.Threading.Tasks.Task PromoInsertAsync()
+    {
+        async System.Threading.Tasks.Task Wait(float sec) => await ToSignal(GetTree().CreateTimer(sec), SceneTreeTimer.SignalName.Timeout);
+        try
+        {
+            if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+            if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+            if (_nipR.On) CancelNipple("NR");
+            if (_nipL.On) CancelNipple("NL");
+            if (_bTouchRunning) CancelBTouch();
+            if (_patOn) CancelPat();
+            _promoChestOn = false; _promoPussyOn = false;
+
+            PromoBedSetup();
+            for (float t = 0f; (_mLegTransitioning || !_mLegOpen) && t < 4f; t += 0.05f) await Wait(0.05f);   // 等 M 腿淡入完成
+            if (!_promoInsertOn || !_mLegOpen) { _promoInsertOn = false; return; }
+
+            // 鏡頭：影片的插入鏡頭（小穴位置用小穴熱點，M 腿開著時它黏在「m腿/小穴」上）
+            if (_hotspotRTs != null && _hotspotRTs.Length > 4 && _hotspotRTs[4] != null && IsInstanceValid(_hotspotRTs[4]))
+            {
+                Vector2 vp = GetViewport().GetVisibleRect().Size;
+                Vector2 pussyWorld = _hotspotRTs[4].GetGlobalRect().GetCenter();   // 已是場景座標
+                float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+                float zoom = Mathf.Clamp(PromoInsertPxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+                _camSmoothOverride = PromoCamSmooth <= 0.01f ? -1f : PromoCamSmooth;
+                PromoSetUiHidden(true);
+                PromoCamGoto(zoom, pussyWorld, vp * PromoInsertScreenPos, PromoCamSmooth <= 0.01f);
+                GD.Print($"[Promo] 插入鏡頭：小穴 場景{pussyWorld}；倍率 {zoom:F2}");
+            }
+
+            // 雞雞：出現 → 靠近 → 插入（勃起度不夠也強制勃起，不然遊戲會把雞雞收起來）
+            _promoForceErect = true; _erectOn = true;
+            if (_jijiPhase == 0) ShowJiji();
+            if (_jijiPhase != 1) { GD.Print("[Promo] 插入：雞雞沒出現（ShowJiji 被擋）"); _promoInsertOn = false; _promoForceErect = false; return; }
+            await Wait(JijiAppearDuration + 0.4f);
+            if (!_promoInsertOn) return;
+            OnJijiHotspotDown();   // 階段 1 → 2：滑到小穴
+            await Wait(JijiAppearDuration / Mathf.Max(JijiPhase2SpeedMult, 0.1f) + 0.4f);
+            for (int i = 0; i < 4 && _promoInsertOn && _jijiPhase == 2; i++)   // 階段 2 → 3：位置有偏差時第一次只會重新對位，所以多按幾次
+            {
+                OnJijiHotspotDown();
+                await Wait(JijiAppearDuration + 0.3f);
+            }
+            if (!_promoInsertOn || _jijiPhase != 3) { GD.Print($"[Promo] 插入：沒進到插入階段（phase={_jijiPhase}）"); return; }
+
+            // 插進去：自己把插入深度從 0 推到突破點，再突破到深插（之後由遊戲原本的深插振盪接手）
+            _promoInsertAuto = true;
+            float from = _jijiInsertY, to = JijiStage1MaxY, dur = Mathf.Max(0.1f, PromoInsertSec);
+            for (float t = 0f; t < dur && _promoInsertOn && _jijiPhase == 3; )
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                t += (float)GetProcessDeltaTime();
+                float p = Mathf.Clamp(t / dur, 0f, 1f);
+                _jijiInsertY = Mathf.Lerp(from, to, p * p * (3f - 2f * p));
+            }
+            if (_promoInsertOn && _jijiPhase == 3) Breakthrough();
+        }
+        finally { _promoInsertAuto = false; }
     }
 
     bool _promoPulling;

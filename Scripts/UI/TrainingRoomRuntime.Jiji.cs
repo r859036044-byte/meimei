@@ -1027,6 +1027,7 @@ void fragment() {
 
     void UpdateInsertion(float dt)
     {
+        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動插入中：插入深度由 PromoHotkeys.cs 控制（不需要按住滑鼠，也不會自己退回）
         _jijiHeld = Input.IsMouseButtonPressed(MouseButton.Left);
         if (_jijiStage >= 1) { UpdateStage1Osc(dt); return; }   // 突破後：深插振盪（Unity 的做法）
 

@@ -233,7 +233,7 @@ public partial class TrainingRoomRuntime
         SetSemenLevel(er / 100f);
         float ep = _semenLevel * 100f;
         if (!_erectOn && ep >= ErectOnPct) _erectOn = true;
-        else if (_erectOn && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
+        else if (_erectOn && !_promoForceErect && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
         {
             _erectOn = false;
             if (_jijiPhase > 0) { if (!DemoMode.Enabled) SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
