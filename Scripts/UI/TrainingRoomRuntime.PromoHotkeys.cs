@@ -28,6 +28,7 @@ public partial class TrainingRoomRuntime
     {
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
+        ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
     };
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
@@ -112,6 +113,7 @@ public partial class TrainingRoomRuntime
     {
         ["cam_face"]    = ("鏡頭：臉前", () => PromoCameraFace()),
         ["duvet_pull"]  = ("拉開被子", () => PromoPullDuvet()),
+        ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
         ["b_touch"]     = ("摸 B",       () => ToggleBTouch()),
