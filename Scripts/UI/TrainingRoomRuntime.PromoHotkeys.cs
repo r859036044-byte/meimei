@@ -32,7 +32,7 @@ public partial class TrainingRoomRuntime
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
         ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
-        ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
+        ("6", "thrust"),         // 抽插（雞雞在小穴裡抽動；還沒插入會先自動插入；鏡頭＝插入鏡頭，且護欄保證不會看到男人身體後面的空隙；再按一次停止）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -122,6 +122,7 @@ public partial class TrainingRoomRuntime
         ["chest_touch"] = ("摸胸", () => PromoChestTouch()),
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["insert"]      = ("插入", () => PromoInsert()),
+        ["thrust"]      = ("抽插", () => PromoThrust()),
         ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
         ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
@@ -448,7 +449,23 @@ public partial class TrainingRoomRuntime
         TaskLogger.Run(PromoInsertAsync(), "TrainingRoom.PromoInsert");
     }
 
-    async System.Threading.Tasks.Task PromoInsertAsync(bool moveCamera = true, bool thenThrust = false)
+    /// <summary>插入鏡頭（6 號鍵）：影片裡插入那段的鏡頭，以小穴為中心；男人身體後面的空隙由鏡頭護欄（Camera.cs BellyGapGuard）擋住。</summary>
+    void PromoInsertShot()
+    {
+        if (_hotspotRTs != null && _hotspotRTs.Length > 4 && _hotspotRTs[4] != null && IsInstanceValid(_hotspotRTs[4]))
+        {
+            Vector2 vp = GetViewport().GetVisibleRect().Size;
+            Vector2 pussyWorld = _hotspotRTs[4].GetGlobalRect().GetCenter();   // 已是場景座標
+            float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+            float zoom = Mathf.Clamp(PromoInsertPxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+            _camSmoothOverride = PromoCamSmooth <= 0.01f ? -1f : PromoCamSmooth;
+            PromoSetUiHidden(true);
+            PromoCamGoto(zoom, pussyWorld, vp * PromoInsertScreenPos, PromoCamSmooth <= 0.01f);
+            GD.Print($"[Promo] 插入鏡頭：小穴 場景{pussyWorld}；倍率 {zoom:F2}");
+        }
+    }
+
+    async System.Threading.Tasks.Task PromoInsertAsync(bool moveCamera = true, bool thenThrust = false, bool extras = true)
     {
         async System.Threading.Tasks.Task Wait(float sec) => await ToSignal(GetTree().CreateTimer(sec), SceneTreeTimer.SignalName.Timeout);
         try
@@ -466,18 +483,7 @@ public partial class TrainingRoomRuntime
             if (!_promoInsertOn || !_mLegOpen) { _promoInsertOn = false; return; }
             if (!moveCamera) PromoFaceShot(true);   // 7 號鍵：進 M 腿時遊戲會把鏡頭搶去 M 腿鏡頭，這裡立刻切回臉前
 
-            // 鏡頭：影片的插入鏡頭（小穴位置用小穴熱點，M 腿開著時它黏在「m腿/小穴」上）
-            if (moveCamera && _hotspotRTs != null && _hotspotRTs.Length > 4 && _hotspotRTs[4] != null && IsInstanceValid(_hotspotRTs[4]))
-            {
-                Vector2 vp = GetViewport().GetVisibleRect().Size;
-                Vector2 pussyWorld = _hotspotRTs[4].GetGlobalRect().GetCenter();   // 已是場景座標
-                float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
-                float zoom = Mathf.Clamp(PromoInsertPxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
-                _camSmoothOverride = PromoCamSmooth <= 0.01f ? -1f : PromoCamSmooth;
-                PromoSetUiHidden(true);
-                PromoCamGoto(zoom, pussyWorld, vp * PromoInsertScreenPos, PromoCamSmooth <= 0.01f);
-                GD.Print($"[Promo] 插入鏡頭：小穴 場景{pussyWorld}；倍率 {zoom:F2}");
-            }
+            if (moveCamera) PromoInsertShot();
 
             // 雞雞：出現 → 靠近 → 插入（勃起度不夠也強制勃起，不然遊戲會把雞雞收起來）
             _promoForceErect = true; _erectOn = true;
@@ -518,7 +524,7 @@ public partial class TrainingRoomRuntime
                 _promoDeepT = PromoInsertDepth * p * p * (3f - 2f * p);
             }
             GD.Print($"[Promo] 插入：完成 phase={_jijiPhase} stage={_jijiStage} 深度={_promoDeepT:F2}");
-            if (thenThrust && _promoInsertOn && _jijiPhase == 3 && _jijiStage >= 1) PromoStartThrust();
+            if (thenThrust && _promoInsertOn && _jijiPhase == 3 && _jijiStage >= 1) PromoStartThrust(extras);
         }
         finally { _promoInsertAuto = false; }
     }
@@ -548,13 +554,14 @@ public partial class TrainingRoomRuntime
         GD.Print($"[Promo] 臉部特寫鏡頭：倍率 {zoom:F2}");
     }
 
-    void PromoStartThrust()
+    void PromoStartThrust(bool extras = true)
     {
         if (_jijiPhase != 3 || _jijiStage < 1) return;
         _promoThrustOn = true;
         _s2Paused = false; _pullActive = false;
         _s2SpeedLv = Mathf.Clamp(PromoThrustLevel, 0f, S2SpeedLvMax);
         GD.Print($"[Promo] 抽插開始：速度等級 {_s2SpeedLv:F1}");
+        if (!extras) return;   // 6 號鍵：只有抽插
         // 同時：親嘴（舌頭動畫，同 3 號鍵）＋摸胸（左手摸胸＋右手摸右邊乳頭，同 4 號鍵）
         PromoKissStart();
         if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
@@ -767,6 +774,19 @@ public partial class TrainingRoomRuntime
         if (hasFace) return f;
         if (hasHair) return hr;
         return new Rect2(990f - 330f, 604f - 330f, 660f, 760f);
+    }
+
+
+    /// <summary>6 號鍵：抽插。鏡頭＝插入鏡頭（以小穴為中心），鏡頭護欄保證看不到男人身體後面的空隙；還沒插入先自動插入（被子、內褲、M 腿一起處理）。
+    /// 只有抽插，沒有親嘴和摸胸（那是 7 號鍵）。再按一次：停止抽插，鏡頭不動。速度在 PromoThrustLevel。</summary>
+    void PromoThrust()
+    {
+        if (_canvas == null) return;
+        if (_promoThrustOn) { PromoStopThrust(); return; }
+        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoInsertShot(); PromoStartThrust(false); return; }   // 已經插入：切到插入鏡頭，直接抽
+        if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
+        _promoInsertOn = true; _promoDeepT = 0f;
+        TaskLogger.Run(PromoInsertAsync(moveCamera: true, thenThrust: true, extras: false), "TrainingRoom.PromoThrust");
     }
 
     bool _promoPulling;
