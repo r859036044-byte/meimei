@@ -632,8 +632,8 @@ public partial class TrainingRoomRuntime
 
     // 9 號鍵（外射精）：射到頭那裡
     [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 一次一起射幾發
-    [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacSpread = 1.8f;          // 7 發的落點分散程度：1＝原本集中，越大越分散（左右、上下都更開）
-    [Export] public float PromoEjacSpreadX = 140f;                                         // 最左到最右各離頭中心幾 px（角色畫布 px，再乘 PromoEjacSpread）
+    [Export(PropertyHint.Range, "0,0.4,0.01")] public float PromoEjacFaceMargin = 0.12f;   // 落點離臉邊緣至少留多少（占臉寬／臉高的比例）：越大越集中在臉中間、越不可能射到臉外面
+    [Export] public Vector2 PromoEjacFaceY = new Vector2(0.1f, 0.62f);                     // 落點在臉的哪一段高度（0＝臉最上緣、1＝下巴；預設避開下巴那一段）
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
@@ -678,23 +678,31 @@ public partial class TrainingRoomRuntime
             // 錄影：全部同時射（不是一發接一發）。每一發各自一道射流，同一瞬間從雞雞頂端飛向頭上不同的落點；力道只有一點點隨機，不遞減
             var shots = new System.Collections.Generic.List<System.Threading.Tasks.Task>();
             Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
-            // 落點分散：左右均勻攤開（每一發佔一格，順序打亂），高低輪流在頭頂上方／劉海／額頭／頭兩側；PromoEjacSpread 控制攤開多寬
+            // 落點分散，但全部落在「臉」的範圍裡：左右均勻攤開（每發佔一格、順序打亂），高低在臉的上段隨機；再避開眼睛嘴巴的禁射區，最後一定夾回臉的範圍內
+            Rect2 fr = PromoFaceRectTex();   // 臉貼圖實際畫出來的範圍（貼圖座標）
+            Layers.TryGetValue("臉", out var faceNode);
             var order = new System.Collections.Generic.List<int>();
             for (int q = 0; q < n; q++) order.Add(q);
             for (int q = n - 1; q > 0; q--) { int r = (int)GD.RandRange(0, q); (order[q], order[r]) = (order[r], order[q]); }
+            float mx = fr.Size.X * PromoEjacFaceMargin, my = fr.Size.Y * PromoEjacFaceMargin;
+            float xLo = fr.Position.X + mx, xHi = fr.End.X - mx;
+            float yLo = fr.Position.Y + Mathf.Max(my, fr.Size.Y * PromoEjacFaceY.X), yHi = fr.Position.Y + Mathf.Min(fr.Size.Y - my, fr.Size.Y * PromoEjacFaceY.Y);
+            if (yHi < yLo) yHi = yLo;
             for (int i = 0; i < n; i++)
             {
                 Vector2 tipC = JijiTipCanvas();
-                float slot = n <= 1 ? 0f : order[i] / (float)(n - 1) * 2f - 1f;          // -1（最左）~ +1（最右）
-                float dx = slot * PromoEjacSpreadX * PromoEjacSpread + Rf(-25f, 25f) * PromoEjacSpread;
-                Vector2 tgt = (i % 4) switch
-                {
-                    0 => hair + new Vector2(dx, -Rf(110f, 210f) * PromoEjacSpread),     // 頭頂上方
-                    1 => hair + new Vector2(dx, Rf(-60f, 40f) * PromoEjacSpread),       // 劉海
-                    2 => face + new Vector2(dx, -Rf(30f, 110f) * PromoEjacSpread),      // 額頭
-                    _ => hair + new Vector2(dx * 1.15f, Rf(40f, 150f) * PromoEjacSpread), // 頭兩側（髮側）
-                };
+                float slot = n <= 1 ? 0.5f : order[i] / (float)(n - 1);                       // 0（臉最左）~ 1（臉最右）
+                Vector2 texPt = new Vector2(Mathf.Lerp(xLo, xHi, slot) + Rf(-1f, 1f) * (xHi - xLo) / Mathf.Max(2, n) * 0.4f, Rf(yLo, yHi));
+                texPt.X = Mathf.Clamp(texPt.X, xLo, xHi);
+                Vector2 tgt = faceNode != null ? faceNode.GetTransform() * texPt : LayerCanvasCenter("臉") + (texPt - fr.GetCenter());
                 tgt = PushOutOfNoShootZone(tgt);
+                // 被推出禁射區後可能掉到臉外面：換算回貼圖座標，夾回臉的範圍內
+                if (faceNode != null)
+                {
+                    Vector2 back = faceNode.GetTransform().AffineInverse() * tgt;
+                    back = new Vector2(Mathf.Clamp(back.X, fr.Position.X + mx * 0.5f, fr.End.X - mx * 0.5f), Mathf.Clamp(back.Y, fr.Position.Y + my * 0.5f, fr.End.Y - my * 0.5f));
+                    tgt = faceNode.GetTransform() * back;
+                }
                 float power = PromoEjacPower * Rf(0.9f, 1.1f);
                 shots.Add(ShootSemenAsync(tipC, tgt, EjacFarSegCount, power, EjacFarBlobScale, addDrip: i >= n - 3));
                 if (PromoEjacStagger > 0f && i < n - 1) await ToSignal(GetTree().CreateTimer(PromoEjacStagger), SceneTreeTimer.SignalName.Timeout);
@@ -720,6 +728,33 @@ public partial class TrainingRoomRuntime
         StartLick("M");
     }
     void PromoKissStop() { if (PromoKissOn) StopLick(); }
+
+
+    Rect2 _promoFaceRect; bool _promoFaceRectOk;
+    /// <summary>「臉」貼圖實際畫出來的範圍（貼圖座標，2000×3200 畫布上的一個框）。略過零星淡雜點：一列／一行至少要有 20 個明顯不透明的點才算。算一次就快取。</summary>
+    Rect2 PromoFaceRectTex()
+    {
+        if (_promoFaceRectOk) return _promoFaceRect;
+        Rect2 fallback = new Rect2(990f - 330f, 604f - 330f, 660f, 760f);   // 找不到時：用「臉」內容中心附近一個合理大小的框
+        _promoFaceRectOk = true; _promoFaceRect = fallback;
+        if (!Layers.TryGetValue("臉", out var fl) || fl is not TextureRect tr || tr.Texture == null) return fallback;
+        var img = tr.Texture.GetImage();
+        if (img == null) return fallback;
+        if (img.IsCompressed()) img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+        byte[] d = img.GetData(); int w = img.GetWidth(), h = img.GetHeight();
+        int[] rows = new int[h], cols = new int[w];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                if (d[(y * w + x) * 4 + 3] >= 26) { rows[y]++; cols[x]++; }
+        int y0 = -1, y1 = -1, x0 = -1, x1 = -1;
+        for (int y = 0; y < h; y++) if (rows[y] >= 20) { if (y0 < 0) y0 = y; y1 = y; }
+        for (int x = 0; x < w; x++) if (cols[x] >= 20) { if (x0 < 0) x0 = x; x1 = x; }
+        if (y0 < 0 || x0 < 0) return fallback;
+        _promoFaceRect = new Rect2(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+        GD.Print($"[Promo] 臉的範圍（貼圖座標）：{_promoFaceRect}");
+        return _promoFaceRect;
+    }
 
     bool _promoPulling;
 
