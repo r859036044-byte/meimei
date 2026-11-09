@@ -418,7 +418,8 @@ public partial class TrainingRoomRuntime
     // 影片的倍率換算出來比 CamZoomMax（預設 3）還大一點，會被擋在 CamZoomMax；想再近就把 CamZoomMax 調大。
     [Export] public Vector2 PromoInsertScreenPos = new Vector2(0.5f, 0.46f);                 // 小穴要停在畫面的哪裡（0~1）
     [Export(PropertyHint.Range, "0.2,2,0.01")] public float PromoInsertPxPerTex = 1.05f;     // 插入鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值）
-    [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoInsertSec = 5f;            // 靠近小穴後「自動長按」的秒數：這段時間雞雞慢慢往上推進去（玩家不能操作；鏡頭不動）
+    [Export(PropertyHint.Range, "1,12,0.5")] public float PromoInsertSec = 5f;            // 靠近小穴後「自動長按」的秒數：這段時間雞雞慢慢往上推進去（玩家不能操作；鏡頭不動）
+    [Export(PropertyHint.Range, "0.05,1,0.05")] public float PromoHoldSpeedMul = 0.25f;   // 自動長按時雞雞往上推的速度倍率（1＝跟玩家按住一樣快；越小越慢）
     bool _promoInsertAuto, _promoForceErect, _promoInsertOn;
 
     /// <summary>6 號鍵：被子拿掉、內褲脫掉、進 M 腿 → 鏡頭拉近到小穴 → 雞雞出現、靠近、插進去（直接突破到深插，不用按住滑鼠）。
@@ -482,22 +483,25 @@ public partial class TrainingRoomRuntime
             // 不走 OnJijiHotspotDown（它在小穴位置有偏差時只會重新對位、不插入）：自己把雞雞對準現在的小穴，再直接開始插入
             _jijiAnimCts?.Cancel(); _jijiAnimating = false;
             _jijiPhase2Pos = CalcPhase2Offset(); _jijiOffset = _jijiPhase2Pos;
+            _promoInsertAuto = true;   // 先「按住」再開始插入：沒按住的話遊戲會當作放開，把雞雞退回靠近階段
             StartInsertion();
             await Wait(0.2f);
             if (!_promoInsertOn || _jijiPhase != 3) { GD.Print($"[Promo] 插入：沒進到插入階段（phase={_jijiPhase}；M 腿={_mLegOpen}；內褲擋住={MPantyBlocksInsert}）"); _promoInsertOn = false; return; }
 
-            // 插進去：模擬長按 PromoInsertSec 秒（不給玩家操作），期間自己把插入深度從 0 慢慢推到突破點，再突破到深插（之後由遊戲原本的深插振盪接手）
-            _promoInsertAuto = true;
-            float from = _jijiInsertY, to = JijiStage1MaxY, dur = Mathf.Max(0.1f, PromoInsertSec);
-            for (float t = 0f; t < dur && _promoInsertOn && _jijiPhase == 3; )
+            // 模擬「對雞雞本體長按」：_promoInsertAuto 讓遊戲原本的插入邏輯當作左鍵一直按住（玩家不能操作）。
+            // 雞雞先慢慢往上推到上限、再進入阻力（慢慢撐開），阻力滿了就突破；這裡把阻力目標調成剛好在 PromoInsertSec 秒左右突破。
+            float held = 0f;
+            while (_promoInsertOn && _jijiPhase == 3 && _jijiStage == 0 && held < PromoInsertSec + 8f)
             {
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-                t += (float)GetProcessDeltaTime();
-                float p = Mathf.Clamp(t / dur, 0f, 1f);
-                _jijiHeld = true;   // 假裝左鍵一直按住（長按）
-                _jijiInsertY = Mathf.Lerp(from, to, p);   // 勻速慢慢往上
+                held += (float)GetProcessDeltaTime();
+                if (_resistBlocking)
+                {
+                    float rate = ResistScoreRateHold * (1f + WetnessRatio() * ResistWetnessScoreBonus);
+                    _resistTarget = _resistProgress + rate * Mathf.Max(0.2f, PromoInsertSec - held);   // 剩下的時間剛好把阻力累積滿
+                }
             }
-            if (_promoInsertOn && _jijiPhase == 3) Breakthrough();
+            GD.Print($"[Promo] 插入：長按 {held:F1} 秒；phase={_jijiPhase} stage={_jijiStage}");
         }
         finally { _promoInsertAuto = false; }
     }
