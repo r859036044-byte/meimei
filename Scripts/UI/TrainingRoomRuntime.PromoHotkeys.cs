@@ -418,7 +418,7 @@ public partial class TrainingRoomRuntime
     // 影片的倍率換算出來比 CamZoomMax（預設 3）還大一點，會被擋在 CamZoomMax；想再近就把 CamZoomMax 調大。
     [Export] public Vector2 PromoInsertScreenPos = new Vector2(0.5f, 0.46f);                 // 小穴要停在畫面的哪裡（0~1）
     [Export(PropertyHint.Range, "0.2,2,0.01")] public float PromoInsertPxPerTex = 1.05f;     // 插入鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值）
-    [Export(PropertyHint.Range, "1,12,0.5")] public float PromoInsertSec = 5f;            // 靠近小穴後「自動長按」的秒數：這段時間雞雞慢慢往上推進去（玩家不能操作；鏡頭不動）
+    [Export(PropertyHint.Range, "1,12,0.5")] public float PromoInsertSec = 10f;            // 靠近小穴後「自動長按」的秒數：這段時間雞雞慢慢往上推進去（玩家不能操作；鏡頭不動）
     [Export(PropertyHint.Range, "0.05,1,0.05")] public float PromoHoldSpeedMul = 0.25f;   // 自動長按時雞雞往上推的速度倍率（1＝跟玩家按住一樣快；越小越慢）
     bool _promoInsertAuto, _promoForceErect, _promoInsertOn;
 
