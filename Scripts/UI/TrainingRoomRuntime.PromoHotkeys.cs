@@ -28,14 +28,23 @@ public partial class TrainingRoomRuntime
     {
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
-        ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("3", "tongue_kiss"),    // 舔乳頭（原本是親嘴，錄影改成舔乳頭；再按一次停止）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
+        ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋舔乳頭＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
         ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
+
+    [Export] public string PromoLickSide = "L";   // 舔乳頭舔哪一顆：L＝畫面左邊那顆、R＝畫面右邊那顆（7 號鍵裡，舔的那一側不再有手：L 時左手不摸胸、R 時右手不碰乳頭）
+
+    string PromoLickTarget => PromoLickSide == "R" ? "R" : "L";
+    void PromoToggleLick()
+    {
+        if (_tongueOn) StopTongue();
+        ToggleLick(PromoLickTarget);   // 舔：舌頭在乳頭上往上舔、慢慢回來（Tongue.cs；不需要先選 👅、不需要滑鼠）
+    }
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
     static readonly string[] PromoExprNames =
@@ -125,7 +134,8 @@ public partial class TrainingRoomRuntime
         ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
         ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
-        ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
+        ["tongue_kiss"] = ("舔乳頭", () => PromoToggleLick()),   // 原本是親嘴（嘴巴舌頭動畫），錄影改成舔乳頭；動作代號沒改，json 不用動
+        ["lick_nipple"] = ("舔乳頭", () => PromoToggleLick()),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
         ["b_touch"]     = ("摸 B",       () => ToggleBTouch()),
@@ -457,6 +467,7 @@ public partial class TrainingRoomRuntime
             if (_touchAnimRunningRight) CancelHandTouchAnim(false);
             if (_nipR.On) CancelNipple("NR");
             if (_nipL.On) CancelNipple("NL");
+            if (_lickOn) StopLick();
             if (_bTouchRunning) CancelBTouch();
             if (_patOn) CancelPat();
             _promoChestOn = false; _promoPussyOn = false;
@@ -524,7 +535,7 @@ public partial class TrainingRoomRuntime
     }
 
 
-    // 7 號鍵：鏡頭「即時」（不緩動）切到莉奈臉部特寫，同時抽插＋親嘴＋摸胸一起開始；鏡頭之後一直留在臉前（不會被 M 腿／插入的鏡頭蓋掉）。
+    // 7 號鍵：鏡頭「即時」（不緩動）切到莉奈臉部特寫，同時抽插＋舔乳頭＋摸胸一起開始；鏡頭之後一直留在臉前（不會被 M 腿／插入的鏡頭蓋掉）。
     [Export(PropertyHint.Range, "0,5,0.5")] public float PromoThrustLevel = 2f;   // 抽插速度等級（0＝最慢待機，5＝最快；太快男人身體後面的空隙可能露出來）
     // 7 號鍵的臉前鏡頭＝使用者給的截圖：臉的特寫，鼻子在畫面（0.5、0.39）、兩隻拳頭在畫面兩側、胸口蝴蝶結在下方。
     // 倍率用兩隻拳頭的間距跟床上鏡頭比（約 2.9 倍）換算出來，所以比 CamZoomMax 還大，7 號鍵不受 CamZoomMax 限制。
@@ -555,11 +566,15 @@ public partial class TrainingRoomRuntime
         _s2Paused = false; _pullActive = false;
         _s2SpeedLv = Mathf.Clamp(PromoThrustLevel, 0f, S2SpeedLvMax);
         GD.Print($"[Promo] 抽插開始：速度等級 {_s2SpeedLv:F1}");
-        // 同時：親嘴（舌頭動畫，同 3 號鍵）＋摸胸（左手摸胸＋右手摸右邊乳頭，同 4 號鍵）
-        if (!_tongueOn) StartTongue();
-        if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
+        // 同時：舔乳頭（同 3 號鍵）＋摸胸（左手摸胸＋右手摸右邊乳頭，同 4 號鍵）。舔的那一側不再有手（同一顆不能同時被舔又被摸）
+        string lick = PromoLickTarget;
+        if (_tongueOn) StopTongue();
+        if (lick == "L") { if (_touchAnimRunningLeft) CancelHandTouchAnim(true); if (_nipL.On) CancelNipple("NL"); }
+        else if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
-        if (!_nipR.On) StartNipple("NR");
+        if (lick == "R") { if (_nipR.On) CancelNipple("NR"); }
+        else if (!_nipR.On) StartNipple("NR");
+        if (!(_lickOn && _lickTarget == lick)) StartLick(lick);
         _promoChestOn = true;
     }
 
@@ -569,13 +584,14 @@ public partial class TrainingRoomRuntime
         _promoThrustOn = false;
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         if (_tongueOn) StopTongue();
+        if (_lickOn) StopLick();
         if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
         if (_nipR.On) CancelNipple("NR");
         _promoChestOn = false;
     }
 
-    /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
+    /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、舔乳頭、摸胸全部停止，鏡頭不動。</summary>
     void PromoFaceThrust()
     {
         if (_canvas == null) return;
@@ -648,6 +664,7 @@ public partial class TrainingRoomRuntime
         // 1) 去掉 7 號鍵的全部動作：抽插停、親嘴停、摸胸停（鏡頭不動）
         PromoStopThrust();
         if (_tongueOn) StopTongue();
+        if (_lickOn) StopLick();
         if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
         if (_nipL.On) CancelNipple("NL");
