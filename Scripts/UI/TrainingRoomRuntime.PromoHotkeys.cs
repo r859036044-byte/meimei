@@ -607,7 +607,7 @@ public partial class TrainingRoomRuntime
 
     // 8 號鍵：用 PromoZoomSec（7）秒慢慢「縮小」鏡頭，從目前的畫面（通常是 7 號鍵的臉部特寫）縮到原版 7 號鍵的臉前位置
     // （PromoFacePxPerTex 倍率、臉停在 PromoFaceScreenPos；就是 1 號鍵那個臉前鏡頭）。臉的位置平順移到終點，不會瞬移。
-    [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 7f;               // 縮小花的時間（秒）
+    [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 3f;               // 縮小花的時間（秒）
     bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZEnd;
     Vector2 _promoZWorld, _promoZScreen0, _promoZScreen1;
 
