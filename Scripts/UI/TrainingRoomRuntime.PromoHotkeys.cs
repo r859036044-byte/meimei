@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
-        ("8", "zoom_jiji"),      // 從 7 號鍵的臉前鏡頭開始，用 7 秒以臉為中心慢慢放大，男人身體下面的空隙快露出來之前自動停住；再按一次中途停止
+        ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
         ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
         ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
@@ -122,7 +122,7 @@ public partial class TrainingRoomRuntime
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["insert"]      = ("插入", () => PromoInsert()),
         ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
-        ["zoom_jiji"]   = ("慢慢放大（以臉為中心）", () => PromoZoomJiji()),
+        ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
@@ -586,73 +586,44 @@ public partial class TrainingRoomRuntime
     }
 
 
-    // 8 號鍵：用 PromoZoomSec（7）秒慢慢放大鏡頭，放大的中心是 7 號鍵的臉前鏡頭（臉的位置不動，以臉為中心放大）；
-    // 每一幀先預測「下一步放大後，男人身體（男人肚子圖層）的下緣會不會進到畫面裡」，快進來（PromoGapMarginPx）之前就停住，所以看不到身體下面的空隙。
-    [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 7f;               // 放大花的時間（秒）
-    [Export(PropertyHint.Range, "1,6,0.1")] public float PromoZoomMul = 1.25f;              // 最多放大到目前倍率的幾倍（空隙會先擋住就停在擋住的位置）
-    [Export] public float PromoGapMarginPx = 40f;                                          // 身體下緣離畫面底邊還有幾 px 就先停（越大越保守）
-    bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZTarget;
-    Vector2 _promoZWorld, _promoZScreen0;
-    float _bellyBottomTex = -1f, _bellyMidXTex;   // 男人肚子貼圖不透明範圍的下緣（只算一次）
+    // 8 號鍵：用 PromoZoomSec（7）秒慢慢「縮小」鏡頭，從目前的畫面（通常是 7 號鍵的臉部特寫）縮到原版 7 號鍵的臉前位置
+    // （PromoFacePxPerTex 倍率、臉停在 PromoFaceScreenPos；就是 1 號鍵那個臉前鏡頭）。臉的位置平順移到終點，不會瞬移。
+    [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 7f;               // 縮小花的時間（秒）
+    bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZEnd;
+    Vector2 _promoZWorld, _promoZScreen0, _promoZScreen1;
 
-    /// <summary>8 號鍵：慢慢放大到只看到雞雞（空隙露出來之前停）。再按一次：中途停止（鏡頭停在那裡）。</summary>
+    /// <summary>8 號鍵：慢慢縮小到原版 7 號鍵（臉前）的鏡頭位置。再按一次：中途停止（鏡頭停在那裡）。</summary>
     void PromoZoomJiji()
     {
         if (_canvas == null) return;
-        if (_promoZoomOn) { _promoZoomOn = false; GD.Print("[Promo] 放大：手動停止"); return; }
-        // 放大的中心＝7 號鍵的臉前鏡頭：先（即時）切到那個鏡頭，臉停在畫面原本的位置不動，以臉為中心慢慢放大
-        PromoFaceShot(true);
-        _promoZWorld = _camAnchorWorld; _promoZScreen0 = _camAnchorScreen;   // PromoFaceShot 剛設好的臉的位置（場景座標／畫面座標）
-        _promoZ0 = _camZoom; _promoZTarget = _camZoom * Mathf.Max(1f, PromoZoomMul);
+        if (_promoZoomOn) { _promoZoomOn = false; GD.Print("[Promo] 縮小：手動停止"); return; }
+        if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        Rect2 r = fl.GetGlobalRect();   // 已是場景座標（同 PromoCameraFace）
+        _promoZWorld = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;   // 臉的位置（場景座標）
+        float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+        _promoZ0 = _camZoom;
+        _promoZEnd = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));   // 原版 7 號鍵（1 號鍵臉前鏡頭）的倍率
+        _promoZScreen0 = _promoZWorld * _camZoom + _camOffset;   // 臉現在在畫面上的位置（第一幀畫面完全不動）
+        _promoZScreen1 = vp * PromoFaceScreenPos;                // 臉最後停的位置
         _promoZoomT = 0f;
         _promoCamAnimating = false; _promoCamOffAnim = false;
         PromoSetUiHidden(true);
         _promoZoomOn = true;
-        GD.Print($"[Promo] 放大開始（以臉為中心）：{_promoZ0:F2} → 最多 {_promoZTarget:F2}，{PromoZoomSec:F1} 秒");
-    }
-
-    /// <summary>男人肚子貼圖「不透明部分的下緣」在場景座標的 Y（含雞雞推進時整層一起移動、角色縮放）。找不到回傳 float.NaN。</summary>
-    float PromoBellyBottomWorldY()
-    {
-        if (!Layers.TryGetValue("男人肚子", out var bl) || bl is not TextureRect tr || !tr.Visible || tr.Texture == null || _jijiPhase == 0) return float.NaN;
-        if (_bellyBottomTex < 0f)
-        {
-            var img = tr.Texture.GetImage();
-            if (img == null) { _bellyBottomTex = 0f; return float.NaN; }
-            Rect2I u = img.GetUsedRect();
-            if (u.Size.X <= 0) { _bellyBottomTex = 0f; return float.NaN; }
-            _bellyBottomTex = u.End.Y; _bellyMidXTex = u.Position.X + u.Size.X * 0.5f;
-            GD.Print($"[Promo] 男人肚子不透明範圍 {u}（貼圖 {img.GetWidth()}×{img.GetHeight()}）");
-        }
-        if (_bellyBottomTex <= 0f) return float.NaN;
-        Vector2 texSize = new Vector2(tr.Texture.GetWidth(), tr.Texture.GetHeight());
-        Vector2 local = new Vector2(_bellyMidXTex, _bellyBottomTex) * (tr.Size / texSize);
-        return (tr.GetGlobalTransform() * local).Y;
+        GD.Print($"[Promo] 縮小開始：{_promoZ0:F2} → {_promoZEnd:F2}，{PromoZoomSec:F1} 秒");
     }
 
     void PromoZoomStep(float dt)
     {
-        Vector2 vp = GetViewport().GetVisibleRect().Size;
         _promoZoomT += dt;
         float p = Mathf.Clamp(_promoZoomT / Mathf.Max(0.5f, PromoZoomSec), 0f, 1f);
         float e = p * p * (3f - 2f * p);   // 慢慢開始、慢慢停
-        float zCand = Mathf.Lerp(_promoZ0, _promoZTarget, e);
-        Vector2 screen = _promoZScreen0;   // 臉一直停在 7 號鍵臉前鏡頭的位置
-        float belly = PromoBellyBottomWorldY();
-        if (!float.IsNaN(belly))
-        {   // 預測：用這一步的鏡頭，男人身體下緣會落在畫面哪個 Y？落在「底邊 + 邊界」之上＝空隙快露出來了 → 停在上一幀
-            float yScreen = screen.Y + (belly - _promoZWorld.Y) * zCand;
-            if (yScreen < vp.Y + PromoGapMarginPx)
-            {
-                _promoZoomOn = false;
-                GD.Print($"[Promo] 放大：在倍率 {_camZoom:F2} 停住（再放大，男人身體下緣會到畫面 y={yScreen:F0}／{vp.Y:F0}，空隙會露出來）");
-                return;
-            }
-        }
-        _camZoom = zCand; _camZoomTarget = zCand;
+        float z = Mathf.Lerp(_promoZ0, _promoZEnd, e);
+        Vector2 screen = _promoZScreen0.Lerp(_promoZScreen1, e);
+        _camZoom = z; _camZoomTarget = z;
         _camAnchorWorld = _promoZWorld; _camAnchorScreen = screen;
-        _camOffset = screen - _promoZWorld * zCand;
-        if (p >= 1f) { _promoZoomOn = false; GD.Print($"[Promo] 放大完成：倍率 {_camZoom:F2}"); }
+        _camOffset = screen - _promoZWorld * z;
+        if (p >= 1f) { _promoZoomOn = false; GD.Print($"[Promo] 縮小完成：倍率 {_camZoom:F2}"); }
     }
 
     bool _promoPulling;
