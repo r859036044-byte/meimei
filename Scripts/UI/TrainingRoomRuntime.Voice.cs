@@ -309,9 +309,20 @@ public partial class TrainingRoomRuntime
         ("再多摸一下也可以喔…♡",           new[] { "talk_brat/brat_zako_1.wav" }),
     };
 
-    bool TryPlayHeadPatVoice(string text)
+    // 摸頭台詞（PatTalk，沒插入時 PatGirlLines）5 句：各自指定音檔（寫多個＝依序輪流播）
+    // 注意：「才沒有覺得很舒服呢…雜魚♡」這句在上面的摸頭反應也有，兩邊音檔不同，所以分兩張表、由各自的呼叫端查。
+    static readonly (string line, string[] files)[] PatTalkVoiceMap =
     {
-        foreach (var (line, files) in HeadPatVoiceMap)
+        ("哼～別以為摸摸頭我就會聽話喔…笨蛋雜魚♡", new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav", "talk_brat/brat_zako_1.wav" }),
+        ("才沒有覺得很舒服呢…雜魚♡",             new[] { "talk_brat/brat_zako_2.wav" }),
+        ("嘻嘻…再多摸一下也不是不行啦♪",          new[] { "talk_brat/brat_zako_1.wav" }),
+        ("唔…別把我當小孩子啦！",                 new[] { "talk_brat/fun.wav" }),
+        ("笨蛋雜魚…♪",                        new[] { "talk_brat/brat_baka.wav", "talk_brat/brat_zako_2.wav" }),
+    };
+
+    bool PlayMappedVoice(string text, (string line, string[] files)[] map)
+    {
+        foreach (var (line, files) in map)
         {
             if (!LineMatches(text, line)) continue;
             if (files.Length == 1 && files[0].StartsWith("normal/")) PlayTrVoice(files[0], false, NormalVoiceVolScale);
@@ -320,6 +331,11 @@ public partial class TrainingRoomRuntime
         }
         return false;
     }
+
+    bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap);
+
+    /// <summary>摸頭台詞（PatTalk）：有指定音檔就播並回傳 true；沒指定回傳 false（呼叫端用原本的摸頭語音）。</summary>
+    public bool TryPlayPatTalkVoice(string text) => !string.IsNullOrEmpty(text) && PlayMappedVoice(text, PatTalkVoiceMap);
 
     /// <summary>從正常音效 5 個檔隨機挑一個播（高優先語音正在播時不蓋掉，由呼叫端先判斷）。</summary>
     void PlayNormalLineVoice()

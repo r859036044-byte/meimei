@@ -90,8 +90,9 @@ public partial class TrainingRoomRuntime
         else if (_patTalkStep == 1 && _patTalkT >= PatTalkGap)
         {
             var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlLines;
-            ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, Pick(gPool), false);
-            PlayPartTouchVoice("head");
+            string gLine_ = Pick(gPool);
+            ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, gLine_, false);
+            if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
             _patTalkStep = 2; _patTalkT = 0f;
         }
         else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat)
