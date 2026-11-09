@@ -123,19 +123,40 @@ public partial class TrainingRoomRuntime
         ["expr_prev"]   = ("上一個表情", () => PromoStepExpression(-1)),
         ["night_filter"]= ("夜晚濾鏡",   () => ToggleNightFilter()),
         ["dots_toggle"] = ("綠點顯示切換", () => { _promoDotsHidden = !_promoDotsHidden; SetHotspotDotsHidden(_promoDotsHidden); }),
+        ["ui_toggle"]   = ("UI 顯示切換", () => { PromoHideUiAlways = !PromoHideUiAlways; PromoSetUiHidden(PromoHideUiAlways); }),
         ["reset"]       = ("全部重置",   () => PromoReset()),
     };
 
-    bool _promoMenuBtnHidden;
+    [Export] public bool PromoHideUiAlways = true;   // 開始遊戲後 UI 一律隱藏（左側工具鈕、「?」、「☰ 選單」、HUD；錄影用）。要把 UI 叫回來：改成 false，或把 promo_hotkeys.json 某個鍵綁 ui_toggle
+    bool _promoUiHidden;                // 目前是不是由本系統隱藏著
+    bool _promoMenuBtnWasVisible = true;
+    CanvasItem _promoMenuBtn;
 
-    /// <summary>隱藏／還原所有 UI（左側工具鈕、？、☰ 選單、HUD 等；場景裡的東西不動）。</summary>
+    /// <summary>隱藏／還原所有 UI（場景裡的東西不動）。隱藏時每幀都會呼叫來「釘住」，避免別的程式又把它顯示出來。</summary>
     void PromoSetUiHidden(bool hide)
     {
         if (_uiCanvas != null && IsInstanceValid(_uiCanvas)) _uiCanvas.Visible = !hide;   // HUD、側邊鈕、「?」都在這一層
-        var mb = GetTree()?.Root?.FindChild("NovelMenuButton", true, false) as CanvasItem;   // 右上角「☰ 選單」（NovelReader 建的）
-        if (mb == null) return;
-        if (hide) { _promoMenuBtnHidden = mb.Visible; mb.Visible = false; }
-        else if (_promoMenuBtnHidden) { mb.Visible = true; _promoMenuBtnHidden = false; }
+        if (_promoMenuBtn == null || !IsInstanceValid(_promoMenuBtn))
+            _promoMenuBtn = GetTree()?.Root?.FindChild("NovelMenuButton", true, false) as CanvasItem;   // 右上角「☰ 選單」（NovelReader 建的）
+        if (hide)
+        {
+            if (!_promoUiHidden && _promoMenuBtn != null) _promoMenuBtnWasVisible = _promoMenuBtn.Visible;   // 第一次隱藏時記住原本有沒有顯示
+            if (_promoMenuBtn != null) _promoMenuBtn.Visible = false;
+            _promoUiHidden = true;
+        }
+        else if (_promoUiHidden)
+        {
+            if (_promoMenuBtn != null) _promoMenuBtn.Visible = _promoMenuBtnWasVisible;
+            _promoUiHidden = false;
+        }
+    }
+
+    /// <summary>每幀呼叫（TrainingRoomRuntime._Process）：PromoHideUiAlways 開著時，UI 從開始遊戲就一直隱藏。</summary>
+    void PromoUiTick()
+    {
+        if (!PromoHotkeysEnabled) return;
+        if (PromoHideUiAlways) PromoSetUiHidden(true);
+        else if (_promoUiHidden && !_promoCamOnFace) PromoSetUiHidden(false);
     }
 
     /// <summary>1 號鍵：UI 隱藏、被子蓋回身上、鏡頭慢慢移到莉奈臉前（親吻的臉鏡頭）；再按一次：UI 還原、鏡頭慢慢回原位。
@@ -150,7 +171,7 @@ public partial class TrainingRoomRuntime
         if (_promoCamOnFace)
         {
             _promoCamOnFace = false;
-            PromoSetUiHidden(false);
+            if (!PromoHideUiAlways) PromoSetUiHidden(false);   // UI 一律隱藏時，離開臉前鏡頭也不把 UI 叫回來
             zoom = 1.1f;
             Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置
             anchorScreen = vp * 0.5f;
