@@ -257,8 +257,8 @@ public partial class TrainingRoomRuntime
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
     }
 
-    // ── 台詞語音：全部換成「正常音效」5 個檔，每次隨機播其中一個 ──
-    [Export] public bool UseNormalVoiceForLines = true;   // true＝莉奈說台詞時一律播下面 5 個音效之一（false＝回到依台詞關鍵字配音的舊規則）
+    // ── 指定台詞改用「正常音效」5 個檔，每次隨機播其中一個（只有下面 NormalVoiceLines 列的 9 句；其他台詞照舊）──
+    [Export] public bool UseNormalVoiceForLines = true;   // true＝下面指定的台詞播正常音效；false＝全部回到依關鍵字配音的舊規則
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float NormalVoiceVolScale = 0.7f;   // 這 5 個音效的音量倍率（跟一般觸碰語音差不多）
     static readonly string[] NormalVoicePaths =
     {
@@ -269,7 +269,31 @@ public partial class TrainingRoomRuntime
         "normal/touch_body_sleep_sigh_2.wav",
     };
 
-    /// <summary>莉奈說台詞時的語音：從正常音效 5 個檔隨機挑一個（高優先語音正在播時不蓋掉，由呼叫端先判斷）。</summary>
+    // 指定改用正常音效的台詞：「什麼都沒做」的正常話前 6 句（BratNormalLines）＋ 摸頭反應通用（ReactHead）3 句
+    static readonly string[] NormalVoiceLines =
+    {
+        "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？", "今天天氣不錯呢。", "你今天有好好吃飯嗎？",
+        "嗯……", "呼嗯…", "嗯…♪",
+    };
+
+    /// <summary>這句台詞（已加工過：可能被加了愛心或「不要…」）是不是指定要播正常音效的那 9 句之一。</summary>
+    bool IsNormalVoiceLine(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        string s = text.Replace("\uFE0F", "").Replace("❤", "").Replace("♡", "").Replace("♥", "").Trim();
+        foreach (var line in NormalVoiceLines)
+        {
+            if (s == line) return true;
+            if (s.StartsWith(line, System.StringComparison.Ordinal) && GirlRefuseWords != null)
+            {   // 不舒服時台詞後面會被自動接上「不要…」之類的拒絕詞
+                string rest = s.Substring(line.Length).Trim();
+                foreach (var w in GirlRefuseWords) if (rest == w) return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>從正常音效 5 個檔隨機挑一個播（高優先語音正在播時不蓋掉，由呼叫端先判斷）。</summary>
     void PlayNormalLineVoice()
     {
         string pick = NormalVoicePaths[(int)(GD.Randi() % (uint)NormalVoicePaths.Length)];
@@ -404,8 +428,8 @@ public partial class TrainingRoomRuntime
             return;
         }
 
-        // 所有台詞統一用「正常音效」5 個檔隨機播一個（UseNormalVoiceForLines 關掉就走下面原本的關鍵字規則）
-        if (UseNormalVoiceForLines)
+        // 指定的 9 句台詞：用「正常音效」5 個檔隨機播一個（其他台詞、或 UseNormalVoiceForLines 關掉，走下面原本的關鍵字規則）
+        if (UseNormalVoiceForLines && IsNormalVoiceLine(text))
         {
             PlayNormalLineVoice();
             return;

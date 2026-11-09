@@ -91,7 +91,7 @@ public partial class TrainingRoomRuntime
         {
             var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlLines;
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, Pick(gPool), false);
-            if (UseNormalVoiceForLines) PlayNormalLineVoice(); else PlayPartTouchVoice("head");   // 摸頭台詞也用正常音效
+            PlayPartTouchVoice("head");
             _patTalkStep = 2; _patTalkT = 0f;
         }
         else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat)
