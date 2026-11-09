@@ -233,7 +233,7 @@ public partial class TrainingRoomRuntime
         SetSemenLevel(er / 100f);
         float ep = _semenLevel * 100f;
         if (!_erectOn && ep >= ErectOnPct) _erectOn = true;
-        else if (_erectOn && !_promoForceErect && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
+        else if (_erectOn && ep < ErectOffPct && (!prep || _semenEmpty))   // 準備插入時不軟（雞雞不會被收起來）；精液用完例外
         {
             _erectOn = false;
             if (_jijiPhase > 0) { if (!DemoMode.Enabled) SayMale(MaleSoftLines); HideJiji(); }   // 軟掉：雞雞收起來
@@ -268,7 +268,7 @@ public partial class TrainingRoomRuntime
     /// <summary>射精。amountFrac＝這次只射出多少比例（1＝全射；忍耐失敗「漏出」時是 0.3~0.5）；sayLines＝射精當下男主說的話（null＝用 MaleEjacLines）。</summary>
     void MaleEjaculate(float amountFrac = 1f, string[] sayLines = null)
     {
-        if (DemoMode.Enabled && !PromoHotkeysEnabled) { ShowDemoEnd(); return; }   // 試玩版：射的瞬間就結束，黑屏顯示「試玩版已結束」（DemoEnd.cs）
+        if (DemoMode.Enabled) { ShowDemoEnd(); return; }   // 試玩版：射的瞬間就結束，黑屏顯示「試玩版已結束」（DemoEnd.cs）
         if (_ejacRunning || _insertEjacActive) return;
         CloseBreakChoicesKeepBubble();   // 破功選項還在的話先收掉（不然射精台詞會被選項擋住）
         float s01 = Mathf.Clamp(SemenStock / 100f, 0f, 1f);

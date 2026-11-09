@@ -527,7 +527,6 @@ void fragment() {
 
     void OnJijiRightClick()
     {
-        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動插入中：不給玩家操作（右鍵不能退出）
         switch (_jijiPhase)
         {
             case 3:
@@ -918,7 +917,6 @@ void fragment() {
         float centerTarget = (_s2TummyOn && !_s2Paused) ? minY + range * S2UpperZoneT : minY;
         _s2CenterCur = float.IsNaN(_s2CenterCur) ? centerTarget : Mathf.Lerp(_s2CenterCur, centerTarget, 1f - Mathf.Exp(-6f * dt));
         float center = _s2CenterCur;
-        if (_promoInsertOn && _promoDeepT > 0f) center = Mathf.Max(center, minY + range * _promoDeepT);   // 宣傳片 6 號鍵：突破後再往上多拉（插得更深）
 
         if (_s2Paused)
         {
@@ -1029,7 +1027,6 @@ void fragment() {
 
     void UpdateInsertion(float dt)
     {
-        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動插入中：插入深度由 PromoHotkeys.cs 控制（不需要按住滑鼠，也不會自己退回）
         _jijiHeld = Input.IsMouseButtonPressed(MouseButton.Left);
         if (_jijiStage >= 1) { UpdateStage1Osc(dt); return; }   // 突破後：深插振盪（Unity 的做法）
 
