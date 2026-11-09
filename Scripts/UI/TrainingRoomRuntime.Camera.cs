@@ -156,6 +156,53 @@ public partial class TrainingRoomRuntime
         return false;
     }
 
+    // ── 男人身體下緣護欄（遊玩用）─────────────────────────────────────────────────
+    // 男人肚子圖層的下緣是一條平邊，下面是空的；身體往上（插入、抽插）時這條邊會進到畫面，看起來就是一大塊空隙。
+    // 所以鏡頭不能往下拉到讓這條邊進畫面；身體往小穴靠近時，限制跟著一起上移（鏡頭同步靠近）；
+    // 鏡頭拉太遠、怎麼擺都會看到時，倍率會被拉近到剛好看不到。
+    [Export] public bool  BellyGapGuard = true;       // 總開關
+    [Export] public float BellyGapMarginPx = 6f;      // 安全距離：身體下緣離畫面底邊至少再多幾個螢幕 px 才算看不到（調大更保守）
+    [Export(PropertyHint.Range, "0.02,0.5,0.01")] public float BellyGapAlpha = 0.1f;   // 判斷「不透明」的透明度門檻（貼圖邊緣有零星淡雜點，要略過）
+    float _bellyBottomTexRow = -1f;   // 貼圖上不透明部分下緣的那一列（像素）；-1＝還沒算、-2＝算不出來
+    float _bellyMidXTex;
+
+    /// <summary>男人身體下緣（不透明部分最下面那一列）在場景座標的 Y；身體沒顯示（或正淡出）時回傳 NaN。</summary>
+    float BellyBottomWorldY()
+    {
+        if (_jijiPhase == 0 || !Layers.TryGetValue("男人肚子", out var bl) || bl is not TextureRect tr
+            || !tr.Visible || tr.Texture == null || tr.Modulate.A < 0.3f) return float.NaN;
+        if (_bellyBottomTexRow == -1f) ComputeBellyBottomRow(tr);
+        if (_bellyBottomTexRow < 0f) return float.NaN;
+        Vector2 texSize = new Vector2(tr.Texture.GetWidth(), tr.Texture.GetHeight());
+        Vector2 local = new Vector2(_bellyMidXTex, _bellyBottomTexRow) * (tr.Size / texSize);
+        return (tr.GetGlobalTransform() * local).Y;
+    }
+
+    void ComputeBellyBottomRow(TextureRect tr)
+    {
+        _bellyBottomTexRow = -2f;
+        var img = tr.Texture.GetImage();
+        if (img == null) return;
+        if (img.IsCompressed()) img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+        byte[] d = img.GetData();
+        int w = img.GetWidth(), h = img.GetHeight();
+        int th = Mathf.Clamp(Mathf.RoundToInt(BellyGapAlpha * 255f), 1, 255);
+        for (int y = h - 1; y >= 0; y--)
+        {   // 從最下面往上找第一列「有一小段連續不透明」的（零星雜點不算：一列至少 20 個不透明點）
+            int cnt = 0; long sumX = 0;
+            int row = y * w * 4;
+            for (int x = 0; x < w; x++)
+                if (d[row + x * 4 + 3] >= th) { cnt++; sumX += x; }
+            if (cnt >= 20)
+            {
+                _bellyBottomTexRow = y + 1; _bellyMidXTex = sumX / (float)cnt;
+                GD.Print($"[BellyGap] 男人肚子不透明下緣：貼圖第 {y + 1}／{h} 列（貼圖 {w}×{h}）");
+                return;
+            }
+        }
+    }
+
     /// <summary>每幀：平滑縮放＋限制平移範圍（畫面不會露出邊界外），套到 _canvas.Transform。</summary>
     void UpdateCamera(float dt)
     {
@@ -168,6 +215,23 @@ public partial class TrainingRoomRuntime
             _camOffset = _camAnchorScreen - _camAnchorWorld * _camZoom;
         }
         Vector2 vp = GetViewport().GetVisibleRect().Size;
+        // 男人身體下緣護欄：男人身體（男人肚子圖層）出現時，鏡頭不能讓它下緣那條平邊進到畫面（不然會看到身體下面的大空隙）
+        float gapB = BellyBottomWorldY();                        // 身體下緣的場景 Y（沒有身體／身體淡出中＝NaN）
+        bool gapOn = BellyGapGuard && !float.IsNaN(gapB) && gapB > 1f;
+        float gapNeedZoom = 0f;
+        if (gapOn)
+        {   // 拉遠限制：鏡頭太遠的話，不管怎麼擺位置畫面底都會超過身體下緣 → 倍率至少要到這個值
+            float m0 = BellyGapMarginPx;
+            float bgTop = vp.Y * 0.5f - BackgroundOffset.Y - BackgroundSize.Y * 0.5f;
+            gapNeedZoom = (vp.Y + m0) / gapB;
+            if (bgTop > 0f && gapB > bgTop) gapNeedZoom = Mathf.Max(gapNeedZoom, (vp.Y + m0) / (gapB - bgTop));
+            if (_camZoom < gapNeedZoom)
+            {
+                _camZoom = gapNeedZoom;
+                if (_camZoomTarget < gapNeedZoom) _camZoomTarget = gapNeedZoom;
+                _camOffset = _camAnchorScreen - _camAnchorWorld * _camZoom;
+            }
+        }
         // 背景實際範圍（場景座標）：BG 用中心錨點，Y 在 ApplyPointAnchor 內會取負，這裡要同步換算。
         // 鏡頭不能移到 BG 範圍外，否則會露出底下的空白／第二張背景。每幀重算，Inspector 即時調整有效。
         float bgL = vp.X * 0.5f + BackgroundOffset.X - BackgroundSize.X * 0.5f;
@@ -184,6 +248,11 @@ public partial class TrainingRoomRuntime
         float hiY = Mathf.Min(0f, -bgT * _camZoom);
         if (loY > hiY) hiY = loY;
         _camOffset.Y = Mathf.Clamp(_camOffset.Y, loY, hiY);
+        if (gapOn)
+        {   // 往下拉的限制：身體下緣的畫面 Y（offset.Y + 下緣Y×倍率）不能高過畫面底邊；身體往小穴靠近（下緣上移）時，這個限制跟著上移，鏡頭就同步一起靠近
+            float gapLo = vp.Y + BellyGapMarginPx - gapB * _camZoom;
+            if (_camOffset.Y < gapLo) _camOffset.Y = Mathf.Min(gapLo, 0f);
+        }
         _canvas.Transform = new Transform2D(0f, new Vector2(_camZoom, _camZoom), 0f, _camOffset);
         RefreshHoverCursorForZoom();   // 綠點的半透明手游標跟著縮放變大（Interaction.cs）
     }
