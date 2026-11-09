@@ -242,7 +242,9 @@ public partial class TrainingRoomRuntime
         if (_bratLineType == 1)
         {
             BratValue -= BratPinchDown * strength;
+            _inPinchBratReply = true;   // 這句的語音要用被捏（雌小鬼）專屬音檔，見 Voice.cs PinchBratVoiceMap
             BratSay(BratPinchReplyLines);
+            _inPinchBratReply = false;
         }
         else if (_bratLineType == 2)
         {

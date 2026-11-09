@@ -339,6 +339,14 @@ public partial class TrainingRoomRuntime
         ("好痛…",     new[] { "talk_brat/fun.wav" }),
     };
 
+    // 被捏的反應（雌小鬼話 BratPinchReplyLines）3 句：各自指定音檔。只在「被捏（雌小鬼）」情境生效（「嗚…」別區也有同一句，不能只比對文字）
+    static readonly (string line, string[] files)[] PinchBratVoiceMap =
+    {
+        ("痛痛痛～！", new[] { "pain/iyada.wav" }),
+        ("嗚…",       new[] { "moan/low_2.wav" }),
+        ("放手啦～！", new[] { "pain/yamete.wav" }),
+    };
+    bool _inPinchBratReply;     // 正在說「被捏（雌小鬼話）」的反應（Brat.cs 設定）
     bool _inPinchNormalReply;   // 正在說「被捏（正常話）」的反應（Brat.cs 設定）
 
     bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap) || PlayMappedVoice(text, PinchNormalVoiceMap);
@@ -487,6 +495,9 @@ public partial class TrainingRoomRuntime
         {
             return;
         }
+
+        // 被捏（雌小鬼話）3 句：各自指定的音檔（見 PinchBratVoiceMap）
+        if (_inPinchBratReply && PlayMappedVoice(text, PinchBratVoiceMap)) return;
 
         // 摸頭反應 6 句：各自指定的音檔（見 HeadPatVoiceMap）
         if (TryPlayHeadPatVoice(text)) return;
