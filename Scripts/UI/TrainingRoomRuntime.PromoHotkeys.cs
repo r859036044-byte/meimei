@@ -15,10 +15,12 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("宣傳片快捷鍵")]
     [Export] public bool PromoHotkeysEnabled = true;       // 總開關
-    [Export(PropertyHint.Range, "1.1,3,0.05")] public float PromoFaceZoom = 2.4f;          // 1 號鍵：拉到臉前的鏡頭倍率（參考影片約 2.2 倍於遠景）
-    [Export] public Vector2 PromoFaceScreenPos = new Vector2(0.5f, 0.40f);                  // 臉要停在畫面的哪裡（0~1；0.5, 0.40＝水平置中、偏上）
+    // 1 號鍵的鏡頭＝使用者影片裡「親吻的臉鏡頭」：用影片逐格量出來——臉在畫面中央偏上（水平 0.5、垂直 0.39），
+    // 臉的大小是「畫面 1920 寬時，每個貼圖像素佔 0.74 個畫面像素」（相當於比影片的遠景再拉近約 1.38 倍）；影片裡是直接切換，不是慢慢推。
+    [Export(PropertyHint.Range, "0.2,1.5,0.01")] public float PromoFacePxPerTex = 0.74f;   // 臉前鏡頭的大小（畫面像素／貼圖像素）；會自動換算成目前的鏡頭倍率，不受 CharScale 影響
+    [Export] public Vector2 PromoFaceScreenPos = new Vector2(0.5f, 0.39f);                  // 臉要停在畫面的哪裡（0~1）
     [Export] public Vector2 PromoFacePointTex = new Vector2(960f, 700f);                    // 臉中心在角色貼圖（2000×3200）上的位置
-    [Export(PropertyHint.Range, "0.5,10,0.1")] public float PromoCamSmooth = 3f;            // 鏡頭移動速度（越小越慢；3≈約 1 秒到位）
+    [Export(PropertyHint.Range, "0,10,0.1")] public float PromoCamSmooth = 0f;              // 鏡頭移動速度：0＝直接切到位（跟影片一樣）；3≈約 1 秒的緩動
     [Export] public bool PromoHotkeyToast = false;         // 按下時在畫面左上角短暫顯示動作名稱（錄影時建議關掉，只留在輸出的 log）
 
     // 預設對應：數字 → 動作代號（目前只有 1 號鍵；其他鍵等你指定。想先試別的動作可在 promo_hotkeys.json 加）
@@ -124,28 +126,35 @@ public partial class TrainingRoomRuntime
         ["reset"]       = ("全部重置",   () => PromoReset()),
     };
 
-    /// <summary>鏡頭慢慢移到莉奈臉前；再按一次拉回原本的鏡頭（跟 Home 鍵一樣的預設位置，但是緩動）。</summary>
+    /// <summary>鏡頭移到莉奈臉前（親吻的臉鏡頭）；再按一次回到原本的鏡頭（跟 Home 鍵一樣的預設位置）。PromoCamSmooth＝0 時直接切換。</summary>
     void PromoCameraFace()
     {
         if (_canvas == null) return;
         Vector2 vp = GetViewport().GetVisibleRect().Size;
-        _camSmoothOverride = PromoCamSmooth;
+        bool instant = PromoCamSmooth <= 0.01f;
+        _camSmoothOverride = instant ? -1f : PromoCamSmooth;
+        float zoom; Vector2 anchorScreen, anchorWorld;
         if (_promoCamOnFace)
         {
             _promoCamOnFace = false;
-            _camZoomTarget = 1.1f;
+            zoom = 1.1f;
             Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置
-            _camAnchorScreen = vp * 0.5f;
-            _camAnchorWorld  = (vp * 0.5f - defOff) / 1.1f;
-            return;
+            anchorScreen = vp * 0.5f;
+            anchorWorld  = (vp * 0.5f - defOff) / 1.1f;
         }
-        if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
-        Rect2 r = fl.GetGlobalRect();   // 臉是整張 2000×3200 的畫布圖層：用貼圖座標換算出臉在畫面上的位置
-        Vector2 faceScreen = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
-        _camZoomTarget = Mathf.Clamp(PromoFaceZoom, 1.1f, Mathf.Max(1.1f, CamZoomMax));
-        _camAnchorWorld  = ScreenToWorld(faceScreen);
-        _camAnchorScreen = vp * PromoFaceScreenPos;
-        _promoCamOnFace = true;
+        else
+        {
+            if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
+            Rect2 r = fl.GetGlobalRect();   // 臉是整張 2000×3200 的畫布圖層：用貼圖座標換算出臉在畫面上的位置
+            Vector2 faceScreen = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
+            float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+            zoom = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+            anchorWorld  = ScreenToWorld(faceScreen);
+            anchorScreen = vp * PromoFaceScreenPos;
+            _promoCamOnFace = true;
+        }
+        _camZoomTarget = zoom; _camAnchorScreen = anchorScreen; _camAnchorWorld = anchorWorld;
+        if (instant) { _camZoom = zoom; _camOffset = anchorScreen - anchorWorld * zoom; }   // 直接到位（每幀的 UpdateCamera 會再套邊界限制）
     }
 
     void PromoStepExpression(int dir)
