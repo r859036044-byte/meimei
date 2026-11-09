@@ -466,6 +466,10 @@ public partial class TrainingRoomRuntime
         // 通知嘴巴：內部會自動檢查是否為純叫聲（IsSoundOnly）或教程，只有真正台詞才會用倒笑壓扁開合嘴巴
         NotifyVoiceSpeakForText(text);
 
+        // 睡著（ZZZ）的台詞（ReactSleep：「Zzz…」「嗯…（睡）」「呼…呼…」）：不發出任何音效
+        if (ReactSleep != null)
+            foreach (var sl in ReactSleep) if (LineMatches(text, sl)) return;
+
         // 若高優先級語音正在播放（如破處、高潮、內射），不覆蓋音訊
         if (_voicePriorityLockTimer > 0f && IsVoicePlaying)
         {
