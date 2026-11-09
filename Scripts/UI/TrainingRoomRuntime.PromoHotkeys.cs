@@ -29,6 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("8", "zoom_jiji"),      // 用 7 秒慢慢放大鏡頭到只看到雞雞（插入處），在男人身體下面的空隙快露出來之前自動停住；再按一次中途停止
         ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉前（親吻的鏡頭）＋抽插開始動，鏡頭始終在臉前；再按一次停止抽插（還沒插入會先自動插入）
         ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
@@ -121,6 +122,7 @@ public partial class TrainingRoomRuntime
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["insert"]      = ("插入", () => PromoInsert()),
         ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
+        ["zoom_jiji"]   = ("慢慢放大到雞雞", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
@@ -297,6 +299,7 @@ public partial class TrainingRoomRuntime
     bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
+        if (_promoZoomOn) { PromoZoomStep((float)GetProcessDeltaTime()); return; }
         if (_promoCamOffAnim)
         {
             float k = 1f - Mathf.Exp(-Mathf.Max(0.3f, PromoCamSmooth) * (float)GetProcessDeltaTime());
@@ -562,6 +565,81 @@ public partial class TrainingRoomRuntime
         if (_mLegTransitioning) { GD.Print("[Promo] 抽插：M 腿切換中，請稍後再按"); return; }
         _promoInsertOn = true; _promoDeepT = 0f;
         TaskLogger.Run(PromoInsertAsync(moveCamera: false, thenThrust: true), "TrainingRoom.PromoFaceThrust");
+    }
+
+
+    // 8 號鍵：用 PromoZoomSec（7）秒慢慢放大鏡頭，放大的中心是雞雞插入處（小穴），邊放大邊把它移到畫面中央，最後只看到雞雞；
+    // 每一幀先預測「下一步放大後，男人身體（男人肚子圖層）的下緣會不會進到畫面裡」，快進來（PromoGapMarginPx）之前就停住，所以看不到身體下面的空隙。
+    [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 7f;               // 放大花的時間（秒）
+    [Export(PropertyHint.Range, "1,6,0.1")] public float PromoZoomMul = 2.2f;              // 最多放大到目前倍率的幾倍（空隙會先擋住就停在擋住的位置）
+    [Export] public Vector2 PromoZoomScreenPos = new Vector2(0.5f, 0.5f);                  // 雞雞插入處最後停在畫面的哪裡（0~1）
+    [Export] public float PromoGapMarginPx = 40f;                                          // 身體下緣離畫面底邊還有幾 px 就先停（越大越保守）
+    bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZTarget;
+    Vector2 _promoZWorld, _promoZScreen0;
+    float _bellyBottomTex = -1f, _bellyMidXTex;   // 男人肚子貼圖不透明範圍的下緣（只算一次）
+
+    /// <summary>8 號鍵：慢慢放大到只看到雞雞（空隙露出來之前停）。再按一次：中途停止（鏡頭停在那裡）。</summary>
+    void PromoZoomJiji()
+    {
+        if (_canvas == null) return;
+        if (_promoZoomOn) { _promoZoomOn = false; GD.Print("[Promo] 放大：手動停止"); return; }
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        // 放大中心：雞雞插入處（小穴熱點；M 腿開著時黏在「m腿/小穴」上）。沒有就用目前畫面中央
+        Vector2 world = (vp * 0.5f - _camOffset) / _camZoom;
+        if (_hotspotRTs != null && _hotspotRTs.Length > 4 && _hotspotRTs[4] != null && IsInstanceValid(_hotspotRTs[4]))
+            world = _hotspotRTs[4].GetGlobalRect().GetCenter();   // 已是場景座標
+        _promoZWorld = world;
+        _promoZScreen0 = world * _camZoom + _camOffset;   // 它現在在畫面上的位置（從這裡開始，第一幀畫面完全不動）
+        _promoZ0 = _camZoom; _promoZTarget = _camZoom * Mathf.Max(1f, PromoZoomMul);
+        _promoZoomT = 0f;
+        _promoCamAnimating = false; _promoCamOffAnim = false;
+        PromoSetUiHidden(true);
+        _promoZoomOn = true;
+        GD.Print($"[Promo] 放大開始：{_promoZ0:F2} → 最多 {_promoZTarget:F2}，{PromoZoomSec:F1} 秒；雞雞插入處 場景{world}");
+    }
+
+    /// <summary>男人肚子貼圖「不透明部分的下緣」在場景座標的 Y（含雞雞推進時整層一起移動、角色縮放）。找不到回傳 float.NaN。</summary>
+    float PromoBellyBottomWorldY()
+    {
+        if (!Layers.TryGetValue("男人肚子", out var bl) || bl is not TextureRect tr || !tr.Visible || tr.Texture == null || _jijiPhase == 0) return float.NaN;
+        if (_bellyBottomTex < 0f)
+        {
+            var img = tr.Texture.GetImage();
+            if (img == null) { _bellyBottomTex = 0f; return float.NaN; }
+            Rect2I u = img.GetUsedRect();
+            if (u.Size.X <= 0) { _bellyBottomTex = 0f; return float.NaN; }
+            _bellyBottomTex = u.End.Y; _bellyMidXTex = u.Position.X + u.Size.X * 0.5f;
+            GD.Print($"[Promo] 男人肚子不透明範圍 {u}（貼圖 {img.GetWidth()}×{img.GetHeight()}）");
+        }
+        if (_bellyBottomTex <= 0f) return float.NaN;
+        Vector2 texSize = new Vector2(tr.Texture.GetWidth(), tr.Texture.GetHeight());
+        Vector2 local = new Vector2(_bellyMidXTex, _bellyBottomTex) * (tr.Size / texSize);
+        return (tr.GetGlobalTransform() * local).Y;
+    }
+
+    void PromoZoomStep(float dt)
+    {
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        _promoZoomT += dt;
+        float p = Mathf.Clamp(_promoZoomT / Mathf.Max(0.5f, PromoZoomSec), 0f, 1f);
+        float e = p * p * (3f - 2f * p);   // 慢慢開始、慢慢停
+        float zCand = Mathf.Lerp(_promoZ0, _promoZTarget, e);
+        Vector2 screen = _promoZScreen0.Lerp(vp * PromoZoomScreenPos, e);   // 雞雞邊放大邊平順移到畫面中央
+        float belly = PromoBellyBottomWorldY();
+        if (!float.IsNaN(belly))
+        {   // 預測：用這一步的鏡頭，男人身體下緣會落在畫面哪個 Y？落在「底邊 + 邊界」之上＝空隙快露出來了 → 停在上一幀
+            float yScreen = screen.Y + (belly - _promoZWorld.Y) * zCand;
+            if (yScreen < vp.Y + PromoGapMarginPx)
+            {
+                _promoZoomOn = false;
+                GD.Print($"[Promo] 放大：在倍率 {_camZoom:F2} 停住（再放大，男人身體下緣會到畫面 y={yScreen:F0}／{vp.Y:F0}，空隙會露出來）");
+                return;
+            }
+        }
+        _camZoom = zCand; _camZoomTarget = zCand;
+        _camAnchorWorld = _promoZWorld; _camAnchorScreen = screen;
+        _camOffset = screen - _promoZWorld * zCand;
+        if (p >= 1f) { _promoZoomOn = false; GD.Print($"[Promo] 放大完成：倍率 {_camZoom:F2}"); }
     }
 
     bool _promoPulling;
