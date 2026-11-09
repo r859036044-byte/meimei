@@ -255,50 +255,70 @@ public partial class TrainingRoomRuntime
     bool _promoPulling;
 
     /// <summary>2 號鍵：影片裡「手把被單拉下去」——一隻手出現在被子上緣右側，抓著往下拉，被子被拉開（拿掉，踢到左下角）。
-    /// 不需要前置：目前不是蓋著的狀態，會先把被子蓋回去再演。</summary>
+    /// 不需要前置：目前不是蓋著的狀態，會先把被子蓋回去再演。
+    /// 手畫在獨立的最上層（CanvasLayer 12、螢幕座標），位置每幀由「被子上的點 → 螢幕」換算，所以不受鏡頭、UI 隱藏、圖層順序影響。</summary>
     void PromoPullDuvet()
     {
-        if (_duvet == null || !IsInstanceValid(_duvet) || _canvas == null || _promoPulling) return;
+        if (_duvet == null || !IsInstanceValid(_duvet) || _canvas == null) { GD.PushWarning("[Promo] 拉被子：找不到被子圖層，沒有動作"); return; }
+        if (_promoPulling) { GD.Print("[Promo] 拉被子：上一次還沒演完"); return; }
         _promoPulling = true;
+        GetTree().CreateTimer(8.0).Timeout += () => _promoPulling = false;   // 保險：不管中間出什麼狀況，8 秒後一定可以再按
+
         // 前置：被子蓋回去、清掉殘留的拉痕
         DuvetState = 0;
         _duvet.FoldSnap = true; _duvet.FoldTarget = 0f;
         if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
 
-        Rect2 r = _duvet.GetGlobalRect();   // 場景座標（跟 PromoCameraFace 一樣，不含鏡頭縮放）
+        // 被子上「抓點」的場景座標：用被子控制項自己的全域變換（含縮放／旋轉），再用目前鏡頭換成螢幕座標
+        Transform2D xf = _duvet.GetGlobalTransform();
+        Vector2 sz = _duvet.Size;
         float u = PromoPullU;
-        float band = Mathf.Max(8f, _duvet.GrabBandV * r.Size.Y);   // 抓滿要拉下的距離（= 被拉下多少那一點就下降多少）
-        Vector2 start = r.Position + new Vector2(u * r.Size.X, (_duvet.TopV + 0.03f) * r.Size.Y);
         _duvet.PullX = u;
+        Vector2 startW = xf * new Vector2(u * sz.X, (_duvet.TopV + 0.03f) * sz.Y);
+        Vector2 bandW  = xf.BasisXform(new Vector2(0f, Mathf.Max(8f, _duvet.GrabBandV * sz.Y)));   // 抓滿要往下拉的距離（場景座標）
+        Vector2 W2S(Vector2 w) => _canvas.Transform * w;
+        GD.Print($"[Promo] 拉被子：抓點 場景{startW} → 螢幕{W2S(startW)}；下拉距離 {bandW}；被子 Size={sz} TopV={_duvet.TopV:F2} GrabBandV={_duvet.GrabBandV:F2}；鏡頭倍率 {_camZoom:F2}");
 
-        var tex = ResourceHelper.LoadTexAny("Sprites/右手");
-        TextureRect hand = null;
+        var tex = ResourceHelper.LoadTexAny("Sprites/右手");   // 影片裡逐格比對是「右手」圖
+        CanvasLayer layer = null; TextureRect hand = null;
+        Vector2 handSize = Vector2.Zero;
         if (tex != null)
         {
-            float w = PromoHandSizePx / Mathf.Max(0.1f, _camZoom);
+            layer = new CanvasLayer { Layer = 12, Name = "PromoHandLayer" };
+            AddChild(layer);
+            float w = PromoHandSizePx * Mathf.Max(0.3f, _camZoom / 1.1f);   // 手跟著鏡頭倍率一起放大縮小
+            handSize = new Vector2(w, w * tex.GetHeight() / Mathf.Max(1, tex.GetWidth()));
             hand = new TextureRect
             {
                 Texture = tex, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.Scale,
-                MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 3000, Modulate = new Color(1f, 1f, 1f, 0f),
-                Size = new Vector2(w, w * tex.GetHeight() / Mathf.Max(1, tex.GetWidth())),
+                MouseFilter = Control.MouseFilterEnum.Ignore, Modulate = new Color(1f, 1f, 1f, 0f), Size = handSize,
             };
-            _canvas.AddChild(hand);
-            hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f);   // 手的指尖（右手圖左上角的手指尖）落在抓點上
+            layer.AddChild(hand);
         }
+        else GD.PushWarning("[Promo] 拉被子：載入不到 Sprites/右手，沒有手的圖（被子還是會被拉開）");
+
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        void PlaceHand(Vector2 worldPoint, float wiggleX = 0f)
+        {
+            if (hand == null || !IsInstanceValid(hand)) return;
+            Vector2 sp = W2S(worldPoint) + new Vector2(wiggleX, 0f) - handSize * new Vector2(0.15f, 0.2f);   // 手指尖（右手圖左上）對準抓點
+            sp.X = Mathf.Clamp(sp.X, -handSize.X * 0.5f, vp.X - handSize.X * 0.5f);   // 萬一算出來在畫面外，至少讓手露出來（也方便看出算錯）
+            sp.Y = Mathf.Clamp(sp.Y, -handSize.Y * 0.5f, vp.Y - handSize.Y * 0.5f);
+            hand.Position = sp;
+        }
+        PlaceHand(startW);
+
         bool pullStarted = false;
         var tw = CreateTween();
-        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0.92f, 0.35);                                  // 手淡入
-        tw.TweenMethod(Callable.From<float>(v =>                                                              // 在被子上緣輕輕晃一下（還沒拉）
-        {
-            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f) + new Vector2(Mathf.Sin(v * Mathf.Pi * 2f) * 8f, 0f);
-        }), 0f, 1f, 0.7);
-        tw.TweenMethod(Callable.From<float>(v =>                                                              // 抓著往下拉
+        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0.92f, 0.35);                          // 手淡入
+        tw.TweenMethod(Callable.From<float>(v => PlaceHand(startW, Mathf.Sin(v * Mathf.Pi * 2f) * 8f)), 0f, 1f, 0.7);   // 在被子上緣輕輕晃一下（還沒拉）
+        tw.TweenMethod(Callable.From<float>(v =>                                                      // 抓著往下拉
         {
             float p = v * v * (3f - 2f * v);   // 緩入緩出
             if (_duvet == null || !IsInstanceValid(_duvet)) return;
             _duvet.FoldSnap = true; _duvet.FoldTarget = p;
             if (!pullStarted && p > 0.02f) { pullStarted = true; _duvet.BeginPull(_duvet.PullX); }   // 新增一組皺褶線（跟玩家拉的時候一樣）
-            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f) + new Vector2(0f, p * band);
+            PlaceHand(startW + bandW * p);
         }), 0f, 1f, PromoPullSec);
         tw.TweenCallback(Callable.From(() =>
         {   // 抓滿：被子被踢到左下角（跟玩家拉滿時一樣）
@@ -309,8 +329,8 @@ public partial class TrainingRoomRuntime
                 if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
             }
         }));
-        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0f, 0.4);                                      // 手淡出
-        tw.TweenCallback(Callable.From(() => { if (hand != null && IsInstanceValid(hand)) hand.QueueFree(); _promoPulling = false; }));
+        if (hand != null) tw.TweenProperty(hand, "modulate:a", 0f, 0.4);                              // 手淡出
+        tw.TweenCallback(Callable.From(() => { if (layer != null && IsInstanceValid(layer)) layer.QueueFree(); _promoPulling = false; }));
     }
 
     void PromoStepExpression(int dir)
