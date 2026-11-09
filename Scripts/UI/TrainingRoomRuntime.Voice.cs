@@ -332,7 +332,14 @@ public partial class TrainingRoomRuntime
         return false;
     }
 
-    bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap);
+    // 被捏的反應（正常話 BratPinchNormalReplyLines）：前兩句只播 fun（第三句「……」維持原本規則）
+    static readonly (string line, string[] files)[] PinchNormalVoiceMap =
+    {
+        ("…你幹嘛？", new[] { "talk_brat/fun.wav" }),
+        ("好痛…",     new[] { "talk_brat/fun.wav" }),
+    };
+
+    bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap) || PlayMappedVoice(text, PinchNormalVoiceMap);
 
     /// <summary>摸頭台詞（PatTalk）：有指定音檔就播並回傳 true；沒指定回傳 false（呼叫端用原本的摸頭語音）。</summary>
     public bool TryPlayPatTalkVoice(string text) => !string.IsNullOrEmpty(text) && PlayMappedVoice(text, PatTalkVoiceMap);
