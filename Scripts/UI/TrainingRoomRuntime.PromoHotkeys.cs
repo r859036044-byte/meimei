@@ -632,8 +632,8 @@ public partial class TrainingRoomRuntime
 
     // 9 號鍵（外射精）：射到頭那裡
     [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 一次一起射幾發
-    [Export(PropertyHint.Range, "0,0.4,0.01")] public float PromoEjacFaceMargin = 0.12f;   // 落點離臉邊緣至少留多少（占臉寬／臉高的比例）：越大越集中在臉中間、越不可能射到臉外面
-    [Export] public Vector2 PromoEjacFaceY = new Vector2(0.1f, 0.62f);                     // 落點在臉的哪一段高度（0＝臉最上緣、1＝下巴；預設避開下巴那一段）
+    [Export(PropertyHint.Range, "0,0.4,0.01")] public float PromoEjacFaceMargin = 0.1f;   // 落點離「頭和臉」邊緣至少留多少（占寬／高的比例）：越大越集中在中間、越不可能射到外面
+    [Export] public Vector2 PromoEjacFaceY = new Vector2(0.08f, 0.7f);                      // 落點在頭的哪一段高度（0＝頭頂最上緣、1＝下巴；預設避開下巴那一段）
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
@@ -678,8 +678,8 @@ public partial class TrainingRoomRuntime
             // 錄影：全部同時射（不是一發接一發）。每一發各自一道射流，同一瞬間從雞雞頂端飛向頭上不同的落點；力道只有一點點隨機，不遞減
             var shots = new System.Collections.Generic.List<System.Threading.Tasks.Task>();
             Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
-            // 落點分散，但全部落在「臉」的範圍裡：左右均勻攤開（每發佔一格、順序打亂），高低在臉的上段隨機；再避開眼睛嘴巴的禁射區，最後一定夾回臉的範圍內
-            Rect2 fr = PromoFaceRectTex();   // 臉貼圖實際畫出來的範圍（貼圖座標）
+            // 落點分散，但全部落在「頭和臉」的範圍裡：左右均勻攤開（每發佔一格、順序打亂），高低在頭的上段隨機；再避開眼睛嘴巴的禁射區，最後一定夾回頭和臉的範圍內
+            Rect2 fr = PromoHeadRectTex();   // 頭和臉（臉＋前髮）貼圖實際畫出來的範圍（貼圖座標）
             Layers.TryGetValue("臉", out var faceNode);
             var order = new System.Collections.Generic.List<int>();
             for (int q = 0; q < n; q++) order.Add(q);
@@ -696,7 +696,7 @@ public partial class TrainingRoomRuntime
                 texPt.X = Mathf.Clamp(texPt.X, xLo, xHi);
                 Vector2 tgt = faceNode != null ? faceNode.GetTransform() * texPt : LayerCanvasCenter("臉") + (texPt - fr.GetCenter());
                 tgt = PushOutOfNoShootZone(tgt);
-                // 被推出禁射區後可能掉到臉外面：換算回貼圖座標，夾回臉的範圍內
+                // 被推出禁射區後可能掉到頭外面：換算回貼圖座標，夾回頭和臉的範圍內
                 if (faceNode != null)
                 {
                     Vector2 back = faceNode.GetTransform().AffineInverse() * tgt;
@@ -730,30 +730,43 @@ public partial class TrainingRoomRuntime
     void PromoKissStop() { if (PromoKissOn) StopLick(); }
 
 
-    Rect2 _promoFaceRect; bool _promoFaceRectOk;
-    /// <summary>「臉」貼圖實際畫出來的範圍（貼圖座標，2000×3200 畫布上的一個框）。略過零星淡雜點：一列／一行至少要有 20 個明顯不透明的點才算。算一次就快取。</summary>
-    Rect2 PromoFaceRectTex()
+    readonly System.Collections.Generic.Dictionary<string, Rect2> _promoLayerRects = new();
+    /// <summary>某個圖層貼圖實際畫出來的範圍（貼圖座標，2000×3200 畫布上的一個框）。略過零星淡雜點：一列／一行至少要有 20 個明顯不透明的點才算。算一次就快取；找不到回傳 false。</summary>
+    bool PromoLayerRectTex(string name, out Rect2 rect)
     {
-        if (_promoFaceRectOk) return _promoFaceRect;
-        Rect2 fallback = new Rect2(990f - 330f, 604f - 330f, 660f, 760f);   // 找不到時：用「臉」內容中心附近一個合理大小的框
-        _promoFaceRectOk = true; _promoFaceRect = fallback;
-        if (!Layers.TryGetValue("臉", out var fl) || fl is not TextureRect tr || tr.Texture == null) return fallback;
-        var img = tr.Texture.GetImage();
-        if (img == null) return fallback;
-        if (img.IsCompressed()) img.Decompress();
-        img.Convert(Image.Format.Rgba8);
-        byte[] d = img.GetData(); int w = img.GetWidth(), h = img.GetHeight();
-        int[] rows = new int[h], cols = new int[w];
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                if (d[(y * w + x) * 4 + 3] >= 26) { rows[y]++; cols[x]++; }
-        int y0 = -1, y1 = -1, x0 = -1, x1 = -1;
-        for (int y = 0; y < h; y++) if (rows[y] >= 20) { if (y0 < 0) y0 = y; y1 = y; }
-        for (int x = 0; x < w; x++) if (cols[x] >= 20) { if (x0 < 0) x0 = x; x1 = x; }
-        if (y0 < 0 || x0 < 0) return fallback;
-        _promoFaceRect = new Rect2(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
-        GD.Print($"[Promo] 臉的範圍（貼圖座標）：{_promoFaceRect}");
-        return _promoFaceRect;
+        if (_promoLayerRects.TryGetValue(name, out rect)) return rect.Size.X > 0f;
+        rect = default;
+        if (Layers.TryGetValue(name, out var l) && l is TextureRect tr && tr.Texture != null)
+        {
+            var img = tr.Texture.GetImage();
+            if (img != null)
+            {
+                if (img.IsCompressed()) img.Decompress();
+                img.Convert(Image.Format.Rgba8);
+                byte[] d = img.GetData(); int w = img.GetWidth(), h = img.GetHeight();
+                int[] rows = new int[h], cols = new int[w];
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        if (d[(y * w + x) * 4 + 3] >= 26) { rows[y]++; cols[x]++; }
+                int y0 = -1, y1 = -1, x0 = -1, x1 = -1;
+                for (int y = 0; y < h; y++) if (rows[y] >= 20) { if (y0 < 0) y0 = y; y1 = y; }
+                for (int x = 0; x < w; x++) if (cols[x] >= 20) { if (x0 < 0) x0 = x; x1 = x; }
+                if (y0 >= 0 && x0 >= 0) rect = new Rect2(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+            }
+        }
+        _promoLayerRects[name] = rect;
+        if (rect.Size.X > 0f) GD.Print($"[Promo] 「{name}」圖層範圍（貼圖座標）：{rect}");
+        return rect.Size.X > 0f;
+    }
+
+    /// <summary>頭和臉的範圍＝「臉」和「前髮」兩個範圍的聯集（貼圖座標）。都找不到時用臉中心附近一個合理大小的框。</summary>
+    Rect2 PromoHeadRectTex()
+    {
+        bool hasFace = PromoLayerRectTex("臉", out var f), hasHair = PromoLayerRectTex("前髮", out var hr);
+        if (hasFace && hasHair) return f.Merge(hr);
+        if (hasFace) return f;
+        if (hasHair) return hr;
+        return new Rect2(990f - 330f, 604f - 330f, 660f, 760f);
     }
 
     bool _promoPulling;
