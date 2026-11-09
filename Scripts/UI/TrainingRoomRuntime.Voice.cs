@@ -42,6 +42,51 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    // ── 語音頭尾的靜音修剪（載入時處理，不動原檔）：音檔開頭／結尾常有 0.2~1 秒幾乎無聲的空白，
+    //    會讓語音「晚一點才出聲」，依序播放（fun → baka → zako1）時前一個播完後也會空一大段才接下一個 ──
+    [ExportGroup("語音靜音修剪")]
+    [Export] public bool VoiceTrimEnabled = true;
+    [Export(PropertyHint.Range, "0.0005,0.05,0.0005")] public float VoiceTrimThreshold = 0.004f;   // 振幅低於這個（0~1，0.004≈-48dB）算靜音
+    [Export(PropertyHint.Range, "0,0.3,0.005")] public float VoiceTrimLeadPadSec = 0.015f;   // 開頭保留多少秒（保留一點點避免爆音）
+    [Export(PropertyHint.Range, "0,0.5,0.005")] public float VoiceTrimTailPadSec = 0.05f;    // 結尾保留多少秒（並在這段做淡出）
+
+    byte[] TrimVoiceSilence(byte[] pcm, int channels, int sampleRate)
+    {
+        int frameBytes = 2 * Mathf.Max(1, channels);
+        int frames = pcm.Length / frameBytes;
+        if (frames < 64) return pcm;
+        int th = (int)(32768f * VoiceTrimThreshold);
+        int first = -1, last = -1;
+        for (int i = 0; i < frames && first < 0; i++)
+            for (int c = 0; c < channels; c++)
+                if (Math.Abs((int)BitConverter.ToInt16(pcm, i * frameBytes + c * 2)) > th) { first = i; break; }
+        if (first < 0) return pcm;   // 整段都很小聲：不動
+        for (int i = frames - 1; i >= first && last < 0; i--)
+            for (int c = 0; c < channels; c++)
+                if (Math.Abs((int)BitConverter.ToInt16(pcm, i * frameBytes + c * 2)) > th) { last = i; break; }
+        int start = Math.Max(0, first - (int)(VoiceTrimLeadPadSec * sampleRate));
+        int end = Math.Min(frames, last + 1 + (int)(VoiceTrimTailPadSec * sampleRate));
+        if (start == 0 && end == frames) return pcm;
+        var outBuf = new byte[(end - start) * frameBytes];
+        Buffer.BlockCopy(pcm, start * frameBytes, outBuf, 0, outBuf.Length);
+        // 結尾淡出（最後 VoiceTrimTailPadSec 內），避免切掉殘響時爆音
+        int outFrames = end - start;
+        int fade = Math.Min(outFrames, Math.Max(1, (int)(VoiceTrimTailPadSec * sampleRate)));
+        for (int i = 0; i < fade; i++)
+        {
+            float g = (fade - 1 - i) / (float)fade;
+            int fi = outFrames - fade + i;
+            for (int c = 0; c < channels; c++)
+            {
+                int o = fi * frameBytes + c * 2;
+                short v = BitConverter.ToInt16(outBuf, o);
+                short nv = (short)(v * g);
+                outBuf[o] = (byte)(nv & 0xFF); outBuf[o + 1] = (byte)((nv >> 8) & 0xFF);
+            }
+        }
+        return outBuf;
+    }
+
     /// <summary>直接從標準 16-bit PCM WAV 檔案解析載入 AudioStreamWav，避開過期的 .godot/imported 快取</summary>
     AudioStream LoadWavDirect(string resPath)
     {
@@ -84,6 +129,7 @@ public partial class TrainingRoomRuntime
 
                     if (pcmData != null && bitsPerSample == 16)
                     {
+                        if (VoiceTrimEnabled) pcmData = TrimVoiceSilence(pcmData, channels, sampleRate);
                         return new AudioStreamWav
                         {
                             Format = AudioStreamWav.FormatEnum.Format16Bits,
@@ -258,6 +304,7 @@ public partial class TrainingRoomRuntime
     }
 
     // ── 指定台詞改用「正常音效」5 個檔，每次隨機播其中一個（只有下面 NormalVoiceLines 列的 9 句；其他台詞照舊）──
+    [ExportGroup("台詞語音")]
     [Export] public bool UseNormalVoiceForLines = true;   // true＝下面指定的台詞播正常音效；false＝全部回到依關鍵字配音的舊規則
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float NormalVoiceVolScale = 0.7f;   // 這 5 個音效的音量倍率（跟一般觸碰語音差不多）
     static readonly string[] NormalVoicePaths =
