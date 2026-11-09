@@ -527,7 +527,7 @@ void fragment() {
 
     void OnJijiRightClick()
     {
-        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動長按中：不給玩家操作（右鍵不能退出）
+        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動插入中：不給玩家操作（右鍵不能退出）
         switch (_jijiPhase)
         {
             case 3:
@@ -918,6 +918,7 @@ void fragment() {
         float centerTarget = (_s2TummyOn && !_s2Paused) ? minY + range * S2UpperZoneT : minY;
         _s2CenterCur = float.IsNaN(_s2CenterCur) ? centerTarget : Mathf.Lerp(_s2CenterCur, centerTarget, 1f - Mathf.Exp(-6f * dt));
         float center = _s2CenterCur;
+        if (_promoInsertOn && _promoDeepT > 0f) center = Mathf.Max(center, minY + range * _promoDeepT);   // 宣傳片 6 號鍵：突破後再往上多拉（插得更深）
 
         if (_s2Paused)
         {
@@ -1028,7 +1029,8 @@ void fragment() {
 
     void UpdateInsertion(float dt)
     {
-        _jijiHeld = Input.IsMouseButtonPressed(MouseButton.Left) || _promoInsertAuto;   // 宣傳片 6 號鍵：模擬長按雞雞（PromoHotkeys.cs），不用真的按住滑鼠
+        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動插入中：插入深度由 PromoHotkeys.cs 控制（不需要按住滑鼠，也不會自己退回）
+        _jijiHeld = Input.IsMouseButtonPressed(MouseButton.Left);
         if (_jijiStage >= 1) { UpdateStage1Osc(dt); return; }   // 突破後：深插振盪（Unity 的做法）
 
         // 還沒突破（Stage 0）時放開左鍵 → 立刻往回退，退到底就回到入口（Phase 2）。
@@ -1069,7 +1071,6 @@ void fragment() {
         }
         _jijiLastMouse = mouseNow;
 
-        if (_promoInsertAuto) { stageSpeed *= PromoHoldSpeedMul; mouseContrib = 0f; }   // 宣傳片長按：放慢推進、不吃玩家的滑鼠拖曳
         float delta = (_jijiMovingUp ? stageSpeed * dt : 0f) + mouseContrib;
 
         // 突破後的衝刺
