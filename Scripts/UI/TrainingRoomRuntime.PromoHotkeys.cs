@@ -271,7 +271,7 @@ public partial class TrainingRoomRuntime
         Vector2 start = r.Position + new Vector2(u * r.Size.X, (_duvet.TopV + 0.03f) * r.Size.Y);
         _duvet.PullX = u;
 
-        var tex = ResourceHelper.LoadTexAny("Sprites/左手");
+        var tex = ResourceHelper.LoadTexAny("Sprites/右手");
         TextureRect hand = null;
         if (tex != null)
         {
@@ -283,14 +283,14 @@ public partial class TrainingRoomRuntime
                 Size = new Vector2(w, w * tex.GetHeight() / Mathf.Max(1, tex.GetWidth())),
             };
             _canvas.AddChild(hand);
-            hand.Position = start - hand.Size * new Vector2(0.4f, 0.25f);   // 手的指尖落在抓點上
+            hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f);   // 手的指尖（右手圖左上角的手指尖）落在抓點上
         }
         bool pullStarted = false;
         var tw = CreateTween();
         if (hand != null) tw.TweenProperty(hand, "modulate:a", 0.92f, 0.35);                                  // 手淡入
         tw.TweenMethod(Callable.From<float>(v =>                                                              // 在被子上緣輕輕晃一下（還沒拉）
         {
-            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.4f, 0.25f) + new Vector2(Mathf.Sin(v * Mathf.Pi * 2f) * 8f, 0f);
+            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f) + new Vector2(Mathf.Sin(v * Mathf.Pi * 2f) * 8f, 0f);
         }), 0f, 1f, 0.7);
         tw.TweenMethod(Callable.From<float>(v =>                                                              // 抓著往下拉
         {
@@ -298,7 +298,7 @@ public partial class TrainingRoomRuntime
             if (_duvet == null || !IsInstanceValid(_duvet)) return;
             _duvet.FoldSnap = true; _duvet.FoldTarget = p;
             if (!pullStarted && p > 0.02f) { pullStarted = true; _duvet.BeginPull(_duvet.PullX); }   // 新增一組皺褶線（跟玩家拉的時候一樣）
-            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.4f, 0.25f) + new Vector2(0f, p * band);
+            if (hand != null && IsInstanceValid(hand)) hand.Position = start - hand.Size * new Vector2(0.15f, 0.2f) + new Vector2(0f, p * band);
         }), 0f, 1f, PromoPullSec);
         tw.TweenCallback(Callable.From(() =>
         {   // 抓滿：被子被踢到左下角（跟玩家拉滿時一樣）
