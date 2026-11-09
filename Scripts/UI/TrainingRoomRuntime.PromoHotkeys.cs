@@ -30,7 +30,7 @@ public partial class TrainingRoomRuntime
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
-        ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、雙手碰胸的那段；再按一次收手）
+        ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
@@ -317,7 +317,7 @@ public partial class TrainingRoomRuntime
 
     bool _promoChestOn;
 
-    /// <summary>4 號鍵：被子拿掉（左下角）→ 左右手碰胸（肩帶、衣服不動） → 鏡頭（同 1 號鍵的倍率與移動方式）移到胸前。
+    /// <summary>4 號鍵：被子拿掉（左下角）→ 左手摸胸＋右手摸乳頭（肩帶、衣服不動） → 鏡頭（同 1 號鍵的倍率與移動方式）移到胸前。
     /// 再按一次：只收手（取消摸胸動作），鏡頭和被子不動。不需要任何前置。</summary>
     void PromoChestTouch()
     {
@@ -330,6 +330,7 @@ public partial class TrainingRoomRuntime
             _promoChestOn = false;
             if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
             if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+            if (_nipR.On) CancelNipple("NR");
             return;
         }
 
@@ -340,11 +341,12 @@ public partial class TrainingRoomRuntime
         if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
         if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
 
-        // 2) 左右手碰胸（沒在動才開，避免變成取消）
+        // 2) 左手摸胸、右手摸乳頭（右邊那顆乳頭，食指；沒在動才開，避免變成取消）
         if (PromoChestHands)
         {
-            if (!_touchAnimRunningLeft)  StartHandTouchAnim(true);
-            if (!_touchAnimRunningRight) StartHandTouchAnim(false);
+            if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
+            if (_touchAnimRunningRight) CancelHandTouchAnim(false);   // 右手不是摸胸，是摸乳頭
+            if (!_nipR.On) StartNipple("NR");
         }
 
         // 3) 鏡頭：影片的床上鏡頭（5 號鍵共用）
