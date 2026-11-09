@@ -229,6 +229,7 @@ public partial class TrainingRoomRuntime
     bool IsOnLickTarget(Vector2 w)
     {
         if (!_lickOn) return false;
+        if (_lickTarget == "M") return false;   // 嘴巴（錄影親嘴用，沒有滑鼠互動）
         if (_lickTarget == "A") return IsMouseOverMLegAnus(GetViewport().GetMousePosition());
         if (_lickTarget == "B") return IsPointOnPussy(w) || (_hotspotRTs != null && _hotspotRTs[4] != null && _hotspotRTs[4].GetGlobalRect().Grow(20f).HasPoint(w));
         int hi = _lickTarget == "L" ? 2 : 3;
@@ -282,7 +283,7 @@ public partial class TrainingRoomRuntime
         if (_lickTongue != null && IsInstanceValid(_lickTongue)) _lickTongue.QueueFree();
         _lickTongue = null;
         if (_lickTarget == "B") SetPussyDeform(0f);
-        else if (_lickTarget != "A")
+        else if (_lickTarget != "A" && _lickTarget != "M")
         {
             TouchAnimOffset.Remove(BreastOf(_lickTarget));
             TouchAnimOffset.Remove(NippleOf(_lickTarget));
@@ -315,6 +316,13 @@ public partial class TrainingRoomRuntime
         else if (_lickTarget == "A")
         {
             if (!AnusCenterScreen(out tip)) tip = GetViewport().GetMousePosition();
+        }
+        else if (_lickTarget == "M")
+        {   // 嘴巴（錄影的親嘴）：動作跟舔乳頭、舔小穴完全一樣，只是位置在嘴巴熱點中心
+            tip = _hotspotRTs != null && _hotspotRTs.Length > 1 && _hotspotRTs[1] != null && IsInstanceValid(_hotspotRTs[1])
+                ? _hotspotRTs[1].GetGlobalRect().GetCenter()
+                : (Layers.TryGetValue("臉", out var fl) && fl != null ? fl.GetGlobalTransform() * new Vector2(990f, 760f) : Vector2.Zero);
+            tip += PromoKissNudge;
         }
         else
         {

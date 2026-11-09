@@ -218,7 +218,6 @@ public partial class TrainingRoomRuntime
     {
         if (!PromoHotkeysEnabled) return;
         PromoSilenceTick();
-        PromoKissTick((float)GetProcessDeltaTime());
         if (_promoDeepT > 0f && _jijiPhase == 0) { _promoDeepT = 0f; _promoInsertOn = false; _promoForceErect = false; _promoThrustOn = false; }   // 雞雞被收起來：清掉 6／7 號鍵的狀態
         if (PromoHideBubbles)
         {   // 台詞氣泡：別的程式顯示它就每幀再藏起來（沒有閃一下：藏在同一幀畫面繪製之前）
@@ -698,63 +697,19 @@ public partial class TrainingRoomRuntime
     }
 
 
-    // 親嘴（3、7 號鍵）：舌頭的動作＝舔乳頭那一套——一張舌頭圖，快速往上舔、慢慢回來，帶微微旋轉；不再是原本「舌頭1→2→3→2」上下換圖。
-    // 位置在嘴巴（嘴巴熱點中心）。舌頭圖、大小、舔的速度與幅度都沿用舔乳頭的設定（Tongue.cs：LickTongueSize／LickSpeed／LickStrokePx／LickTongueNudge）。
+    // 親嘴（3、7 號鍵）：直接用遊戲的「舔」（舔乳頭、舔小穴同一套動作，Tongue.cs 的 StartLick／UpdateLick），舔的目標是嘴巴（"M"）。
+    // 舌頭圖、大小、速度、往上舔再慢慢回來、微微旋轉，全部跟舔乳頭一模一樣；之後舔的動作怎麼調，親嘴會一起變。不再是「舌頭1→2→3→2」上下換圖。
     [Export] public Vector2 PromoKissNudge = Vector2.Zero;   // 舌頭相對嘴巴熱點中心的微調（場景 px）；嘴巴位置不準就調這個
-    bool _promoKissOn; float _promoKissT; TextureRect _promoKissTongue;
 
-    void PromoKissToggle() { if (_promoKissOn) PromoKissStop(); else PromoKissStart(); }
-
+    bool PromoKissOn => _lickOn && _lickTarget == "M";
+    void PromoKissToggle() { if (PromoKissOn) PromoKissStop(); else PromoKissStart(); }
     void PromoKissStart()
     {
-        if (_promoKissOn || _canvas == null) return;
+        if (PromoKissOn || _canvas == null) return;
         if (_tongueOn) StopTongue();   // 原本那套換圖的舌頭不用
-        var tex = TongueCursorTexture((int)LickTongueSize);
-        if (tex == null) { GD.PushWarning("[Promo] 親嘴：找不到舌頭圖"); return; }
-        if (_touchHandLayer == null)
-        {
-            _touchHandLayer = new Control { Name = "TouchHandLayer", MouseFilter = Control.MouseFilterEnum.Ignore };
-            _touchHandLayer.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            _canvas.AddChild(_touchHandLayer);
-        }
-        _promoKissTongue = new TextureRect
-        {
-            Name = "PromoKissTongue", Texture = tex,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            Size = new Vector2(LickTongueSize, LickTongueSize),
-        };
-        _promoKissTongue.PivotOffset = new Vector2(LickTongueSize * 0.5f, LickTongueSize);   // 以舌根（下緣）為軸，跟舔乳頭一樣
-        _touchHandLayer.AddChild(_promoKissTongue);
-        _promoKissOn = true; _promoKissT = 0f;
-        HadBreastTouch = true;
+        StartLick("M");
     }
-
-    void PromoKissStop()
-    {
-        if (!_promoKissOn) return;
-        _promoKissOn = false;
-        if (_promoKissTongue != null && IsInstanceValid(_promoKissTongue)) _promoKissTongue.QueueFree();
-        _promoKissTongue = null;
-    }
-
-    /// <summary>每幀：舌頭在嘴巴上做舔乳頭的動作（往上舔、慢慢回來、微微旋轉）。</summary>
-    void PromoKissTick(float dt)
-    {
-        if (!_promoKissOn) return;
-        if (_promoKissTongue == null || !IsInstanceValid(_promoKissTongue)) { _promoKissOn = false; return; }
-        _promoKissT += dt * LickSpeed;
-        float ph = _promoKissT % 1f;
-        float stroke = ph < 0.35f ? Mathf.SmoothStep(0f, 1f, ph / 0.35f) : 1f - Mathf.SmoothStep(0f, 1f, (ph - 0.35f) / 0.65f);   // 同舔乳頭：快速往上、慢慢回來
-        Vector2 tip = _hotspotRTs != null && _hotspotRTs.Length > 1 && _hotspotRTs[1] != null && IsInstanceValid(_hotspotRTs[1])
-            ? _hotspotRTs[1].GetGlobalRect().GetCenter()   // 嘴巴熱點中心（場景座標）
-            : (Layers.TryGetValue("臉", out var fl) && fl != null ? fl.GetGlobalTransform() * new Vector2(990f, 760f) : Vector2.Zero);
-        float strokeScene = stroke * LickStrokePx * CharScreenScale();
-        _promoKissTongue.GlobalPosition = tip - new Vector2(LickTongueSize * 0.5f, LickTongueSize * 0.85f)
-                                        + LickTongueNudge + PromoKissNudge + new Vector2(0f, -strokeScene + LickStrokePx * CharScreenScale() * 0.5f);
-        _promoKissTongue.RotationDegrees = Mathf.Sin(_promoKissT * Mathf.Tau) * 4f;   // 微微旋轉（同舔乳頭）
-        _promoKissTongue.Modulate = new Color(1f, 1f, 1f, LickTongueAlpha);
-    }
+    void PromoKissStop() { if (PromoKissOn) StopLick(); }
 
     bool _promoPulling;
 
