@@ -527,6 +527,7 @@ void fragment() {
 
     void OnJijiRightClick()
     {
+        if (_promoInsertAuto) return;   // 宣傳片 6 號鍵自動長按中：不給玩家操作（右鍵不能退出）
         switch (_jijiPhase)
         {
             case 3:

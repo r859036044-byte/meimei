@@ -418,7 +418,7 @@ public partial class TrainingRoomRuntime
     // 影片的倍率換算出來比 CamZoomMax（預設 3）還大一點，會被擋在 CamZoomMax；想再近就把 CamZoomMax 調大。
     [Export] public Vector2 PromoInsertScreenPos = new Vector2(0.5f, 0.46f);                 // 小穴要停在畫面的哪裡（0~1）
     [Export(PropertyHint.Range, "0.2,2,0.01")] public float PromoInsertPxPerTex = 1.05f;     // 插入鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值）
-    [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoInsertSec = 1.6f;            // 雞雞推進去的時間（秒）
+    [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoInsertSec = 5f;            // 靠近小穴後「自動長按」的秒數：這段時間雞雞慢慢往上推進去（玩家不能操作；鏡頭不動）
     bool _promoInsertAuto, _promoForceErect, _promoInsertOn;
 
     /// <summary>6 號鍵：被子拿掉、內褲脫掉、進 M 腿 → 鏡頭拉近到小穴 → 雞雞出現、靠近、插進去（直接突破到深插，不用按住滑鼠）。
@@ -486,7 +486,7 @@ public partial class TrainingRoomRuntime
             await Wait(0.2f);
             if (!_promoInsertOn || _jijiPhase != 3) { GD.Print($"[Promo] 插入：沒進到插入階段（phase={_jijiPhase}；M 腿={_mLegOpen}；內褲擋住={MPantyBlocksInsert}）"); _promoInsertOn = false; return; }
 
-            // 插進去：自己把插入深度從 0 推到突破點，再突破到深插（之後由遊戲原本的深插振盪接手）
+            // 插進去：模擬長按 PromoInsertSec 秒（不給玩家操作），期間自己把插入深度從 0 慢慢推到突破點，再突破到深插（之後由遊戲原本的深插振盪接手）
             _promoInsertAuto = true;
             float from = _jijiInsertY, to = JijiStage1MaxY, dur = Mathf.Max(0.1f, PromoInsertSec);
             for (float t = 0f; t < dur && _promoInsertOn && _jijiPhase == 3; )
@@ -494,7 +494,8 @@ public partial class TrainingRoomRuntime
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 t += (float)GetProcessDeltaTime();
                 float p = Mathf.Clamp(t / dur, 0f, 1f);
-                _jijiInsertY = Mathf.Lerp(from, to, p * p * (3f - 2f * p));
+                _jijiHeld = true;   // 假裝左鍵一直按住（長按）
+                _jijiInsertY = Mathf.Lerp(from, to, p);   // 勻速慢慢往上
             }
             if (_promoInsertOn && _jijiPhase == 3) Breakthrough();
         }
