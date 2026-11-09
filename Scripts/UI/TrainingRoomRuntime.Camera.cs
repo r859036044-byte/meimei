@@ -56,7 +56,7 @@ public partial class TrainingRoomRuntime
     [Export] public float MLegCamZoomMul = 1.3f;   // 進入 M 腿時鏡頭再拉近的倍率（1.3＝再放大 30%；原本 1.48）
     [Export] public float MLegCamUpPx = 120f;   // 進入 M 腿時視角再往上移的螢幕 px（胸部在畫面中會偏下）
     [Export] public float MLegCamSmooth = 1f;   // M 腿拉近／縮回的縮放速度（越小越慢；滾輪縮放仍用 CamZoomSmooth）
-    [Export(PropertyHint.Range, "1.1,3,0.01")] public float MLegCamMinZoom = 1.25f;   // 莉奈抬腳（M 腿）時，滾輪縮小鏡頭的下限倍率：可以縮小，但不能縮到比這個還小（一般狀態下限是 1.1）。要微調就改這個；＝1.1 就等於沒有限制
+    [Export(PropertyHint.Range, "1.1,3,0.01")] public float MLegCamMinZoom = 2.0f;   // 莉奈抬腳（M 腿）時，鏡頭「拉遠」的極限倍率：滾輪縮小（拉遠）不能小於這個，抬腳瞬間鏡頭也會先拉近到至少這個倍率（一般狀態下限是 1.1，最近是 CamZoomMax）。數字越大＝能拉遠的範圍越小；要微調就改這個；＝1.1 就等於沒有限制
     float _camSmoothOverride = -1f;
     float _mLegPrevZoomTarget = 1.1f;
     float _mLegSetZoom = -1f;   // 進入 M 腿時鏡頭自動設定的倍率（離開時若玩家沒再用滾輪調過才縮回原倍率）
@@ -76,7 +76,7 @@ public partial class TrainingRoomRuntime
                 { sum += ScreenToWorld(c.GetGlobalRect().GetCenter()); n++; }
             Vector2 chestWorld = n > 0 ? sum / n : ScreenToWorld(vp * 0.5f);
             // 已經拉近到 M 腿該有的倍率以上就不再多拉（原本是直接乘上去，拉近時抬腳會變得更近、還卡在上限）
-            float mLegZoom = Mathf.Clamp(1.1f * MLegCamZoomMul, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+            float mLegZoom = Mathf.Clamp(Mathf.Max(1.1f * MLegCamZoomMul, MLegCamMinZoom), 1.1f, Mathf.Max(1.1f, CamZoomMax));   // 抬腳拉近的倍率至少要到「拉遠極限」，不然一抬腳就在極限以外
             if (_camZoomTarget < mLegZoom) _camZoomTarget = mLegZoom;
             _mLegSetZoom = _camZoomTarget;
             // X 不位移：以目前畫面中心的 X 當錨點；Y 才對準胸部（畫面中央）
