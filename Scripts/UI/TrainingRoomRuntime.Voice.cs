@@ -339,6 +339,8 @@ public partial class TrainingRoomRuntime
         ("好痛…",     new[] { "talk_brat/fun.wav" }),
     };
 
+    bool _inPinchNormalReply;   // 正在說「被捏（正常話）」的反應（Brat.cs 設定）
+
     bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap) || PlayMappedVoice(text, PinchNormalVoiceMap);
 
     /// <summary>摸頭台詞（PatTalk）：有指定音檔就播並回傳 true；沒指定回傳 false（呼叫端用原本的摸頭語音）。</summary>
@@ -472,6 +474,9 @@ public partial class TrainingRoomRuntime
 
         // 通知嘴巴：內部會自動檢查是否為純叫聲（IsSoundOnly）或教程，只有真正台詞才會用倒笑壓扁開合嘴巴
         NotifyVoiceSpeakForText(text);
+
+        // 被捏（正常話）第三句「……」：不發出任何音效（只限這個情境，別區同樣的「……」不受影響）
+        if (_inPinchNormalReply && LineMatches(text, "……")) return;
 
         // 睡著（ZZZ）的台詞（ReactSleep：「Zzz…」「嗯…（睡）」「呼…呼…」）：不發出任何音效
         if (ReactSleep != null)

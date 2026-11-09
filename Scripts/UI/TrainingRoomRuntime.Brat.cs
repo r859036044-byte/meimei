@@ -248,7 +248,9 @@ public partial class TrainingRoomRuntime
         {
             Mood -= NormalPinchMoodDown * (0.4f + 0.6f * strength);
             BratValue -= NormalPinchBratDown * strength;
+            _inPinchNormalReply = true;   // 這句的語音判斷要知道「現在是被捏的正常反應」（第三句「……」不發聲，見 Voice.cs）
             BratSay(BratPinchNormalReplyLines);
+            _inPinchNormalReply = false;
         }
         else
         {
