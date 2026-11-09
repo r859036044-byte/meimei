@@ -29,6 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、雙手碰胸的那段；再按一次還原）
     };
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
@@ -113,6 +114,7 @@ public partial class TrainingRoomRuntime
     {
         ["cam_face"]    = ("鏡頭：臉前", () => PromoCameraFace()),
         ["duvet_pull"]  = ("拉開被子", () => PromoPullDuvet()),
+        ["chest_touch"] = ("摸胸", () => PromoChestTouch()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
@@ -251,6 +253,12 @@ public partial class TrainingRoomRuntime
                 if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
             }
         }
+        PromoCamGoto(zoom, anchorWorld, anchorScreen, instant);
+    }
+
+    /// <summary>鏡頭移到「anchorWorld 這個場景點停在畫面 anchorScreen、倍率 zoom」。1 號鍵（臉前）和 4 號鍵（胸）共用，所以移動方式、速度完全一樣。</summary>
+    void PromoCamGoto(float zoom, Vector2 anchorWorld, Vector2 anchorScreen, bool instant)
+    {
         _camZoomTarget = zoom; _camAnchorWorld = anchorWorld;
         if (instant)
         {
@@ -279,6 +287,61 @@ public partial class TrainingRoomRuntime
         float p = Mathf.Abs(denom) < 0.001f ? 1f : Mathf.Clamp((_camZoom - _promoCamZ0) / denom, 0f, 1f);
         if (p >= 0.999f) { _camAnchorScreen = _promoCamS1; _promoCamAnimating = false; return; }
         _camAnchorScreen = _promoCamS0.Lerp(_promoCamS1, p);
+    }
+
+
+    // 4 號鍵的鏡頭＝影片裡「摸胸」那段：倍率跟臉前鏡頭一樣（影片逐格量出來也是約 0.74～0.75 畫面px／貼圖px），
+    // 只是對準點換成兩個胸的中心，停在畫面中央偏上（水平 0.5、垂直 0.38）。移動方式／速度共用 PromoCamSmooth。
+    [Export] public Vector2 PromoChestScreenPos = new Vector2(0.5f, 0.38f);                  // 胸中心要停在畫面的哪裡（0~1）
+    [Export] public bool PromoChestHands = true;                                              // 4 號鍵同時讓左右手碰胸
+
+    bool _promoChestOn;
+
+    /// <summary>4 號鍵：被子拿掉（左下角）→ 左右手碰胸（肩帶、衣服不動） → 鏡頭（同 1 號鍵的倍率與移動方式）移到胸前。
+    /// 再按一次：手收掉、被子蓋回去、鏡頭慢慢回原位。不需要任何前置。</summary>
+    void PromoChestTouch()
+    {
+        if (_canvas == null) return;
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        bool instant = PromoCamSmooth <= 0.01f;
+        _camSmoothOverride = instant ? -1f : PromoCamSmooth;
+        if (_promoChestOn)
+        {
+            _promoChestOn = false;
+            if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+            if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+            DuvetState = 0;
+            if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+            Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置（同 1 號鍵還原）
+            PromoCamGoto(1.1f, (vp * 0.5f - defOff) / 1.1f, vp * 0.5f, instant);
+            return;
+        }
+
+        // 胸中心（場景座標）：胸1／胸2 圖層外框中心的平均。GetGlobalRect 已是場景座標（同 PromoCameraFace 的註解），不再經過 ScreenToWorld
+        Vector2 sum = Vector2.Zero; int n = 0;
+        foreach (var name in new[] { "胸1", "胸2" })
+            if (Layers.TryGetValue(name, out var c) && c != null) { sum += c.GetGlobalRect().GetCenter(); n++; }
+        if (n == 0) { GD.PushWarning("[Promo] 摸胸：找不到「胸1／胸2」圖層，鏡頭不動"); return; }
+        _promoChestOn = true;
+
+        // 1) 被子拿掉（踢到左下角；直接到位，不演拉的手）
+        DuvetState = 1;
+        if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+        if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
+
+        // 2) 左右手碰胸（沒在動才開，避免變成取消）
+        if (PromoChestHands)
+        {
+            if (!_touchAnimRunningLeft)  StartHandTouchAnim(true);
+            if (!_touchAnimRunningRight) StartHandTouchAnim(false);
+        }
+
+        // 3) 鏡頭：倍率與臉前鏡頭相同
+        float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+        float zoom = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+        PromoSetUiHidden(true);
+        PromoCamGoto(zoom, sum / n, vp * PromoChestScreenPos, instant);
+        GD.Print($"[Promo] 摸胸：胸中心 場景{sum / n}；倍率 {zoom:F2}");
     }
 
     bool _promoPulling;
