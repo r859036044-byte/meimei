@@ -16,11 +16,11 @@ public partial class TrainingRoomRuntime
     [ExportGroup("宣傳片快捷鍵")]
     [Export] public bool PromoHotkeysEnabled = true;       // 總開關
     // 1 號鍵的鏡頭＝使用者影片裡「親吻的臉鏡頭」：用影片逐格量出來——臉在畫面中央偏上（水平 0.5、垂直 0.39），
-    // 臉的大小是「畫面 1920 寬時，每個貼圖像素佔 0.74 個畫面像素」（相當於比影片的遠景再拉近約 1.38 倍）；影片裡是直接切換，不是慢慢推。
+    // 臉的大小是「畫面 1920 寬時，每個貼圖像素佔 0.74 個畫面像素」（相當於比影片的遠景再拉近約 1.38 倍）。
     [Export(PropertyHint.Range, "0.2,1.5,0.01")] public float PromoFacePxPerTex = 0.74f;   // 臉前鏡頭的大小（畫面像素／貼圖像素）；會自動換算成目前的鏡頭倍率，不受 CharScale 影響
     [Export] public Vector2 PromoFaceScreenPos = new Vector2(0.5f, 0.39f);                  // 臉要停在畫面的哪裡（0~1）
     [Export] public Vector2 PromoFacePointTex = new Vector2(960f, 700f);                    // 臉中心在角色貼圖（2000×3200）上的位置
-    [Export(PropertyHint.Range, "0,10,0.1")] public float PromoCamSmooth = 0f;              // 鏡頭移動速度：0＝直接切到位（跟影片一樣）；3≈約 1 秒的緩動
+    [Export(PropertyHint.Range, "0,10,0.1")] public float PromoCamSmooth = 1.5f;            // 鏡頭移動速度：越小越慢（1.5≈約 2 秒慢慢移過去）；0＝直接切到位（影片裡是直接切）
     [Export] public bool PromoHotkeyToast = false;         // 按下時在畫面左上角短暫顯示動作名稱（錄影時建議關掉，只留在輸出的 log）
 
     // 預設對應：數字 → 動作代號（目前只有 1 號鍵；其他鍵等你指定。想先試別的動作可在 promo_hotkeys.json 加）
@@ -126,7 +126,20 @@ public partial class TrainingRoomRuntime
         ["reset"]       = ("全部重置",   () => PromoReset()),
     };
 
-    /// <summary>鏡頭移到莉奈臉前（親吻的臉鏡頭）；再按一次回到原本的鏡頭（跟 Home 鍵一樣的預設位置）。PromoCamSmooth＝0 時直接切換。</summary>
+    bool _promoMenuBtnHidden;
+
+    /// <summary>隱藏／還原所有 UI（左側工具鈕、？、☰ 選單、HUD 等；場景裡的東西不動）。</summary>
+    void PromoSetUiHidden(bool hide)
+    {
+        if (_uiCanvas != null && IsInstanceValid(_uiCanvas)) _uiCanvas.Visible = !hide;   // HUD、側邊鈕、「?」都在這一層
+        var mb = GetTree()?.Root?.FindChild("NovelMenuButton", true, false) as CanvasItem;   // 右上角「☰ 選單」（NovelReader 建的）
+        if (mb == null) return;
+        if (hide) { _promoMenuBtnHidden = mb.Visible; mb.Visible = false; }
+        else if (_promoMenuBtnHidden) { mb.Visible = true; _promoMenuBtnHidden = false; }
+    }
+
+    /// <summary>1 號鍵：UI 隱藏、被子蓋回身上、鏡頭慢慢移到莉奈臉前（親吻的臉鏡頭）；再按一次：UI 還原、鏡頭慢慢回原位。
+    /// PromoCamSmooth＝0 時鏡頭直接切換。</summary>
     void PromoCameraFace()
     {
         if (_canvas == null) return;
@@ -137,6 +150,7 @@ public partial class TrainingRoomRuntime
         if (_promoCamOnFace)
         {
             _promoCamOnFace = false;
+            PromoSetUiHidden(false);
             zoom = 1.1f;
             Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置
             anchorScreen = vp * 0.5f;
@@ -145,13 +159,20 @@ public partial class TrainingRoomRuntime
         else
         {
             if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
-            Rect2 r = fl.GetGlobalRect();   // 臉是整張 2000×3200 的畫布圖層：用貼圖座標換算出臉在畫面上的位置
-            Vector2 faceScreen = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
+            // 注意：Control.GetGlobalRect() 給的已經是「場景座標」（不含 CanvasLayer 的鏡頭縮放／平移），不能再經過 ScreenToWorld
+            // （之前這裡多轉了一次，臉就偏到畫面右下；現在直接當場景座標用）
+            Rect2 r = fl.GetGlobalRect();
+            anchorWorld  = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
             float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
             zoom = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
-            anchorWorld  = ScreenToWorld(faceScreen);
             anchorScreen = vp * PromoFaceScreenPos;
             _promoCamOnFace = true;
+            PromoSetUiHidden(true);
+            if (DuvetState != 0)
+            {   // 被子蓋回身上（等於玩家把踢開的被子蓋回去）
+                DuvetState = 0;
+                if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+            }
         }
         _camZoomTarget = zoom; _camAnchorScreen = anchorScreen; _camAnchorWorld = anchorWorld;
         if (instant) { _camZoom = zoom; _camOffset = anchorScreen - anchorWorld * zoom; }   // 直接到位（每幀的 UpdateCamera 會再套邊界限制）
