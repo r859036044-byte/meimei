@@ -1,0 +1,14 @@
+{
+  "_說明": "宣傳片錄影快捷鍵。左邊是按鍵（數字列或數字鍵盤的 0~9），右邊是動作。只要寫想改的鍵，沒寫的用程式裡的預設。值填 none＝這個鍵不做事；值寫 expr:表情名＝直接切到該表情（例：expr:害羞）。",
+  "_可用動作": "hand_left 左手觸摸／hand_right 右手觸摸／b_touch 摸B／pat 摸頭／mini_climax 小高潮／climax 大高潮／squirt 噴水／ejaculate 射精／breath 嬌喘聲／expr_next 下一個表情／expr_prev 上一個表情／night_filter 夜晚濾鏡／dots_toggle 綠點顯示切換／reset 全部重置",
+  "1": "hand_left",
+  "2": "hand_right",
+  "3": "b_touch",
+  "4": "pat",
+  "5": "mini_climax",
+  "6": "climax",
+  "7": "squirt",
+  "8": "ejaculate",
+  "9": "expr_next",
+  "0": "reset"
+}

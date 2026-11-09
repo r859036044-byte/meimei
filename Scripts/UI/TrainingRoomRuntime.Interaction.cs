@@ -481,6 +481,7 @@ public partial class TrainingRoomRuntime : Node
     public override void _Input(InputEvent @event)
     {
         if (_timingChallengeActive || _endingDay) return;
+        if (PromoHotkeyInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 宣傳片錄影用數字快捷鍵（PromoHotkeys.cs）
         ClickDragInput(@event);   // 點擊／拖曳判斷（ClickDrag.cs）
         if (TissueInput(@event)) { GetViewport().SetInputAsHandled(); return; }   // 衛生紙模式（Tissue.cs）
         if (PantyDebugKeys(@event)) return;   // Insert/Home/End：逐項關掉最近的內褲效果找出是哪個造成問題（Tissue.cs 旁的 PantyDebug）
