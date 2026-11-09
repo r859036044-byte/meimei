@@ -700,7 +700,7 @@ public partial class TrainingRoomRuntime
     // 親嘴（3、7 號鍵）：直接用遊戲的「舔」（舔乳頭、舔小穴同一套動作，Tongue.cs 的 StartLick／UpdateLick），舔的目標是嘴巴（"M"）。
     // 舌頭圖、大小、速度、往上舔再慢慢回來、微微旋轉，全部跟舔乳頭一模一樣；之後舔的動作怎麼調，親嘴會一起變。不再是「舌頭1→2→3→2」上下換圖。
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float PromoKissScale = 0.55f;   // 親嘴舌頭的大小：舔乳頭舌頭大小（LickTongueSize）的幾倍；太大就調小
-    [Export] public Vector2 PromoKissNudge = new Vector2(0f, -5f);   // 舌頭相對嘴巴中心的微調（場景 px）；還沒對準嘴巴就調這個（Y 正＝往下）
+    [Export] public Vector2 PromoKissNudge = new Vector2(0f, -3f);   // 舌頭相對嘴巴中心的微調（場景 px）；還沒對準嘴巴就調這個（Y 正＝往下）
 
     bool PromoKissOn => _lickOn && _lickTarget == "M";
     void PromoKissToggle() { if (PromoKissOn) PromoKissStop(); else PromoKissStart(); }
