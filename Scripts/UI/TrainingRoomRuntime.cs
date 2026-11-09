@@ -130,6 +130,7 @@ public partial class TrainingRoomRuntime : Node
 		UpdatePuddleFade(dt);
 		UpdateJiji(dt);
 		UpdateClothTop();   // 衣服順序／M 腿遮罩（Cloth.cs）
+		PromoCamTick();   // 宣傳片鏡頭：錨點跟著縮放進度平順移動（PromoHotkeys.cs）
 		UpdateCamera(dt);
 		PromoUiTick();   // 宣傳片錄影：UI 從開始遊戲就隱藏（PromoHotkeys.cs）
 		UpdateCharShade();   // 人物光影濾鏡（Layout.cs）

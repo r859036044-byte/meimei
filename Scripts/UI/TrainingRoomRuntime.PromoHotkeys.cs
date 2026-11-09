@@ -211,8 +211,34 @@ public partial class TrainingRoomRuntime
                 if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
             }
         }
-        _camZoomTarget = zoom; _camAnchorScreen = anchorScreen; _camAnchorWorld = anchorWorld;
-        if (instant) { _camZoom = zoom; _camOffset = anchorScreen - anchorWorld * zoom; }   // 直接到位（每幀的 UpdateCamera 會再套邊界限制）
+        _camZoomTarget = zoom; _camAnchorWorld = anchorWorld;
+        if (instant)
+        {
+            _camAnchorScreen = anchorScreen; _promoCamAnimating = false;
+            _camZoom = zoom; _camOffset = anchorScreen - anchorWorld * zoom;   // 直接到位（每幀的 UpdateCamera 會再套邊界限制）
+            return;
+        }
+        // 慢慢移動：錨點先設在「目標那個點現在在畫面上的位置」→ 第一幀畫面完全不動（不會瞬移），
+        // 之後每幀 PromoCamTick() 依縮放進度把錨點從這裡平順移到最終位置，邊放大邊走到定位
+        _promoCamS0 = _camZoom * anchorWorld + _camOffset;
+        _promoCamS1 = anchorScreen;
+        _promoCamZ0 = _camZoom;
+        _camAnchorScreen = _promoCamS0;
+        _promoCamAnimating = true;
+    }
+
+    bool _promoCamAnimating;
+    Vector2 _promoCamS0, _promoCamS1;
+    float _promoCamZ0;
+
+    /// <summary>每幀在 UpdateCamera 之前呼叫：鏡頭慢慢移動時，讓錨點跟著縮放進度從起點平順走到終點。</summary>
+    void PromoCamTick()
+    {
+        if (!_promoCamAnimating) return;
+        float denom = _camZoomTarget - _promoCamZ0;
+        float p = Mathf.Abs(denom) < 0.001f ? 1f : Mathf.Clamp((_camZoom - _promoCamZ0) / denom, 0f, 1f);
+        if (p >= 0.999f) { _camAnchorScreen = _promoCamS1; _promoCamAnimating = false; return; }
+        _camAnchorScreen = _promoCamS0.Lerp(_promoCamS1, p);
     }
 
     void PromoStepExpression(int dir)
