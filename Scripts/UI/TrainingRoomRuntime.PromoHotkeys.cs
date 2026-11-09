@@ -29,6 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
         ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
         ("6", "insert"),         // 插入（影片裡雞雞插進去、鏡頭拉近到小穴的那段；再按一次拔出收起來）
@@ -122,6 +123,7 @@ public partial class TrainingRoomRuntime
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["insert"]      = ("插入", () => PromoInsert()),
         ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
+        ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
@@ -624,6 +626,72 @@ public partial class TrainingRoomRuntime
         _camAnchorWorld = _promoZWorld; _camAnchorScreen = screen;
         _camOffset = screen - _promoZWorld * z;
         if (p >= 1f) { _promoZoomOn = false; GD.Print($"[Promo] 縮小完成：倍率 {_camZoom:F2}"); }
+    }
+
+
+    // 9 號鍵（外射精）：射到頭那裡
+    [Export(PropertyHint.Range, "2,14,1")] public int PromoEjacWaves = 7;                  // 射幾發
+    [Export] public Vector2 PromoEjacGap = new Vector2(0.35f, 0.6f);                       // 每發之間的間隔（秒）
+    [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
+
+    /// <summary>9 號鍵：去掉親嘴、摸胸（還有抽插）→ 雞雞退出來 → 把精液連續射到頭那裡。射的時候再按 9 沒有作用。</summary>
+    void PromoOutsideEjac()
+    {
+        if (_canvas == null) return;
+        if (_ejacRunning || _insertEjacActive) { GD.Print("[Promo] 外射精：還在射，請稍後"); return; }
+        if (_jijiPhase == 0) { GD.Print("[Promo] 外射精：雞雞沒出現（先按 6 或 7）"); return; }
+        TaskLogger.Run(PromoOutsideEjacAsync(), "TrainingRoom.PromoOutsideEjac");
+    }
+
+    async System.Threading.Tasks.Task PromoOutsideEjacAsync()
+    {
+        // 1) 去掉 7 號鍵的全部動作：抽插停、親嘴停、摸胸停（鏡頭不動）
+        PromoStopThrust();
+        if (_tongueOn) StopTongue();
+        if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+        if (_nipL.On) CancelNipple("NL");
+        if (_nipR.On) CancelNipple("NR");
+        _promoChestOn = false;
+        _promoInsertAuto = false; _promoZoomOn = false;
+
+        // 2) 雞雞退出來（外射：雞雞在外面，從小穴口往上射）
+        if (_jijiPhase == 3)
+        {
+            BackToPhase2("宣傳片外射精：拔出");
+            await ToSignal(GetTree().CreateTimer(JijiAppearDuration + 0.5f), SceneTreeTimer.SignalName.Timeout);
+        }
+        if (_jijiPhase == 0) return;
+
+        // 3) 射：全部射向頭（劉海／頭頂／臉的上半部），沿用遊戲的禁射區（避開眼睛、嘴巴）
+        _ejacRunning = true; _ejacStop = false; _ejacMul = 1f;
+        ShowJijiSemen();
+        _sweat = Mathf.Min(1f, _sweat + SweatOnEjac);
+        try
+        {
+            PlayRinaEjacReaction();
+            int n = Mathf.Max(2, PromoEjacWaves);
+            for (int i = 0; i < n; i++)
+            {
+                float k = n <= 1 ? 0f : i / (float)(n - 1);   // 0 → 1：越射越弱，最後幾發只是流出來
+                Vector2 tipC = JijiTipCanvas();
+                Vector2 hair = LayerCanvasCenter("前髮"), face = LayerCanvasCenter("臉");
+                Vector2 tgt = (i % 3) switch
+                {
+                    0 => hair + new Vector2(Rf(-80f, 80f), -Rf(60f, 150f)),   // 頭頂／劉海上方
+                    1 => hair + new Vector2(Rf(-70f, 70f), Rf(-20f, 60f)),    // 劉海
+                    _ => face + new Vector2(Rf(-60f, 60f), -Rf(20f, 80f)),    // 臉上半部（額頭）
+                };
+                tgt = PushOutOfNoShootZone(tgt);
+                float power = Mathf.Lerp(PromoEjacPower, PromoEjacPower * 0.5f, k * k);
+                float blob = Mathf.Lerp(EjacFarBlobScale, EjacFarBlobScale * 0.7f, k);
+                int seg = Mathf.Max(8, Mathf.RoundToInt(Mathf.Lerp(EjacFarSegCount, EjacFarSegCount * 0.6f, k)));
+                await ShootSemenAsync(tipC, tgt, seg, power, blob, addDrip: k > 0.6f);
+                await ToSignal(GetTree().CreateTimer(Rf(PromoEjacGap.X, PromoEjacGap.Y) * Mathf.Lerp(1f, 1.8f, k)), SceneTreeTimer.SignalName.Timeout);
+            }
+            SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團
+        }
+        finally { _ejacRunning = false; }
     }
 
     bool _promoPulling;
