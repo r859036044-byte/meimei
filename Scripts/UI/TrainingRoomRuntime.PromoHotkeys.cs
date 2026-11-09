@@ -137,6 +137,8 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.3,0.7,0.01")] public float PromoPullU = 0.58f;         // 手抓被子上緣的水平位置（以整張被子圖的寬度算：被子實際佔 0.33~0.68，0.58＝被子偏右）
     [Export(PropertyHint.Range, "0,1.5,0.05")] public float PromoPullLeftRatio = 0.6f;   // 往下拉的同時往左移多少（以下拉距離為 1；0＝垂直往下，0.6＝往左下角）
     [Export(PropertyHint.Range, "0.3,6,0.1")] public float PromoPullSec = 1.1f;      // 往下拉的時間（秒）
+    [Export] public bool PromoSilent = true;         // 錄影模式完全安靜：所有聲音（語音、音效、背景音樂）都靜音（錄好影片再後製配音）
+    bool _promoMuted, _promoMuteHooked;
     bool _promoUiHidden;                // 目前是不是由本系統隱藏著
     CanvasItem _promoMenuBtn;
     Color _promoMenuBtnModulate = Colors.White;
@@ -176,10 +178,34 @@ public partial class TrainingRoomRuntime
         _promoUiHidden = hide;
     }
 
+    /// <summary>錄影模式靜音：把 Master 音訊匯流排靜音（所有聲音都在這條上，包含 TR 語音、音效、BGM）。每幀檢查，避免被別的程式（設定、音量滑桿）解除。
+    /// 離開調教室時自動解除，不影響標題畫面等其他場景。</summary>
+    void PromoSilenceTick()
+    {
+        int bus = AudioServer.GetBusIndex("Master");
+        if (bus < 0) return;
+        if (PromoSilent)
+        {
+            if (!AudioServer.IsBusMute(bus)) AudioServer.SetBusMute(bus, true);
+            _promoMuted = true;
+            if (!_promoMuteHooked)
+            {
+                _promoMuteHooked = true;
+                TreeExiting += () => { int b = AudioServer.GetBusIndex("Master"); if (b >= 0) AudioServer.SetBusMute(b, false); };
+            }
+        }
+        else if (_promoMuted)
+        {
+            AudioServer.SetBusMute(bus, false);   // 把 PromoSilent 關掉：還原聲音
+            _promoMuted = false;
+        }
+    }
+
     /// <summary>每幀呼叫（TrainingRoomRuntime._Process）：PromoHideUiAlways 開著時，UI 從開始遊戲就一直隱藏。</summary>
     void PromoUiTick()
     {
         if (!PromoHotkeysEnabled) return;
+        PromoSilenceTick();
         if (PromoHideBubbles)
         {   // 台詞氣泡：別的程式顯示它就每幀再藏起來（沒有閃一下：藏在同一幀畫面繪製之前）
             if (_bubbleGirl != null && IsInstanceValid(_bubbleGirl)) _bubbleGirl.Visible = false;
