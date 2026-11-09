@@ -129,26 +129,42 @@ public partial class TrainingRoomRuntime
 
     [Export] public bool PromoHideUiAlways = true;   // 開始遊戲後 UI 一律隱藏（左側工具鈕、「?」、「☰ 選單」、HUD；錄影用）。要把 UI 叫回來：改成 false，或把 promo_hotkeys.json 某個鍵綁 ui_toggle
     bool _promoUiHidden;                // 目前是不是由本系統隱藏著
-    bool _promoMenuBtnWasVisible = true;
     CanvasItem _promoMenuBtn;
+    Color _promoMenuBtnModulate = Colors.White;
+    Control.MouseFilterEnum _promoMenuBtnMouse = Control.MouseFilterEnum.Stop;
+    double _promoFindMenuT;
 
     /// <summary>隱藏／還原所有 UI（場景裡的東西不動）。隱藏時每幀都會呼叫來「釘住」，避免別的程式又把它顯示出來。</summary>
     void PromoSetUiHidden(bool hide)
     {
         if (_uiCanvas != null && IsInstanceValid(_uiCanvas)) _uiCanvas.Visible = !hide;   // HUD、側邊鈕、「?」都在這一層
+        // 右上角「☰ 選單」是 NovelReader 建的，而且 NovelReader 每幀都會自己改它的 Visible（NovelReader.cs:337），
+        // 所以不能用 Visible 隱藏：改成「完全透明＋不接滑鼠」，NovelReader 怎麼改 Visible 都看不到、也點不到
         if (_promoMenuBtn == null || !IsInstanceValid(_promoMenuBtn))
-            _promoMenuBtn = GetTree()?.Root?.FindChild("NovelMenuButton", true, false) as CanvasItem;   // 右上角「☰ 選單」（NovelReader 建的）
+        {
+            double now = Time.GetTicksMsec() / 1000.0;
+            if (now - _promoFindMenuT < 0.5) goto afterMenu;   // 找不到時別每幀都搜整棵樹
+            _promoFindMenuT = now;
+            _promoMenuBtn = GetTree()?.Root?.FindChild("NovelMenuButton", true, false) as CanvasItem;
+            if (_promoMenuBtn == null) goto afterMenu;
+        }
         if (hide)
         {
-            if (!_promoUiHidden && _promoMenuBtn != null) _promoMenuBtnWasVisible = _promoMenuBtn.Visible;   // 第一次隱藏時記住原本有沒有顯示
-            if (_promoMenuBtn != null) _promoMenuBtn.Visible = false;
-            _promoUiHidden = true;
+            if (!_promoUiHidden)
+            {   // 第一次隱藏：記住原本的透明度與滑鼠設定
+                _promoMenuBtnModulate = _promoMenuBtn.Modulate;
+                if (_promoMenuBtn is Control c0) _promoMenuBtnMouse = c0.MouseFilter;
+            }
+            _promoMenuBtn.Modulate = new Color(1f, 1f, 1f, 0f);
+            if (_promoMenuBtn is Control c1) c1.MouseFilter = Control.MouseFilterEnum.Ignore;
         }
         else if (_promoUiHidden)
         {
-            if (_promoMenuBtn != null) _promoMenuBtn.Visible = _promoMenuBtnWasVisible;
-            _promoUiHidden = false;
+            _promoMenuBtn.Modulate = _promoMenuBtnModulate;
+            if (_promoMenuBtn is Control c2) c2.MouseFilter = _promoMenuBtnMouse;
         }
+    afterMenu:
+        _promoUiHidden = hide;
     }
 
     /// <summary>每幀呼叫（TrainingRoomRuntime._Process）：PromoHideUiAlways 開著時，UI 從開始遊戲就一直隱藏。</summary>
