@@ -29,6 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
+        ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、雙手碰胸的那段；再按一次收手）
     };
 
@@ -115,6 +116,7 @@ public partial class TrainingRoomRuntime
         ["cam_face"]    = ("鏡頭：臉前", () => PromoCameraFace()),
         ["duvet_pull"]  = ("拉開被子", () => PromoPullDuvet()),
         ["chest_touch"] = ("摸胸", () => PromoChestTouch()),
+        ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["tongue_kiss"] = ("親嘴", () => { if (_tongueOn) StopTongue(); else StartTongue(); }),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
@@ -260,6 +262,13 @@ public partial class TrainingRoomRuntime
     void PromoCamGoto(float zoom, Vector2 anchorWorld, Vector2 anchorScreen, bool instant)
     {
         _camZoomTarget = zoom; _camAnchorWorld = anchorWorld;
+        if (!instant && Mathf.Abs(zoom - _camZoom) < 0.02f)
+        {   // 倍率幾乎沒變（例如已經在 4 號鍵的鏡頭再按 5）：UpdateCamera 只在倍率變動時才重算位置，所以這裡自己讓位移平順走過去
+            _camZoom = zoom; _camAnchorScreen = anchorScreen; _promoCamAnimating = false;
+            _promoCamOffTo = anchorScreen - anchorWorld * zoom; _promoCamOffAnim = true;
+            return;
+        }
+        _promoCamOffAnim = false;
         if (instant)
         {
             _camAnchorScreen = anchorScreen; _promoCamAnimating = false;
@@ -280,8 +289,16 @@ public partial class TrainingRoomRuntime
     float _promoCamZ0;
 
     /// <summary>每幀在 UpdateCamera 之前呼叫：鏡頭慢慢移動時，讓錨點跟著縮放進度從起點平順走到終點。</summary>
+    bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
+        if (_promoCamOffAnim)
+        {
+            float k = 1f - Mathf.Exp(-Mathf.Max(0.3f, PromoCamSmooth) * (float)GetProcessDeltaTime());
+            _camOffset = _camOffset.Lerp(_promoCamOffTo, k);
+            if ((_camOffset - _promoCamOffTo).Length() < 0.5f) { _camOffset = _promoCamOffTo; _promoCamOffAnim = false; }
+            return;
+        }
         if (!_promoCamAnimating) return;
         float denom = _camZoomTarget - _promoCamZ0;
         float p = Mathf.Abs(denom) < 0.001f ? 1f : Mathf.Clamp((_camZoom - _promoCamZ0) / denom, 0f, 1f);
@@ -290,9 +307,12 @@ public partial class TrainingRoomRuntime
     }
 
 
-    // 4 號鍵的鏡頭＝影片裡「摸胸」那段：倍率跟臉前鏡頭一樣（影片逐格量出來也是約 0.74～0.75 畫面px／貼圖px），
-    // 只是對準點換成兩個胸的中心，停在畫面中央偏上（水平 0.5、垂直 0.38）。移動方式／速度共用 PromoCamSmooth。
-    [Export] public Vector2 PromoChestScreenPos = new Vector2(0.5f, 0.38f);                  // 胸中心要停在畫面的哪裡（0~1）
+    // 4 號鍵（摸胸）和 5 號鍵（摸小穴）共用影片裡「躺床整張床」的鏡頭：影片兩段的構圖一樣——
+    // 莉奈的臉在畫面上方（垂直約 0.19）、胸在 0.37 左右。胸中心用貼圖座標換算（胸1／胸2 圖層是整張 2000×3200 的畫布，不能拿圖層外框中心當胸的位置）。
+    // 移動方式／速度共用 PromoCamSmooth。
+    [Export] public Vector2 PromoChestScreenPos = new Vector2(0.5f, 0.37f);                  // 胸中心要停在畫面的哪裡（0~1）
+    [Export] public Vector2 PromoChestPointTex = new Vector2(925f, 993f);                    // 兩個胸的中心在角色貼圖（2000×3200）上的位置（胸1 977,998／胸2 873,988 的中點）
+    [Export(PropertyHint.Range, "0.2,1.5,0.01")] public float PromoBedPxPerTex = 0.66f;     // 床上鏡頭的大小（畫面像素／貼圖像素；從影片量的估計值，想再近／遠就調這個）
     [Export] public bool PromoChestHands = true;                                              // 4 號鍵同時讓左右手碰胸
 
     bool _promoChestOn;
@@ -313,11 +333,6 @@ public partial class TrainingRoomRuntime
             return;
         }
 
-        // 胸中心（場景座標）：胸1／胸2 圖層外框中心的平均。GetGlobalRect 已是場景座標（同 PromoCameraFace 的註解），不再經過 ScreenToWorld
-        Vector2 sum = Vector2.Zero; int n = 0;
-        foreach (var name in new[] { "胸1", "胸2" })
-            if (Layers.TryGetValue(name, out var c) && c != null) { sum += c.GetGlobalRect().GetCenter(); n++; }
-        if (n == 0) { GD.PushWarning("[Promo] 摸胸：找不到「胸1／胸2」圖層，鏡頭不動"); return; }
         _promoChestOn = true;
 
         // 1) 被子拿掉（踢到左下角；直接到位，不演拉的手）
@@ -332,12 +347,64 @@ public partial class TrainingRoomRuntime
             if (!_touchAnimRunningRight) StartHandTouchAnim(false);
         }
 
-        // 3) 鏡頭：倍率與臉前鏡頭相同
+        // 3) 鏡頭：影片的床上鏡頭（5 號鍵共用）
+        PromoBedCamera(instant);
+    }
+
+
+    /// <summary>床上鏡頭（4、5 號鍵共用）：胸中心停在畫面 PromoChestScreenPos，倍率 PromoBedPxPerTex。</summary>
+    void PromoBedCamera(bool instant)
+    {
+        if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        Rect2 r = fl.GetGlobalRect();   // 已是場景座標（同 PromoCameraFace）
+        Vector2 anchorWorld = r.Position + PromoChestPointTex / new Vector2(2000f, 3200f) * r.Size;
         float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
-        float zoom = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+        float zoom = Mathf.Clamp(PromoBedPxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+        _camSmoothOverride = instant ? -1f : PromoCamSmooth;
         PromoSetUiHidden(true);
-        PromoCamGoto(zoom, sum / n, vp * PromoChestScreenPos, instant);
-        GD.Print($"[Promo] 摸胸：胸中心 場景{sum / n}；倍率 {zoom:F2}");
+        PromoCamGoto(zoom, anchorWorld, vp * PromoChestScreenPos, instant);
+        GD.Print($"[Promo] 床上鏡頭：胸中心 場景{anchorWorld}；倍率 {zoom:F2}（目前倍率 {_camZoom:F2}）");
+    }
+
+    bool _promoPussyOn;
+
+    /// <summary>5 號鍵：被子拿掉、內褲脫掉、進 M 腿（腿張開）、一根手指摸小穴；鏡頭＝影片的床上鏡頭（同 4 號鍵）。
+    /// 再按一次：只收手（取消摸小穴），鏡頭、被子、腿都不動。不需要任何前置。</summary>
+    void PromoPussyTouch()
+    {
+        if (_canvas == null) return;
+        if (_promoPussyOn)
+        {
+            _promoPussyOn = false;
+            if (_bTouchRunning) CancelBTouch();
+            return;
+        }
+        if (_mLegTransitioning) { GD.Print("[Promo] 摸小穴：M 腿切換中，請稍後再按"); return; }
+        _promoPussyOn = true;
+        if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);   // 影片裡只有摸小穴的那一根手指
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+        if (_patOn) CancelPat();
+
+        // 1) 被子拿掉（左下角）
+        DuvetState = 1;
+        if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+        if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
+
+        // 2) 內褲脫掉（跟玩家把內褲拉到底放手同一組狀態）
+        if (!_pantyGone) { _pantyGone = true; _pantyPullT = PantyDoneT; _pantyFadeA = 0f; }
+
+        // 3) 進 M 腿（腿張開）；ToggleMLegModeAsync 開頭會自己把鏡頭拉到 M 腿鏡頭，下面再蓋成影片的床上鏡頭
+        if (!_mLegOpen) TaskLogger.Run(ToggleMLegModeAsync(), "TrainingRoom.ToggleMLegMode");
+        PromoBedCamera(PromoCamSmooth <= 0.01f);
+
+        // 4) M 腿淡入完成後，開始摸小穴（切換一開始會把摸 B 取消，所以要等切換完）
+        float wait = _mLegOpen && !_mLegTransitioning ? 0.05f : MLegFadeDuration + 0.15f;
+        GetTree().CreateTimer(wait).Timeout += () =>
+        {
+            if (!_promoPussyOn || !_mLegOpen) return;
+            if (!_bTouchRunning) StartBTouch();
+        };
     }
 
     bool _promoPulling;
