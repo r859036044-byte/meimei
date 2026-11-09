@@ -15,21 +15,16 @@ public partial class TrainingRoomRuntime
 {
     [ExportGroup("宣傳片快捷鍵")]
     [Export] public bool PromoHotkeysEnabled = true;       // 總開關
+    [Export(PropertyHint.Range, "1.1,3,0.05")] public float PromoFaceZoom = 2.4f;          // 1 號鍵：拉到臉前的鏡頭倍率（參考影片約 2.2 倍於遠景）
+    [Export] public Vector2 PromoFaceScreenPos = new Vector2(0.5f, 0.40f);                  // 臉要停在畫面的哪裡（0~1；0.5, 0.40＝水平置中、偏上）
+    [Export] public Vector2 PromoFacePointTex = new Vector2(960f, 700f);                    // 臉中心在角色貼圖（2000×3200）上的位置
+    [Export(PropertyHint.Range, "0.5,10,0.1")] public float PromoCamSmooth = 3f;            // 鏡頭移動速度（越小越慢；3≈約 1 秒到位）
     [Export] public bool PromoHotkeyToast = false;         // 按下時在畫面左上角短暫顯示動作名稱（錄影時建議關掉，只留在輸出的 log）
 
-    // 預設對應：數字 → 動作代號
+    // 預設對應：數字 → 動作代號（目前只有 1 號鍵；其他鍵等你指定。想先試別的動作可在 promo_hotkeys.json 加）
     static readonly (string key, string action)[] PromoDefaultMap =
     {
-        ("1", "hand_left"),      // 左手觸摸動畫（再按一次收起）
-        ("2", "hand_right"),     // 右手觸摸動畫（再按一次收起）
-        ("3", "b_touch"),        // 摸 B（再按一次收起）
-        ("4", "pat"),            // 摸頭（再按一次收起）
-        ("5", "mini_climax"),    // 小高潮
-        ("6", "climax"),         // 大高潮（含表情、痙攣）
-        ("7", "squirt"),         // 噴水（再按一次停止）
-        ("8", "ejaculate"),      // 射精（⚠ 試玩版 DemoMode 開著時會直接進「試玩版已結束」）
-        ("9", "expr_next"),      // 下一個表情
-        ("0", "reset"),          // 全部收起來、表情回預設
+        ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
     };
 
     // 表情順序（跟 FaceExpressionController.DefaultExpressionNames 一樣；那邊是 private 所以這裡抄一份）
@@ -42,6 +37,7 @@ public partial class TrainingRoomRuntime
     Dictionary<string, string> _promoMap;                                // "1" → "hand_left"
     Dictionary<string, (string label, Action run)> _promoActions;        // 動作代號 → (顯示名稱, 執行)
     int _promoExprIdx = -1;
+    bool _promoCamOnFace;
     bool _promoDotsHidden;
     Label _promoToastLabel;
 
@@ -111,6 +107,7 @@ public partial class TrainingRoomRuntime
 
     Dictionary<string, (string, Action)> BuildPromoActions() => new()
     {
+        ["cam_face"]    = ("鏡頭：臉前", () => PromoCameraFace()),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
         ["hand_right"]  = ("右手觸摸",   () => ToggleHandTouchAnim(false)),
         ["b_touch"]     = ("摸 B",       () => ToggleBTouch()),
@@ -126,6 +123,30 @@ public partial class TrainingRoomRuntime
         ["dots_toggle"] = ("綠點顯示切換", () => { _promoDotsHidden = !_promoDotsHidden; SetHotspotDotsHidden(_promoDotsHidden); }),
         ["reset"]       = ("全部重置",   () => PromoReset()),
     };
+
+    /// <summary>鏡頭慢慢移到莉奈臉前；再按一次拉回原本的鏡頭（跟 Home 鍵一樣的預設位置，但是緩動）。</summary>
+    void PromoCameraFace()
+    {
+        if (_canvas == null) return;
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        _camSmoothOverride = PromoCamSmooth;
+        if (_promoCamOnFace)
+        {
+            _promoCamOnFace = false;
+            _camZoomTarget = 1.1f;
+            Vector2 defOff = new Vector2(0f, -vp.Y * (1.1f - 1f) * 0.5f + CamDefaultOffsetY);   // 1.1 倍時的預設鏡頭位置
+            _camAnchorScreen = vp * 0.5f;
+            _camAnchorWorld  = (vp * 0.5f - defOff) / 1.1f;
+            return;
+        }
+        if (!Layers.TryGetValue("臉", out var fl) || fl == null) { GD.PushWarning("[Promo] 找不到「臉」圖層，鏡頭不動"); return; }
+        Rect2 r = fl.GetGlobalRect();   // 臉是整張 2000×3200 的畫布圖層：用貼圖座標換算出臉在畫面上的位置
+        Vector2 faceScreen = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
+        _camZoomTarget = Mathf.Clamp(PromoFaceZoom, 1.1f, Mathf.Max(1.1f, CamZoomMax));
+        _camAnchorWorld  = ScreenToWorld(faceScreen);
+        _camAnchorScreen = vp * PromoFaceScreenPos;
+        _promoCamOnFace = true;
+    }
 
     void PromoStepExpression(int dir)
     {
