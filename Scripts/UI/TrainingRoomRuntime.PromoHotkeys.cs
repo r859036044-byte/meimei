@@ -605,6 +605,7 @@ public partial class TrainingRoomRuntime
 
     /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
     // 7 號鍵的上下搖擺：整個身體（所有圖層，跟高潮痙攣／插入推擠同一個 BodyShake）一起上下搖，特寫鏡頭裡臉、胸都會跟著動。沒有雞雞、沒有抽插，只有身體在搖。
+    [Export(PropertyHint.Range, "0,10,0.5")] public float PromoEjacLookHold = 2f;          // 9 號鍵射完之後，還要維持抽插狀態的臉多久（秒）才還原
     [Export(PropertyHint.Range, "0,60,0.5")] public float PromoSwayPx = 12f;             // 上下搖擺的幅度（角色畫布 px；往上往下各這麼多）
     [Export(PropertyHint.Range, "0.1,4,0.05")] public float PromoSwayHz = 0.9f;          // 搖擺的快慢（每秒幾次）
     [Export(PropertyHint.Range, "0,1,0.05")] public float PromoSwayRise = 0.15f;         // 搖擺的起伏不對稱程度：0＝上下一樣、越大越像「往上頂、慢慢落回」（跟抽插的節奏像）
@@ -809,6 +810,9 @@ public partial class TrainingRoomRuntime
         PromoFaceShot(true);
         _promo7HoldT = 0f; _promoPanOn = false; _promoWheelLock = false;
 
+        // 臉的狀態：維持「抽插的狀態」（插入的嘴型、汗、眉毛、表情「插入2」，同 7 號鍵）——射的整段時間都是這張臉，射完停一下才還原
+        PromoThrustLookStart();
+
         // 2) 雞雞退出來（外射：雞雞在外面，從小穴口往上射）
         if (_jijiPhase == 3)
         {
@@ -870,8 +874,13 @@ public partial class TrainingRoomRuntime
             }
             if (shots.Count > 0) await System.Threading.Tasks.Task.WhenAll(shots);   // 齊射時：等全部落地
             if (_jijiPhase > 0) SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團（沒有雞雞就不用）
+            await ToSignal(GetTree().CreateTimer(PromoEjacLookHold), SceneTreeTimer.SignalName.Timeout);   // 射完再維持一下這張臉
         }
-        finally { _ejacRunning = false; }
+        finally
+        {
+            _ejacRunning = false;
+            if (!_promo7On) PromoThrustLookStop();   // 射完還原表情（如果中途又按了 7，7 自己會管這張臉，就不動它）
+        }
     }
 
 
