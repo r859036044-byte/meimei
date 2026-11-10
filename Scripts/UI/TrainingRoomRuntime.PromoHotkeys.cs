@@ -309,24 +309,22 @@ public partial class TrainingRoomRuntime
     bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
-        if (_promoFaceLockOn && !_promoZoomOn && !_promoPanOn) { PromoFaceLockTick(); return; }   // 9 號鍵：鎖臉（臉停在畫面固定位置，倍率可以自由縮放）
-        if (_promoZoomOn) { _promo7HoldT = 0f; _promoPanOn = false; PromoZoomStep((float)GetProcessDeltaTime()); return; }
-        if (_promoPanOn)
-        {   // 7 號鍵：鏡頭從目前位置慢慢往上移一小段（倍率不變）
-            Vector2 vp = GetViewport().GetVisibleRect().Size;
-            _promoPanT += (float)GetProcessDeltaTime();
-            float panP = Mathf.Clamp(_promoPanT / Mathf.Max(0.3f, PromoPanSec), 0f, 1f);
-            float panE = panP * panP * (3f - 2f * panP);   // 慢慢開始、慢慢停
-            _camOffset.Y = Mathf.Lerp(_promoPanFromY, _promoPanToY, panE);
-            _camAnchorScreen = new Vector2(vp.X * 0.5f, vp.Y * 0.5f + (_camOffset.Y - _promoPanFromY));
-            _camAnchorWorld = (_camAnchorScreen - _camOffset) / _camZoom;
-            if (panP >= 1f) _promoPanOn = false;
+        float dt = (float)GetProcessDeltaTime();
+        // 8 號鍵「往上移」是獨立的疊加位移：每一幀只算「這一幀多移了多少」(dy)，再加到目前正在進行的任何鏡頭動作上，所以可以跟 6 號鍵的拉遠同時進行，不會互相覆蓋
+        float dy = PromoPanStep(dt);
+        if (_promoFaceLockOn && !_promoZoomOn) { _promoLockDrag.Y += dy; PromoFaceLockTick(); return; }   // 9 號鍵：鎖臉（往上移累積進拖動位移）
+        if (_promoZoomOn)
+        {   // 6 號鍵：拉遠中。往上移的 dy 同時加到「臉的畫面位置的起點／終點」上，之後每幀都帶著它走
+            _promo7HoldT = 0f;
+            PromoZoomStep(dt);
+            if (dy != 0f) { _promoZScreen0.Y += dy; _promoZScreen1.Y += dy; _camOffset.Y += dy; _camAnchorScreen.Y += dy; }
             return;
         }
-        if (_promo7HoldT > 0f) { _promo7HoldT -= (float)GetProcessDeltaTime(); PromoFaceShot(true); return; }   // 7 號鍵：鏡頭釘在臉部特寫
+        if (dy != 0f) { _camOffset.Y += dy; _camAnchorScreen.Y += dy; _promoCamS0.Y += dy; _promoCamS1.Y += dy; _promoCamOffTo.Y += dy; }   // 沒有別的鏡頭動作：直接往上移
+        if (_promo7HoldT > 0f) { _promo7HoldT -= dt; PromoFaceShot(true); return; }   // 7 號鍵：鏡頭釘在臉部特寫
         if (_promoCamOffAnim)
         {
-            float k = 1f - Mathf.Exp(-Mathf.Max(0.3f, PromoCamSmooth) * (float)GetProcessDeltaTime());
+            float k = 1f - Mathf.Exp(-Mathf.Max(0.3f, PromoCamSmooth) * dt);
             _camOffset = _camOffset.Lerp(_promoCamOffTo, k);
             if ((_camOffset - _promoCamOffTo).Length() < 0.5f) { _camOffset = _promoCamOffTo; _promoCamOffAnim = false; }
             return;
@@ -336,6 +334,19 @@ public partial class TrainingRoomRuntime
         float p = Mathf.Abs(denom) < 0.001f ? 1f : Mathf.Clamp((_camZoom - _promoCamZ0) / denom, 0f, 1f);
         if (p >= 0.999f) { _camAnchorScreen = _promoCamS1; _promoCamAnimating = false; return; }
         _camAnchorScreen = _promoCamS0.Lerp(_promoCamS1, p);
+    }
+
+    float _promoPanTotal, _promoPanPrev;
+    /// <summary>8 號鍵往上移的進度：回傳「這一幀要多往上移幾個螢幕 px」（往上＝正），沒在移回傳 0。慢慢開始、慢慢停。</summary>
+    float PromoPanStep(float dt)
+    {
+        if (!_promoPanOn) return 0f;
+        _promoPanT += dt;
+        float t = Mathf.Clamp(_promoPanT / Mathf.Max(0.3f, PromoPanSec), 0f, 1f);
+        float cur = _promoPanTotal * (t * t * (3f - 2f * t));
+        float dy = cur - _promoPanPrev; _promoPanPrev = cur;
+        if (t >= 1f) _promoPanOn = false;
+        return dy;
     }
 
 
@@ -694,12 +705,11 @@ public partial class TrainingRoomRuntime
     {
         if (_canvas == null) return;
         if (_promoPanOn) { _promoPanOn = false; GD.Print("[Promo] 往上移：手動停止"); return; }
-        _promoZoomOn = false; _promoCamAnimating = false; _promoCamOffAnim = false; _promo7HoldT = 0f;
-        _camSmoothOverride = -1f;
-        _promoPanFromY = _camOffset.Y; _promoPanToY = _camOffset.Y + PromoPanUpPx;   // offset.Y 變大＝畫面內容往下＝鏡頭往上看
-        _promoPanT = 0f; _promoPanOn = PromoPanUpPx > 0.5f;
+        // 只啟動自己的位移，不碰正在進行的別的鏡頭動作（例如 6 的拉遠），兩個可以同時進行
+        _promoPanTotal = PromoPanUpPx; _promoPanPrev = 0f; _promoPanT = 0f;
+        _promoPanOn = PromoPanUpPx > 0.5f;
         PromoSetUiHidden(true);
-        GD.Print($"[Promo] 鏡頭往上移 {PromoPanUpPx:F0}px／{PromoPanSec:F1}秒（倍率 {_camZoom:F2} 不變）");
+        GD.Print($"[Promo] 鏡頭往上移 {PromoPanUpPx:F0}px／{PromoPanSec:F1}秒（倍率 {_camZoom:F2} 不變；可以和 6 號鍵的拉遠同時進行）");
     }
 
     void PromoFaceKissChest()
