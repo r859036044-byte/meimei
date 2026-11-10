@@ -793,7 +793,7 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
     // 9 號鍵：三步循環——按一下＝鎖定臉；第二下＝射；第三下＝去掉所有精液；第四下＝回到第一步（鎖定臉），之後照樣循環。
-    // 鎖定臉＝鏡頭換成臉部特寫的倍率、臉停在畫面固定位置，之後每幀都把臉釘住，但倍率可以用滾輪自由縮放（縮放以臉為中心）。
+    // 鎖定臉＝鏡頭換成臉部特寫的倍率、對準臉；之後縮放以臉為中心、臉跟著身體走，但可以用滾輪自由縮放、也可以拖動畫面（拖動的位移會保留，不鎖死位置）。
     int _promo9Stage;            // 0＝下一下鎖臉、1＝下一下射、2＝下一下去精液
     bool _promoFaceLockOn;       // 鎖臉中
     bool _promoEjacCancel;       // 第三下：取消還在射的後續發數
@@ -823,15 +823,18 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>鎖定臉：鏡頭即時換成臉部特寫的倍率、對準臉；之後每幀把臉釘在畫面固定位置（倍率不管，可自由縮放）。</summary>
+    /// <summary>鎖定臉：鏡頭即時換成臉部特寫的倍率、對準臉；之後縮放以臉為中心，臉跟著身體走，但可以自由縮放、自由拖動畫面（不鎖死位置）。</summary>
     void PromoFaceLockStart()
     {
         _promo7HoldT = 0f; _promoPanOn = false; _promoZoomOn = false; _promoWheelLock = false;
         PromoFaceShot(true);
+        _promoLockDrag = Vector2.Zero;   // 重新鎖臉：拖動位移歸零
         _promoFaceLockOn = true;
     }
 
-    /// <summary>每幀（PromoCamTick）：把臉釘在畫面 PromoFaceScreenPos，不管目前倍率（縮放以臉為中心）。</summary>
+    Vector2 _promoLockDrag;   // 鎖臉時，玩家拖動畫面累積的位移（螢幕 px）；保留下來，臉仍是縮放的中心
+
+    /// <summary>每幀（PromoCamTick）：鎖臉＝縮放以臉為中心、臉跟著身體（呼吸、搖擺）走；但「不鎖死位置」——玩家可以拖動畫面（中鍵／右鍵拖），拖動的位移會被保留，之後滾輪縮放仍以臉（含拖動位移）為中心。</summary>
     void PromoFaceLockTick()
     {
         if (!Layers.TryGetValue("臉", out var fl) || fl == null) { _promoFaceLockOn = false; return; }
@@ -839,8 +842,14 @@ public partial class TrainingRoomRuntime
         Rect2 r = fl.GetGlobalRect();   // 已是場景座標（同 PromoFaceShot）
         Vector2 faceWorld = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
         Vector2 screen = vp * PromoFaceScreenPos;
-        _camAnchorWorld = faceWorld; _camAnchorScreen = screen;   // 滾輪縮放時，UpdateCamera 也以臉為中心縮放
-        _camOffset = screen - faceWorld * _camZoom;
+        if (_camPanning)
+        {   // 玩家正在拖動畫面：位置交給玩家，只記下「臉現在離預設位置多遠」
+            _promoLockDrag = faceWorld * _camZoom + _camOffset - screen;
+            return;
+        }
+        Vector2 a = screen + _promoLockDrag;                       // 臉目前應該在畫面上的位置（預設位置＋玩家拖動的位移）
+        _camAnchorWorld = faceWorld; _camAnchorScreen = a;         // 滾輪縮放時，UpdateCamera 以臉（含拖動位移）為中心縮放
+        _camOffset = a - faceWorld * _camZoom;
     }
 
     /// <summary>第三下：去掉所有精液（還在射的就停掉後面的發數），解除鎖臉，臉恢復原本的表情。</summary>
