@@ -307,12 +307,12 @@ public partial class TrainingRoomRuntime
         {   // 7 號鍵：鏡頭從目前位置慢慢往上移一小段（倍率不變）
             Vector2 vp = GetViewport().GetVisibleRect().Size;
             _promoPanT += (float)GetProcessDeltaTime();
-            float p = Mathf.Clamp(_promoPanT / Mathf.Max(0.3f, PromoPanSec), 0f, 1f);
-            float e = p * p * (3f - 2f * p);   // 慢慢開始、慢慢停
-            _camOffset.Y = Mathf.Lerp(_promoPanFromY, _promoPanToY, e);
+            float panP = Mathf.Clamp(_promoPanT / Mathf.Max(0.3f, PromoPanSec), 0f, 1f);
+            float panE = panP * panP * (3f - 2f * panP);   // 慢慢開始、慢慢停
+            _camOffset.Y = Mathf.Lerp(_promoPanFromY, _promoPanToY, panE);
             _camAnchorScreen = new Vector2(vp.X * 0.5f, vp.Y * 0.5f + (_camOffset.Y - _promoPanFromY));
             _camAnchorWorld = (_camAnchorScreen - _camOffset) / _camZoom;
-            if (p >= 1f) _promoPanOn = false;
+            if (panP >= 1f) _promoPanOn = false;
             return;
         }
         if (_promo7HoldT > 0f) { _promo7HoldT -= (float)GetProcessDeltaTime(); PromoFaceShot(true); return; }   // 7 號鍵：鏡頭釘在臉部特寫
