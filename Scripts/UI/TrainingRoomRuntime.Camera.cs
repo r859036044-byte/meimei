@@ -118,6 +118,7 @@ public partial class TrainingRoomRuntime
             if (mb.Pressed && (mb.ButtonIndex == MouseButton.WheelUp || mb.ButtonIndex == MouseButton.WheelDown))
             {
                 if (IsPointerOverUi()) return false;
+                if (_promoWheelLock) return true;   // 錄影 7 號鍵：鎖住滾輪縮放（PromoHotkeys.cs），遊玩時恆為 false
                 float f = mb.ButtonIndex == MouseButton.WheelUp ? CamZoomStep : 1f / CamZoomStep;
                 float minZ = MLegMinZoomNow();   // 抬腳（M 腿）時縮小有下限（MLegCamMinZoom），其他時候 1.1
                 _camZoomTarget = Mathf.Clamp(_camZoomTarget * f, minZ, Mathf.Max(minZ, CamZoomMax));

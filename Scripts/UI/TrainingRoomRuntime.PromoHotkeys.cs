@@ -31,7 +31,7 @@ public partial class TrainingRoomRuntime
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
+        ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉）並慢慢往上移一小段、鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -302,7 +302,19 @@ public partial class TrainingRoomRuntime
     bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
-        if (_promoZoomOn) { _promo7HoldT = 0f; PromoZoomStep((float)GetProcessDeltaTime()); return; }
+        if (_promoZoomOn) { _promo7HoldT = 0f; _promoPanOn = false; PromoZoomStep((float)GetProcessDeltaTime()); return; }
+        if (_promoPanOn)
+        {   // 7 號鍵：鏡頭從目前位置慢慢往上移一小段（倍率不變）
+            Vector2 vp = GetViewport().GetVisibleRect().Size;
+            _promoPanT += (float)GetProcessDeltaTime();
+            float p = Mathf.Clamp(_promoPanT / Mathf.Max(0.3f, PromoPanSec), 0f, 1f);
+            float e = p * p * (3f - 2f * p);   // 慢慢開始、慢慢停
+            _camOffset.Y = Mathf.Lerp(_promoPanFromY, _promoPanToY, e);
+            _camAnchorScreen = new Vector2(vp.X * 0.5f, vp.Y * 0.5f + (_camOffset.Y - _promoPanFromY));
+            _camAnchorWorld = (_camAnchorScreen - _camOffset) / _camZoom;
+            if (p >= 1f) _promoPanOn = false;
+            return;
+        }
         if (_promo7HoldT > 0f) { _promo7HoldT -= (float)GetProcessDeltaTime(); PromoFaceShot(true); return; }   // 7 號鍵：鏡頭釘在臉部特寫
         if (_promoCamOffAnim)
         {
@@ -579,6 +591,7 @@ public partial class TrainingRoomRuntime
     void PromoStopThrust()
     {
         _promoThrustOn = false; _promo7On = false; _promoSwayOn = false;
+        _promoWheelLock = false; _promoPanOn = false;   // 9 號鍵等也會停掉 7：一併解鎖
         PromoThrustLookStop();
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         PromoKissStop();
@@ -640,6 +653,31 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    // 7 號鍵的鏡頭：大小（縮放倍率）＝臉部特寫那個倍率（PromoFace7PxPerTex），但「不再鎖定臉」——倍率直接換上去（以目前畫面中央為中心，位置不跳），
+    // 然後鏡頭從目前的位置慢慢往上移一小段（PromoPanUpPx 螢幕 px，PromoPanSec 秒）。按下 7 之後鎖住滑鼠滾輪縮放，直到再按 7 停止（或按 9）。只有錄影才有，遊玩的滾輪不受影響。
+    [Export(PropertyHint.Range, "0,600,5")] public float PromoPanUpPx = 100f;       // 鏡頭往上移多少（螢幕 px；不多，預設 100）
+    [Export(PropertyHint.Range, "0.5,15,0.5")] public float PromoPanSec = 4f;        // 往上移花幾秒
+    [Export] public bool PromoLockWheelOn7 = true;                                    // 按 7 之後鎖住滾輪縮放
+    bool _promoWheelLock, _promoPanOn; float _promoPanT, _promoPanFromY, _promoPanToY;
+
+    void PromoCam7Start()
+    {
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
+        float z7 = Mathf.Max(1.1f, PromoFace7PxPerTex / charScale);                  // 倍率照舊（不受 CamZoomMax 限制）
+        Vector2 world = (vp * 0.5f - _camOffset) / _camZoom;                          // 目前畫面中央的場景點：以它為中心換倍率，畫面不跳
+        _promoCamAnimating = false; _promoCamOffAnim = false; _promoZoomOn = false; _promo7HoldT = 0f;
+        _camSmoothOverride = -1f;
+        _camZoom = z7; _camZoomTarget = z7;
+        _camOffset = vp * 0.5f - world * z7;
+        _camAnchorWorld = world; _camAnchorScreen = vp * 0.5f;
+        _promoPanFromY = _camOffset.Y; _promoPanToY = _camOffset.Y + PromoPanUpPx;   // offset.Y 變大＝畫面內容往下＝鏡頭往上看
+        _promoPanT = 0f; _promoPanOn = PromoPanUpPx > 0.5f;
+        _promoWheelLock = PromoLockWheelOn7;
+        PromoSetUiHidden(true);
+        GD.Print($"[Promo] 7 號鍵鏡頭：倍率 {z7:F2}（不鎖臉），往上移 {PromoPanUpPx:F0}px／{PromoPanSec:F1}秒；滾輪縮放鎖定={_promoWheelLock}");
+    }
+
     void PromoFaceKissChest()
     {
         if (_canvas == null) return;
@@ -647,8 +685,7 @@ public partial class TrainingRoomRuntime
         if (_promo7On && (PromoKissOn || _nipR.On || _touchAnimRunningLeft)) { PromoStop7(); return; }
         // （旗標還亮著、但其實什麼都沒在動＝卡住的舊旗標，不能當成「停止」，要重新開始）
         _promo7On = true;
-        PromoFaceShot(true);   // 鏡頭即時切到臉部特寫
-        _promo7HoldT = 1.5f;   // 接下來 1.5 秒每幀都把鏡頭釘在臉部特寫（別的東西拉走鏡頭也會被拉回來）
+        PromoCam7Start();      // 鏡頭：倍率＝臉部特寫的大小，但不鎖臉；從目前位置慢慢往上移一小段。同時鎖住滾輪縮放
 
         // 被子拿掉（左下角），胸才看得到；跟 4 號鍵一樣直接到位
         DuvetState = 1;
@@ -669,6 +706,7 @@ public partial class TrainingRoomRuntime
     void PromoStop7()
     {
         _promo7On = false; _promoChestOn = false; _promo7HoldT = 0f; _promoSwayOn = false;
+        _promoWheelLock = false; _promoPanOn = false;   // 解除滾輪縮放鎖、停止往上移
         PromoThrustLookStop();
         PromoKissStop();
         if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
