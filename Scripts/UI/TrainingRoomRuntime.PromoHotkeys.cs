@@ -657,7 +657,7 @@ public partial class TrainingRoomRuntime
     // 7 號鍵的鏡頭：大小（縮放倍率）＝臉部特寫那個倍率（PromoFace7PxPerTex），但「不再鎖定臉」——倍率直接換上去（以目前畫面中央為中心，位置不跳，鏡頭不移動）。
     // 按下 7 之後鎖住滑鼠滾輪縮放，直到再按 7 停止（或按 9）。只有錄影才有，遊玩的滾輪不受影響。
     // 8 號鍵：鏡頭往上移一小段（PromoPanUpPx 螢幕 px，PromoPanSec 秒），縮放大小不變。
-    [Export(PropertyHint.Range, "0,600,5")] public float PromoPanUpPx = 100f;       // 8 號鍵：鏡頭往上移多少（螢幕 px；不多，預設 100）
+    [Export(PropertyHint.Range, "0,600,5")] public float PromoPanUpPx = 200f;       // 8 號鍵：鏡頭往上移多少（螢幕 px；預設 200）
     [Export(PropertyHint.Range, "0.5,15,0.5")] public float PromoPanSec = 3f;        // 8 號鍵：往上移花幾秒
     [Export] public bool PromoLockWheelOn7 = true;                                    // 按 7 之後鎖住滾輪縮放
     bool _promoWheelLock, _promoPanOn; float _promoPanT, _promoPanFromY, _promoPanToY;
