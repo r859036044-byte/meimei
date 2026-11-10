@@ -30,8 +30,8 @@ public partial class TrainingRoomRuntime
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸，鏡頭對準臉（可自由縮放），精液一發一發射到頭和臉的範圍（避開眼睛嘴巴）；不需要雞雞
-        ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉）並慢慢往上移一小段、鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
+        ("8", "pan_up"),         // 鏡頭往上移一小段（不拉遠、縮放大小不變）；移動中再按一次＝停住，停了再按＝再往上移一段
+        ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉、不移動）並鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -124,6 +124,7 @@ public partial class TrainingRoomRuntime
         ["thrust"]      = ("抽插", () => PromoThrust()),
         ["face_kiss_chest"] = ("臉部特寫＋親嘴＋摸胸", () => PromoFaceKissChest()),
         ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
+        ["pan_up"]      = ("鏡頭往上移", () => PromoPanUp()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => PromoKissToggle()),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
@@ -653,10 +654,11 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    // 7 號鍵的鏡頭：大小（縮放倍率）＝臉部特寫那個倍率（PromoFace7PxPerTex），但「不再鎖定臉」——倍率直接換上去（以目前畫面中央為中心，位置不跳），
-    // 然後鏡頭從目前的位置慢慢往上移一小段（PromoPanUpPx 螢幕 px，PromoPanSec 秒）。按下 7 之後鎖住滑鼠滾輪縮放，直到再按 7 停止（或按 9）。只有錄影才有，遊玩的滾輪不受影響。
-    [Export(PropertyHint.Range, "0,600,5")] public float PromoPanUpPx = 100f;       // 鏡頭往上移多少（螢幕 px；不多，預設 100）
-    [Export(PropertyHint.Range, "0.5,15,0.5")] public float PromoPanSec = 4f;        // 往上移花幾秒
+    // 7 號鍵的鏡頭：大小（縮放倍率）＝臉部特寫那個倍率（PromoFace7PxPerTex），但「不再鎖定臉」——倍率直接換上去（以目前畫面中央為中心，位置不跳，鏡頭不移動）。
+    // 按下 7 之後鎖住滑鼠滾輪縮放，直到再按 7 停止（或按 9）。只有錄影才有，遊玩的滾輪不受影響。
+    // 8 號鍵：鏡頭往上移一小段（PromoPanUpPx 螢幕 px，PromoPanSec 秒），縮放大小不變。
+    [Export(PropertyHint.Range, "0,600,5")] public float PromoPanUpPx = 100f;       // 8 號鍵：鏡頭往上移多少（螢幕 px；不多，預設 100）
+    [Export(PropertyHint.Range, "0.5,15,0.5")] public float PromoPanSec = 3f;        // 8 號鍵：往上移花幾秒
     [Export] public bool PromoLockWheelOn7 = true;                                    // 按 7 之後鎖住滾輪縮放
     bool _promoWheelLock, _promoPanOn; float _promoPanT, _promoPanFromY, _promoPanToY;
 
@@ -671,11 +673,24 @@ public partial class TrainingRoomRuntime
         _camZoom = z7; _camZoomTarget = z7;
         _camOffset = vp * 0.5f - world * z7;
         _camAnchorWorld = world; _camAnchorScreen = vp * 0.5f;
-        _promoPanFromY = _camOffset.Y; _promoPanToY = _camOffset.Y + PromoPanUpPx;   // offset.Y 變大＝畫面內容往下＝鏡頭往上看
-        _promoPanT = 0f; _promoPanOn = PromoPanUpPx > 0.5f;
+        _promoPanOn = false;   // 7 不往上移（往上移是 8 號鍵）
         _promoWheelLock = PromoLockWheelOn7;
         PromoSetUiHidden(true);
-        GD.Print($"[Promo] 7 號鍵鏡頭：倍率 {z7:F2}（不鎖臉），往上移 {PromoPanUpPx:F0}px／{PromoPanSec:F1}秒；滾輪縮放鎖定={_promoWheelLock}");
+        GD.Print($"[Promo] 7 號鍵鏡頭：倍率 {z7:F2}（不鎖臉、不移動）；滾輪縮放鎖定={_promoWheelLock}");
+    }
+
+    /// <summary>8 號鍵：鏡頭從目前位置慢慢往上移一小段（螢幕 PromoPanUpPx px、PromoPanSec 秒），縮放大小不變（不拉遠、不拉近）。
+    /// 移動中再按一次＝停住；停了再按＝再往上移一段。</summary>
+    void PromoPanUp()
+    {
+        if (_canvas == null) return;
+        if (_promoPanOn) { _promoPanOn = false; GD.Print("[Promo] 往上移：手動停止"); return; }
+        _promoZoomOn = false; _promoCamAnimating = false; _promoCamOffAnim = false; _promo7HoldT = 0f;
+        _camSmoothOverride = -1f;
+        _promoPanFromY = _camOffset.Y; _promoPanToY = _camOffset.Y + PromoPanUpPx;   // offset.Y 變大＝畫面內容往下＝鏡頭往上看
+        _promoPanT = 0f; _promoPanOn = PromoPanUpPx > 0.5f;
+        PromoSetUiHidden(true);
+        GD.Print($"[Promo] 鏡頭往上移 {PromoPanUpPx:F0}px／{PromoPanSec:F1}秒（倍率 {_camZoom:F2} 不變）");
     }
 
     void PromoFaceKissChest()
