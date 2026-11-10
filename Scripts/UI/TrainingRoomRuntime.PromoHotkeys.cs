@@ -31,8 +31,7 @@ public partial class TrainingRoomRuntime
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_thrust"),    // 鏡頭直接切到莉奈臉部特寫＋抽插＋親嘴＋摸胸一起開始，鏡頭始終在臉前；再按一次全部停止（還沒插入會先自動插入）
-        ("6", "thrust"),         // 抽插（雞雞在小穴裡抽動；還沒插入會先自動插入；鏡頭＝插入鏡頭，且護欄保證不會看到男人身體後面的空隙；再按一次停止）
+        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）一起開始，鏡頭始終在臉前；再按一次全部停止（沒有抽插、不用雞雞）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -123,7 +122,7 @@ public partial class TrainingRoomRuntime
         ["pussy_touch"] = ("摸小穴", () => PromoPussyTouch()),
         ["insert"]      = ("插入", () => PromoInsert()),
         ["thrust"]      = ("抽插", () => PromoThrust()),
-        ["face_thrust"] = ("臉前鏡頭＋抽插", () => PromoFaceThrust()),
+        ["face_kiss_chest"] = ("臉部特寫＋親嘴＋摸胸", () => PromoFaceKissChest()),
         ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => PromoKissToggle()),
@@ -589,19 +588,37 @@ public partial class TrainingRoomRuntime
     }
 
     /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
-    void PromoFaceThrust()
+    void PromoFaceKissChest()
     {
         if (_canvas == null) return;
-        if (_promo7On && (_promoThrustOn || PromoKissOn || _nipR.On || _touchAnimRunningLeft)) { PromoStopThrust(); return; }   // 7 自己已經在動：再按一次＝全部停止（抽插、親嘴、摸胸；鏡頭不動）
-        // （旗標還亮著、但其實什麼都沒在動＝上一次 7 中途失敗卡住的旗標，不能當成「停止」，要重新開始）
-        // 注意：6 號鍵的抽插（_promoThrustOn）正在動也不算「7 在動」——這時按 7 要照樣切鏡頭、加上親嘴和摸胸
+        // 7 自己已經在動：再按一次＝全部停止（親嘴、摸胸；鏡頭不動）
+        if (_promo7On && (PromoKissOn || _nipR.On || _touchAnimRunningLeft)) { PromoStop7(); return; }
+        // （旗標還亮著、但其實什麼都沒在動＝卡住的舊旗標，不能當成「停止」，要重新開始）
         _promo7On = true;
-        PromoFaceShot(true);   // 即時：直接切過去
-        _promo7HoldT = 1.5f;   // 接下來 1.5 秒每幀都把鏡頭釘在臉部特寫（M 腿切換、插入過程、護欄都可能把鏡頭拉走）
-        if (_jijiPhase == 3 && _jijiStage >= 1) { PromoStartThrust(); PromoFaceShot(true); return; }   // 已插入：抽插（已在動就重設速度）＋親嘴＋摸胸；開始動作後再確認一次鏡頭在臉部特寫
-        if (_mLegTransitioning) { GD.Print("[Promo] 7：M 腿切換中，請稍後再按"); _promo7On = false; return; }
-        _promoInsertOn = true; _promoDeepT = 0f;
-        TaskLogger.Run(PromoInsertAsync(moveCamera: false, thenThrust: true), "TrainingRoom.PromoFaceThrust");
+        PromoFaceShot(true);   // 鏡頭即時切到臉部特寫
+        _promo7HoldT = 1.5f;   // 接下來 1.5 秒每幀都把鏡頭釘在臉部特寫（別的東西拉走鏡頭也會被拉回來）
+
+        // 被子拿掉（左下角），胸才看得到；跟 4 號鍵一樣直接到位
+        DuvetState = 1;
+        if (_duvet != null && IsInstanceValid(_duvet)) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+        if (_duvetKicked != null && IsInstanceValid(_duvetKicked)) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
+
+        // 親嘴（舌頭用舔的動作，同 3 號鍵）＋摸胸（左手摸胸＋右手摸右邊乳頭，同 4 號鍵）
+        PromoKissStart();
+        if (!_touchAnimRunningLeft) StartHandTouchAnim(true);
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);   // 右手不是摸胸，是摸乳頭
+        if (!_nipR.On) StartNipple("NR");
+        _promoChestOn = true;
+    }
+
+    /// <summary>停止 7 號鍵的全部動作：親嘴、摸胸（鏡頭不動）。</summary>
+    void PromoStop7()
+    {
+        _promo7On = false; _promoChestOn = false; _promo7HoldT = 0f;
+        PromoKissStop();
+        if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
+        if (_touchAnimRunningRight) CancelHandTouchAnim(false);
+        if (_nipR.On) CancelNipple("NR");
     }
 
 
