@@ -198,7 +198,7 @@ public partial class TrainingRoomRuntime
     };
 
     /// <summary>所有角色圖層共用的整體抖動/位移：高潮痙攣 ＋ 插入阻力的往上推擠與發抖。</summary>
-    Vector2 BodyShake => _spasmsBodyShake + new Vector2(0f, -_resistBodyPushTotal);
+    Vector2 BodyShake => _spasmsBodyShake + new Vector2(0f, -_resistBodyPushTotal) + _promoSway;   // _promoSway：錄影 7 號鍵的上下搖擺（PromoHotkeys.cs）
 
     // 給 DEV 面板（ExpressionTester）顯示
     public bool  IsResisting        => _jijiPhase == 3 && _resistBlocking;

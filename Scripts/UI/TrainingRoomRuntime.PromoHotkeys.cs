@@ -31,7 +31,7 @@ public partial class TrainingRoomRuntime
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）一起開始，鏡頭始終在臉前；再按一次全部停止（沒有抽插、不用雞雞）
+        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺，鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -218,6 +218,7 @@ public partial class TrainingRoomRuntime
     {
         if (!PromoHotkeysEnabled) return;
         PromoSilenceTick();
+        PromoSwayTick((float)GetProcessDeltaTime());
         if (_promoDeepT > 0f && _jijiPhase == 0) { _promoDeepT = 0f; _promoInsertOn = false; _promoForceErect = false; _promoThrustOn = false; _promo7On = false; }   // 雞雞被收起來：清掉 6／7 號鍵的狀態
         if (PromoHideBubbles)
         {   // 台詞氣泡：別的程式顯示它就每幀再藏起來（沒有閃一下：藏在同一幀畫面繪製之前）
@@ -577,7 +578,7 @@ public partial class TrainingRoomRuntime
     /// <summary>停止 7 號鍵的全部動作：抽插、親嘴、摸胸（鏡頭不動）。</summary>
     void PromoStopThrust()
     {
-        _promoThrustOn = false; _promo7On = false;
+        _promoThrustOn = false; _promo7On = false; _promoSwayOn = false;
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         PromoKissStop();
         if (_tongueOn) StopTongue();
@@ -588,6 +589,30 @@ public partial class TrainingRoomRuntime
     }
 
     /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
+    // 7 號鍵的上下搖擺：整個身體（所有圖層，跟高潮痙攣／插入推擠同一個 BodyShake）一起上下搖，特寫鏡頭裡臉、胸都會跟著動。沒有雞雞、沒有抽插，只有身體在搖。
+    [Export(PropertyHint.Range, "0,60,0.5")] public float PromoSwayPx = 12f;             // 上下搖擺的幅度（角色畫布 px；往上往下各這麼多）
+    [Export(PropertyHint.Range, "0.1,4,0.05")] public float PromoSwayHz = 0.9f;          // 搖擺的快慢（每秒幾次）
+    [Export(PropertyHint.Range, "0,1,0.05")] public float PromoSwayRise = 0.15f;         // 搖擺的起伏不對稱程度：0＝上下一樣、越大越像「往上頂、慢慢落回」（跟抽插的節奏像）
+    bool _promoSwayOn; float _promoSwayT; Vector2 _promoSway;
+
+    /// <summary>每幀（PromoUiTick）：算上下搖擺的位移。停止時平順收回 0。</summary>
+    void PromoSwayTick(float dt)
+    {
+        if (_promoSwayOn)
+        {
+            _promoSwayT += dt * PromoSwayHz;
+            float ph = _promoSwayT % 1f;
+            float w = Mathf.Sin(ph * Mathf.Tau);                                   // -1 ~ 1：上下對稱
+            float u = Mathf.Abs(Mathf.Sin(ph * Mathf.Pi)) * 2f - 1f;                // |sin|：快速往上、慢慢落回（像抽插）
+            _promoSway = new Vector2(0f, -Mathf.Lerp(w, u, PromoSwayRise / 1f) * PromoSwayPx);
+        }
+        else if (_promoSway != Vector2.Zero)
+        {
+            _promoSway = _promoSway.Lerp(Vector2.Zero, 1f - Mathf.Exp(-10f * dt));
+            if (_promoSway.Length() < 0.05f) _promoSway = Vector2.Zero;
+        }
+    }
+
     void PromoFaceKissChest()
     {
         if (_canvas == null) return;
@@ -609,12 +634,13 @@ public partial class TrainingRoomRuntime
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);   // 右手不是摸胸，是摸乳頭
         if (!_nipR.On) StartNipple("NR");
         _promoChestOn = true;
+        _promoSwayOn = true; _promoSwayT = 0f;   // 上下搖擺
     }
 
-    /// <summary>停止 7 號鍵的全部動作：親嘴、摸胸（鏡頭不動）。</summary>
+    /// <summary>停止 7 號鍵的全部動作：親嘴、摸胸、上下搖擺（鏡頭不動）。</summary>
     void PromoStop7()
     {
-        _promo7On = false; _promoChestOn = false; _promo7HoldT = 0f;
+        _promo7On = false; _promoChestOn = false; _promo7HoldT = 0f; _promoSwayOn = false;
         PromoKissStop();
         if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
@@ -624,6 +650,7 @@ public partial class TrainingRoomRuntime
 
     // 8 號鍵：用 PromoZoomSec（7）秒慢慢「縮小」鏡頭，從目前的畫面（通常是 7 號鍵的臉部特寫）縮到原版 7 號鍵的臉前位置
     // （PromoFacePxPerTex 倍率、臉停在 PromoFaceScreenPos；就是 1 號鍵那個臉前鏡頭）。臉的位置平順移到終點，不會瞬移。
+    [Export(PropertyHint.Range, "0.1,1,0.05")] public float PromoZoomOutFrac = 0.55f;   // 縮小的比例：從目前鏡頭往「原版 7 號鍵臉前位置」縮多少（1＝縮到底＝原本的行為，0.55＝只縮一半多一點，停在中間）；想縮更少就調小
     [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 3f;               // 縮小花的時間（秒）
     bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZEnd;
     Vector2 _promoZWorld, _promoZScreen0, _promoZScreen1;
@@ -639,9 +666,11 @@ public partial class TrainingRoomRuntime
         _promoZWorld = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;   // 臉的位置（場景座標）
         float charScale = _charRoot != null ? Mathf.Max(0.01f, _charRoot.Scale.X) : CharScale;
         _promoZ0 = _camZoom;
-        _promoZEnd = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));   // 原版 7 號鍵（1 號鍵臉前鏡頭）的倍率
+        float zFull = Mathf.Clamp(PromoFacePxPerTex / charScale, 1.1f, Mathf.Max(1.1f, CamZoomMax));   // 原版 7 號鍵（1 號鍵臉前鏡頭）的倍率＝縮到底
+        float frac = Mathf.Clamp(PromoZoomOutFrac, 0.05f, 1f);
+        _promoZEnd = Mathf.Lerp(_camZoom, zFull, frac);   // 只縮 frac 的比例，不縮到底
         _promoZScreen0 = _promoZWorld * _camZoom + _camOffset;   // 臉現在在畫面上的位置（第一幀畫面完全不動）
-        _promoZScreen1 = vp * PromoFaceScreenPos;                // 臉最後停的位置
+        _promoZScreen1 = _promoZScreen0.Lerp(vp * PromoFaceScreenPos, frac);   // 臉的位置也只移 frac 的比例
         _promoZoomT = 0f;
         _promoCamAnimating = false; _promoCamOffAnim = false;
         PromoSetUiHidden(true);
