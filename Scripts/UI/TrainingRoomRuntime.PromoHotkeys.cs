@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
-        ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸，鏡頭對準臉（可自由縮放），精液一發一發射到頭和臉的範圍（避開眼睛嘴巴）；不需要雞雞
+        ("9", "outside_ejac"),   // 三步循環：按一下＝鎖定臉（鏡頭對準臉、可自由縮放）；第二下＝射（一發一發射到頭和臉）；第三下＝去掉所有精液；第四下＝回到鎖定臉……；不需要雞雞
         ("8", "pan_up"),         // 鏡頭往上移一小段（不拉遠、縮放大小不變）；移動中再按一次＝停住，停了再按＝再往上移一段
         ("6", "zoom_out"),       // 鏡頭逐漸拉遠（縮放變小），但只拉遠「一半」的距離：往 1 號鍵臉前位置縮 PromoZoomOutFrac（預設 0.5）就停；移動中再按＝停住
         ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉、不移動）並鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
@@ -109,6 +109,8 @@ public partial class TrainingRoomRuntime
                 PromoToast("表情：" + name);
                 return;
             }
+            // 這幾個動作會自己動鏡頭：先解除 9 號鍵的「鎖臉」，不然鎖臉每幀會把鏡頭拉回臉上
+            if (action is "cam_face" or "chest_touch" or "pussy_touch" or "face_kiss_chest" or "pan_up" or "zoom_out" or "zoom_jiji" or "insert") _promoFaceLockOn = false;
             if (_promoActions.TryGetValue(action, out var a)) { PromoToast(a.label); a.run(); }
             else GD.PushWarning("[Promo] 不認得的動作代號：" + action);
         }
@@ -305,6 +307,7 @@ public partial class TrainingRoomRuntime
     bool _promoCamOffAnim; Vector2 _promoCamOffTo;
     void PromoCamTick()
     {
+        if (_promoFaceLockOn && !_promoZoomOn && !_promoPanOn) { PromoFaceLockTick(); return; }   // 9 號鍵：鎖臉（臉停在畫面固定位置，倍率可以自由縮放）
         if (_promoZoomOn) { _promo7HoldT = 0f; _promoPanOn = false; PromoZoomStep((float)GetProcessDeltaTime()); return; }
         if (_promoPanOn)
         {   // 7 號鍵：鏡頭從目前位置慢慢往上移一小段（倍率不變）
@@ -786,13 +789,66 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
-    /// <summary>9 號鍵：去掉親嘴、摸胸（還有抽插）→ 鏡頭對準臉（可以自由縮放）→ 把精液射到頭和臉的範圍。不需要雞雞（有的話先退出來）。射的時候再按 9 沒有作用。</summary>
+    // 9 號鍵：三步循環——按一下＝鎖定臉；第二下＝射；第三下＝去掉所有精液；第四下＝回到第一步（鎖定臉），之後照樣循環。
+    // 鎖定臉＝鏡頭換成臉部特寫的倍率、臉停在畫面固定位置，之後每幀都把臉釘住，但倍率可以用滾輪自由縮放（縮放以臉為中心）。
+    int _promo9Stage;            // 0＝下一下鎖臉、1＝下一下射、2＝下一下去精液
+    bool _promoFaceLockOn;       // 鎖臉中
+    bool _promoEjacCancel;       // 第三下：取消還在射的後續發數
+
     void PromoOutsideEjac()
     {
         if (_canvas == null) return;
-        if (_ejacRunning || _insertEjacActive) { GD.Print("[Promo] 外射精：還在射，請稍後"); return; }
-        // 不需要雞雞：沒有雞雞時精液從小穴口的位置往臉飛（雞雞頂端的位置在沒有雞雞時會退回用小穴熱點）
-        TaskLogger.Run(PromoOutsideEjacAsync(), "TrainingRoom.PromoOutsideEjac");
+        switch (_promo9Stage)
+        {
+            case 0:
+                PromoFaceLockStart();
+                _promo9Stage = 1;
+                break;
+            case 1:
+                if (_ejacRunning || _insertEjacActive) { GD.Print("[Promo] 外射精：還在射，請稍後"); return; }
+                _promoEjacCancel = false;
+                if (!_promoFaceLockOn) PromoFaceLockStart();   // 沒鎖臉（被別的鏡頭鍵解除過）就先鎖
+                // 不需要雞雞：沒有雞雞時精液從小穴口的位置往臉飛（雞雞頂端的位置在沒有雞雞時會退回用小穴熱點）
+                TaskLogger.Run(PromoOutsideEjacAsync(), "TrainingRoom.PromoOutsideEjac");
+                _promo9Stage = 2;
+                break;
+            default:
+                PromoClearSemen();
+                _promo9Stage = 0;
+                break;
+        }
+    }
+
+    /// <summary>鎖定臉：鏡頭即時換成臉部特寫的倍率、對準臉；之後每幀把臉釘在畫面固定位置（倍率不管，可自由縮放）。</summary>
+    void PromoFaceLockStart()
+    {
+        _promo7HoldT = 0f; _promoPanOn = false; _promoZoomOn = false; _promoWheelLock = false;
+        PromoFaceShot(true);
+        _promoFaceLockOn = true;
+    }
+
+    /// <summary>每幀（PromoCamTick）：把臉釘在畫面 PromoFaceScreenPos，不管目前倍率（縮放以臉為中心）。</summary>
+    void PromoFaceLockTick()
+    {
+        if (!Layers.TryGetValue("臉", out var fl) || fl == null) { _promoFaceLockOn = false; return; }
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        Rect2 r = fl.GetGlobalRect();   // 已是場景座標（同 PromoFaceShot）
+        Vector2 faceWorld = r.Position + PromoFacePointTex / new Vector2(2000f, 3200f) * r.Size;
+        Vector2 screen = vp * PromoFaceScreenPos;
+        _camAnchorWorld = faceWorld; _camAnchorScreen = screen;   // 滾輪縮放時，UpdateCamera 也以臉為中心縮放
+        _camOffset = screen - faceWorld * _camZoom;
+    }
+
+    /// <summary>第三下：去掉所有精液（還在射的就停掉後面的發數），解除鎖臉，臉恢復原本的表情。</summary>
+    void PromoClearSemen()
+    {
+        _promoEjacCancel = true; _ejacStop = true;
+        ClearEjacDebris();   // 清掉所有射精殘留（飛行中的、落點的精液團、雞雞上的精液）
+        // 還在飛的射流落地後會再生出精液團：稍後再清一次
+        GetTree().CreateTimer(0.8f).Timeout += () => { if (IsInstanceValid(this) && !_ejacRunning) ClearEjacDebris(); };
+        GetTree().CreateTimer(2.0f).Timeout += () => { if (IsInstanceValid(this)) ClearEjacDebris(); };
+        _promoFaceLockOn = false;
+        if (!_promo7On) PromoThrustLookStop();
     }
 
     async System.Threading.Tasks.Task PromoOutsideEjacAsync()
@@ -808,8 +864,7 @@ public partial class TrainingRoomRuntime
         _promoChestOn = false;
         _promoInsertAuto = false; _promoZoomOn = false;
 
-        // 鏡頭：即時對準臉（7 號鍵的臉部特寫大小），之後不釘住、不鎖滾輪，可以隨意縮放
-        PromoFaceShot(true);
+        // 鏡頭：第一下已經鎖臉了（沒鎖的話按 9 當下會先鎖），這裡不再動鏡頭
         _promo7HoldT = 0f; _promoPanOn = false; _promoWheelLock = false;
 
         // 臉的狀態：維持「抽插的狀態」（插入的嘴型、汗、眉毛、表情「插入2」，同 7 號鍵）——射的整段時間都是這張臉，射完停一下才還原
@@ -845,6 +900,7 @@ public partial class TrainingRoomRuntime
             if (yHi < yLo) yHi = yLo;
             for (int i = 0; i < n; i++)
             {
+                if (_promoEjacCancel) break;   // 第三下（去掉精液）：後面的發數不射了
                 Vector2 tipC = JijiTipCanvas();
                 float slot = n <= 1 ? 0.5f : order[i] / (float)(n - 1);                       // 0（臉最左）~ 1（臉最右）
                 Vector2 texPt = new Vector2(Mathf.Lerp(xLo, xHi, slot) + Rf(-1f, 1f) * (xHi - xLo) / Mathf.Max(2, n) * 0.4f, Rf(yLo, yHi));
@@ -875,8 +931,8 @@ public partial class TrainingRoomRuntime
                 }
             }
             if (shots.Count > 0) await System.Threading.Tasks.Task.WhenAll(shots);   // 齊射時：等全部落地
-            if (_jijiPhase > 0) SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團（沒有雞雞就不用）
-            await ToSignal(GetTree().CreateTimer(PromoEjacLookHold), SceneTreeTimer.SignalName.Timeout);   // 射完再維持一下這張臉
+            if (_jijiPhase > 0 && !_promoEjacCancel) SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團（沒有雞雞、或被取消就不用）
+            if (!_promoEjacCancel) await ToSignal(GetTree().CreateTimer(PromoEjacLookHold), SceneTreeTimer.SignalName.Timeout);   // 射完再維持一下這張臉
         }
         finally
         {
