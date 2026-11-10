@@ -30,7 +30,7 @@ public partial class TrainingRoomRuntime
     {
         if (FaceController == null || !FaceController.IsReady) return;
 
-        bool inserted = _jijiPhase == 3 && _jijiStage >= 1 && !_jijiAnus;   // 小穴插入中
+        bool inserted = (_jijiPhase == 3 && _jijiStage >= 1 && !_jijiAnus) || _promoThrustLook;   // 小穴插入中（_promoThrustLook：錄影 7 號鍵的抽插狀態外觀，遊玩時恆為 false）
 
         // 「物件」＝現在被碰的東西；新出現的那一位就是「剛剛觸碰」
         int mask = 0;
@@ -41,7 +41,7 @@ public partial class TrainingRoomRuntime
         if (_lickOn)                mask |= 1 << 4;   // 舔
         if (_patOn)                 mask |= 1 << 5;   // 摸頭
         if (_tongueDragOwner)       mask |= 1 << 6;   // 嘴
-        if (_jijiPhase != 0)        mask |= 1 << 7;   // 雞雞出現／插入
+        if (_jijiPhase != 0 || _promoThrustLook) mask |= 1 << 7;   // 雞雞出現／插入
 
         bool operating = BrowReactOnOperate && mask != 0;
 

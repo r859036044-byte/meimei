@@ -330,7 +330,7 @@ public partial class TrainingRoomRuntime
         }
 
         bool touching = _touchAnimRunningLeft || _touchAnimRunningRight || _bTouchRunning;
-        bool thrusting = _jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused;
+        bool thrusting = (_jijiPhase == 3 && _jijiStage >= 1 && !_s2Paused) || _promoThrustLook;   // _promoThrustLook：錄影 7 號鍵的「抽插狀態」外觀（PromoHotkeys.cs），遊玩時恆為 false
         float gain = 0f;
         if (touching) gain += SweatGainTouch * (1f + _breastSpeedLevel * 0.3f);
         if (thrusting) gain += SweatGainThrust * (1f + _s2SpeedLv * 0.5f);

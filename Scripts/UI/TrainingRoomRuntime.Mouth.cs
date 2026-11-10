@@ -243,6 +243,17 @@ public partial class TrainingRoomRuntime
         // ════════════════════════════════════════════════════════════
         //  1. 插入過程三段式嘴巴反應：先是小嘴巴 -> 抖動嘴 -> 小嘴巴放大
         // ════════════════════════════════════════════════════════════
+        if (_promoThrustLook && _jijiPhase != 3)
+        {   // 錄影 7 號鍵的抽插狀態嘴型：沒有雞雞，但嘴巴照「突破後插入中」的樣子（小嘴巴放大，依速度等級脈動）；說台詞時照常開合
+            if (!(_isTalking && MouthTalkAnimEnabled))
+            {
+                string pm = (baseMouth == "小嘴吐舌") ? "小嘴吐舌" : "小嘴巴";
+                ShowOnlyMouth(pm);
+                float ps = Mathf.Lerp(1.35f, 1.80f, Mathf.Clamp(PromoThrustLookLevel / Mathf.Max(0.01f, S2SpeedLvMax), 0f, 1f));
+                ApplyMouthScale(pm, new Vector2(ps, ps));
+                return;
+            }
+        }
         if (_jijiPhase == 3)
         {
             // ① 剛抵住入口、還沒頂到底或未進入阻力推擠時（Stage 0）：先是小嘴巴

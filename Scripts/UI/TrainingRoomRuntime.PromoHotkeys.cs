@@ -31,7 +31,7 @@ public partial class TrainingRoomRuntime
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
-        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺，鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
+        ("7", "face_kiss_chest"), // 鏡頭即時切到莉奈臉部特寫＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
     };
@@ -579,6 +579,7 @@ public partial class TrainingRoomRuntime
     void PromoStopThrust()
     {
         _promoThrustOn = false; _promo7On = false; _promoSwayOn = false;
+        PromoThrustLookStop();
         if (_jijiPhase == 3 && _jijiStage >= 1) { _s2Paused = true; _s2SpeedLv = 0f; }
         PromoKissStop();
         if (_tongueOn) StopTongue();
@@ -594,6 +595,32 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0.1,4,0.05")] public float PromoSwayHz = 0.9f;          // 搖擺的快慢（每秒幾次）
     [Export(PropertyHint.Range, "0,1,0.05")] public float PromoSwayRise = 0.15f;         // 搖擺的起伏不對稱程度：0＝上下一樣、越大越像「往上頂、慢慢落回」（跟抽插的節奏像）
     bool _promoSwayOn; float _promoSwayT; Vector2 _promoSway;
+
+    // 7 號鍵的「抽插狀態」外觀：沒有雞雞、沒有抽插，但莉奈身上抽插時才有的東西都在——插入的嘴型（小嘴巴放大）、汗一直增加、眉毛插入時的反應、表情「插入2」。
+    // 只有錄影按 7 才會為 true，遊玩時永遠是 false（各處只是多一個「|| _promoThrustLook」的判斷）。
+    [Export(PropertyHint.Range, "0,5,0.5")] public float PromoThrustLookLevel = 2f;   // 抽插狀態外觀的「速度等級」（影響嘴巴放大程度；0 最小、5 最大）
+    [Export] public string PromoThrustLookExpr = "插入2";                              // 7 號鍵的表情（抽插突破後那個）；留空＝不換表情
+    bool _promoThrustLook; string _promoPrevExpr;
+
+    void PromoThrustLookStart()
+    {
+        if (_promoThrustLook) return;
+        _promoThrustLook = true;
+        if (FaceController != null && !string.IsNullOrEmpty(PromoThrustLookExpr))
+        {
+            _promoPrevExpr = FaceController.CurrentExpression;
+            FaceController.SetExpression(PromoThrustLookExpr);
+        }
+    }
+
+    void PromoThrustLookStop()
+    {
+        if (!_promoThrustLook) return;
+        _promoThrustLook = false;
+        if (FaceController != null && !string.IsNullOrEmpty(_promoPrevExpr) && FaceController.CurrentExpression == PromoThrustLookExpr)
+            FaceController.SetExpression(_promoPrevExpr);   // 還原成按 7 之前的表情
+        _promoPrevExpr = null;
+    }
 
     /// <summary>每幀（PromoUiTick）：算上下搖擺的位移。停止時平順收回 0。</summary>
     void PromoSwayTick(float dt)
@@ -635,12 +662,14 @@ public partial class TrainingRoomRuntime
         if (!_nipR.On) StartNipple("NR");
         _promoChestOn = true;
         _promoSwayOn = true; _promoSwayT = 0f;   // 上下搖擺
+        PromoThrustLookStart();                  // 抽插狀態的外觀：嘴型、汗、眉毛、表情
     }
 
     /// <summary>停止 7 號鍵的全部動作：親嘴、摸胸、上下搖擺（鏡頭不動）。</summary>
     void PromoStop7()
     {
         _promo7On = false; _promoChestOn = false; _promo7HoldT = 0f; _promoSwayOn = false;
+        PromoThrustLookStop();
         PromoKissStop();
         if (_touchAnimRunningLeft)  CancelHandTouchAnim(true);
         if (_touchAnimRunningRight) CancelHandTouchAnim(false);
