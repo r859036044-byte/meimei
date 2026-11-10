@@ -31,6 +31,7 @@ public partial class TrainingRoomRuntime
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
         ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸，鏡頭對準臉（可自由縮放），精液一發一發射到頭和臉的範圍（避開眼睛嘴巴）；不需要雞雞
         ("8", "pan_up"),         // 鏡頭往上移一小段（不拉遠、縮放大小不變）；移動中再按一次＝停住，停了再按＝再往上移一段
+        ("6", "zoom_out"),       // 鏡頭逐漸拉遠（縮放變小），但只拉遠「一半」的距離：往 1 號鍵臉前位置縮 PromoZoomOutFrac（預設 0.5）就停；移動中再按＝停住
         ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉、不移動）並鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
         ("4", "chest_touch"),    // 摸胸（影片裡躺床、被子在左下角、左手摸胸、右手摸乳頭的那段；再按一次收手）
@@ -125,6 +126,7 @@ public partial class TrainingRoomRuntime
         ["face_kiss_chest"] = ("臉部特寫＋親嘴＋摸胸", () => PromoFaceKissChest()),
         ["outside_ejac"] = ("外射精（射到頭）", () => PromoOutsideEjac()),
         ["pan_up"]      = ("鏡頭往上移", () => PromoPanUp()),
+        ["zoom_out"]    = ("鏡頭逐漸拉遠（一半）", () => PromoZoomJiji()),
         ["zoom_jiji"]   = ("慢慢縮小到臉前鏡頭", () => PromoZoomJiji()),
         ["tongue_kiss"] = ("親嘴", () => PromoKissToggle()),
         ["hand_left"]   = ("左手觸摸",   () => ToggleHandTouchAnim(true)),
@@ -733,12 +735,12 @@ public partial class TrainingRoomRuntime
 
     // 8 號鍵：用 PromoZoomSec（7）秒慢慢「縮小」鏡頭，從目前的畫面（通常是 7 號鍵的臉部特寫）縮到原版 7 號鍵的臉前位置
     // （PromoFacePxPerTex 倍率、臉停在 PromoFaceScreenPos；就是 1 號鍵那個臉前鏡頭）。臉的位置平順移到終點，不會瞬移。
-    [Export(PropertyHint.Range, "0.1,1,0.05")] public float PromoZoomOutFrac = 0.55f;   // 縮小的比例：從目前鏡頭往「原版 7 號鍵臉前位置」縮多少（1＝縮到底＝原本的行為，0.55＝只縮一半多一點，停在中間）；想縮更少就調小
+    [Export(PropertyHint.Range, "0.1,1,0.05")] public float PromoZoomOutFrac = 0.5f;   // 6 號鍵拉遠的比例：從目前鏡頭往「臉前位置（1 號鍵那個）」縮多少（1＝縮到底，0.5＝只拉遠一半的距離就停）；想拉遠更多就調大、更少就調小
     [Export(PropertyHint.Range, "1,15,0.5")] public float PromoZoomSec = 3f;               // 縮小花的時間（秒）
     bool _promoZoomOn; float _promoZoomT, _promoZ0, _promoZEnd;
     Vector2 _promoZWorld, _promoZScreen0, _promoZScreen1;
 
-    /// <summary>8 號鍵：慢慢縮小到原版 7 號鍵（臉前）的鏡頭位置。再按一次：中途停止（鏡頭停在那裡）。</summary>
+    /// <summary>6 號鍵：逐漸拉遠（縮放變小）鏡頭，只拉遠一半的距離（PromoZoomOutFrac）。再按一次：中途停止（鏡頭停在那裡）。</summary>
     void PromoZoomJiji()
     {
         if (_canvas == null) return;
