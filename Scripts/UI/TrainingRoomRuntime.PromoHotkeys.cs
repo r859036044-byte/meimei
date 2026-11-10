@@ -111,6 +111,8 @@ public partial class TrainingRoomRuntime
             }
             // 這幾個動作會自己動鏡頭：先解除 9 號鍵的「鎖臉」，不然鎖臉每幀會把鏡頭拉回臉上
             if (action is "cam_face" or "chest_touch" or "pussy_touch" or "face_kiss_chest" or "pan_up" or "zoom_out" or "zoom_jiji" or "insert") _promoFaceLockOn = false;
+            // 換到別的場景（1、4、5、7 或插入）：結束 9 的循環，下次按 9 從「鎖定臉」重新開始，臉也還原（7 自己會再開它的抽插臉）。6、8 只是調整鏡頭，不影響 9 的循環
+            if (action is "cam_face" or "chest_touch" or "pussy_touch" or "face_kiss_chest" or "insert") { _promo9Stage = 0; _promo9Look = false; PromoThrustLookStop(); }
             if (_promoActions.TryGetValue(action, out var a)) { PromoToast(a.label); a.run(); }
             else GD.PushWarning("[Promo] 不認得的動作代號：" + action);
         }
@@ -610,7 +612,6 @@ public partial class TrainingRoomRuntime
 
     /// <summary>7 號鍵：鏡頭即時切到臉前＋抽插開始。已經插入就直接抽；還沒插入先自動插入（鏡頭不動）再抽。再按一次：抽插、親嘴、摸胸全部停止，鏡頭不動。</summary>
     // 7 號鍵的上下搖擺：整個身體（所有圖層，跟高潮痙攣／插入推擠同一個 BodyShake）一起上下搖，特寫鏡頭裡臉、胸都會跟著動。沒有雞雞、沒有抽插，只有身體在搖。
-    [Export(PropertyHint.Range, "0,10,0.5")] public float PromoEjacLookHold = 2f;          // 9 號鍵射完之後，還要維持抽插狀態的臉多久（秒）才還原
     [Export(PropertyHint.Range, "0,60,0.5")] public float PromoSwayPx = 12f;             // 上下搖擺的幅度（角色畫布 px；往上往下各這麼多）
     [Export(PropertyHint.Range, "0.1,4,0.05")] public float PromoSwayHz = 0.9f;          // 搖擺的快慢（每秒幾次）
     [Export(PropertyHint.Range, "0,1,0.05")] public float PromoSwayRise = 0.15f;         // 搖擺的起伏不對稱程度：0＝上下一樣、越大越像「往上頂、慢慢落回」（跟抽插的節奏像）
@@ -633,9 +634,11 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    bool _promo9Look;   // 9 號鍵的循環在用「抽插狀態的臉」（第一下起一直保持，不是只有射的時候）
     void PromoThrustLookStop()
     {
         if (!_promoThrustLook) return;
+        if (_promo7On || _promo9Look) return;   // 7 或 9 還在用這張臉：不還原
         _promoThrustLook = false;
         if (FaceController != null && !string.IsNullOrEmpty(_promoPrevExpr) && FaceController.CurrentExpression == PromoThrustLookExpr)
             FaceController.SetExpression(_promoPrevExpr);   // 還原成按 7 之前的表情
@@ -801,6 +804,7 @@ public partial class TrainingRoomRuntime
         switch (_promo9Stage)
         {
             case 0:
+                _promo9Look = true; PromoThrustLookStart();   // 不管哪一下，9 的臉一定是抽插狀態：從第一下就開始，整個循環都保持
                 PromoFaceLockStart();
                 _promo9Stage = 1;
                 break;
@@ -847,8 +851,7 @@ public partial class TrainingRoomRuntime
         // 還在飛的射流落地後會再生出精液團：稍後再清一次
         GetTree().CreateTimer(0.8f).Timeout += () => { if (IsInstanceValid(this) && !_ejacRunning) ClearEjacDebris(); };
         GetTree().CreateTimer(2.0f).Timeout += () => { if (IsInstanceValid(this)) ClearEjacDebris(); };
-        _promoFaceLockOn = false;
-        if (!_promo7On) PromoThrustLookStop();
+        _promoFaceLockOn = false;   // 解除鎖臉；臉仍然是抽插狀態（不還原）
     }
 
     async System.Threading.Tasks.Task PromoOutsideEjacAsync()
@@ -867,8 +870,8 @@ public partial class TrainingRoomRuntime
         // 鏡頭：第一下已經鎖臉了（沒鎖的話按 9 當下會先鎖），這裡不再動鏡頭
         _promo7HoldT = 0f; _promoPanOn = false; _promoWheelLock = false;
 
-        // 臉的狀態：維持「抽插的狀態」（插入的嘴型、汗、眉毛、表情「插入2」，同 7 號鍵）——射的整段時間都是這張臉，射完停一下才還原
-        PromoThrustLookStart();
+        // 臉的狀態：維持「抽插的狀態」（插入的嘴型、汗、眉毛、表情「插入2」，同 7 號鍵）——9 的整個循環都是這張臉
+        _promo9Look = true; PromoThrustLookStart();
 
         // 2) 雞雞退出來（外射：雞雞在外面，從小穴口往上射）
         if (_jijiPhase == 3)
@@ -932,12 +935,12 @@ public partial class TrainingRoomRuntime
             }
             if (shots.Count > 0) await System.Threading.Tasks.Task.WhenAll(shots);   // 齊射時：等全部落地
             if (_jijiPhase > 0 && !_promoEjacCancel) SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團（沒有雞雞、或被取消就不用）
-            if (!_promoEjacCancel) await ToSignal(GetTree().CreateTimer(PromoEjacLookHold), SceneTreeTimer.SignalName.Timeout);   // 射完再維持一下這張臉
+            // （射完臉不再還原，所以不需要再等 PromoEjacLookHold）
         }
         finally
         {
             _ejacRunning = false;
-            if (!_promo7On) PromoThrustLookStop();   // 射完還原表情（如果中途又按了 7，7 自己會管這張臉，就不動它）
+            // 射完臉不還原：9 的臉一直是抽插狀態（要還原就按別的場景鍵，見 RunPromoAction）
         }
     }
 
