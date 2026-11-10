@@ -29,7 +29,7 @@ public partial class TrainingRoomRuntime
         ("1", "cam_face"),       // 鏡頭移到莉奈的臉前（再按一次拉回原本的鏡頭）
         ("2", "duvet_pull"),     // 一隻手把被單往下拉開、被子拿掉（影片裡拉被單的那段；不需要前置）
         ("3", "tongue_kiss"),    // 親嘴（影片裡嘴巴張開、舌頭動的那段；再按一次停止；不需要先選 👅）
-        ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸（和抽插），雞雞退出來，把精液射到頭那裡（劉海、頭頂、臉上半部，避開眼睛嘴巴）
+        ("9", "outside_ejac"),   // 外射精：去掉親嘴、摸胸，鏡頭對準臉（可自由縮放），精液一發一發射到頭和臉的範圍（避開眼睛嘴巴）；不需要雞雞
         ("8", "zoom_jiji"),      // 用 7 秒慢慢縮小鏡頭，縮到原版 7 號鍵（臉前）的位置；再按一次中途停止
         ("7", "face_kiss_chest"), // 鏡頭換成臉部特寫的倍率（不鎖臉）並慢慢往上移一小段、鎖住滾輪縮放＋親嘴＋摸胸（左手摸胸、右手摸右邊乳頭）＋身體上下搖擺＋抽插狀態的外觀（嘴型、汗、眉毛、表情），鏡頭始終在臉前；再按一次全部停止（沒有雞雞、沒有抽插）
         ("5", "pussy_touch"),    // 摸小穴（影片裡腿張開、一根手指摸小穴的那段；鏡頭跟 4 號鍵同一個；再按一次收手）
@@ -768,12 +768,12 @@ public partial class TrainingRoomRuntime
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float PromoEjacStagger = 0f;          // 每發之間錯開幾秒（0＝全部同一瞬間一起射；想要有一點先後就調大，例如 0.05）
     [Export(PropertyHint.Range, "0.5,3,0.1")] public float PromoEjacPower = 2f;            // 力道（飛行速度倍率；越大射越遠、越快）
 
-    /// <summary>9 號鍵：去掉親嘴、摸胸（還有抽插）→ 雞雞退出來 → 把精液連續射到頭那裡。射的時候再按 9 沒有作用。</summary>
+    /// <summary>9 號鍵：去掉親嘴、摸胸（還有抽插）→ 鏡頭對準臉（可以自由縮放）→ 把精液射到頭和臉的範圍。不需要雞雞（有的話先退出來）。射的時候再按 9 沒有作用。</summary>
     void PromoOutsideEjac()
     {
         if (_canvas == null) return;
         if (_ejacRunning || _insertEjacActive) { GD.Print("[Promo] 外射精：還在射，請稍後"); return; }
-        if (_jijiPhase == 0) { GD.Print("[Promo] 外射精：雞雞沒出現（先按 6 或 7）"); return; }
+        // 不需要雞雞：沒有雞雞時精液從小穴口的位置往臉飛（雞雞頂端的位置在沒有雞雞時會退回用小穴熱點）
         TaskLogger.Run(PromoOutsideEjacAsync(), "TrainingRoom.PromoOutsideEjac");
     }
 
@@ -790,13 +790,16 @@ public partial class TrainingRoomRuntime
         _promoChestOn = false;
         _promoInsertAuto = false; _promoZoomOn = false;
 
+        // 鏡頭：即時對準臉（7 號鍵的臉部特寫大小），之後不釘住、不鎖滾輪，可以隨意縮放
+        PromoFaceShot(true);
+        _promo7HoldT = 0f; _promoPanOn = false; _promoWheelLock = false;
+
         // 2) 雞雞退出來（外射：雞雞在外面，從小穴口往上射）
         if (_jijiPhase == 3)
         {
             BackToPhase2("宣傳片外射精：拔出");
             await ToSignal(GetTree().CreateTimer(JijiAppearDuration + 0.5f), SceneTreeTimer.SignalName.Timeout);
         }
-        if (_jijiPhase == 0) return;
 
         // 3) 射：全部射向頭（劉海／頭頂／臉的上半部），沿用遊戲的禁射區（避開眼睛、嘴巴）
         _ejacRunning = true; _ejacStop = false; _ejacMul = 1f;
@@ -851,7 +854,7 @@ public partial class TrainingRoomRuntime
                 }
             }
             if (shots.Count > 0) await System.Threading.Tasks.Task.WhenAll(shots);   // 齊射時：等全部落地
-            SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團
+            if (_jijiPhase > 0) SpawnLandingBlob(CanvasToScreen(JijiTipCanvas()), large: true);   // 雞雞頂端的精液團（沒有雞雞就不用）
         }
         finally { _ejacRunning = false; }
     }
