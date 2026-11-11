@@ -399,8 +399,9 @@ public partial class TrainingRoomRuntime
         }
     }
 
-    /// <summary>現在是不是該讓眼睛看正前方（不跟著滑鼠轉）：高潮（痙攣／叫聲／射精中／高潮度很高）、或吐舌頭（嘴型是吐舌、舌頭動作中）時，眼睛都要是正的。</summary>
-    bool EyesLookStraightNow() =>
+    /// <summary>現在眼睛要不要「不鏡像」（關掉睫毛／眼皮的翻轉）：高潮（痙攣／叫聲／射精中／高潮度很高）、或吐舌頭（嘴型是吐舌、舌頭動作中）時，眼睛都不要鏡像，
+    /// 就算表情還停在睡著 ZZZ／做愛4 這種會翻轉眼睛的表情也一樣。</summary>
+    bool EyesNoMirrorNow() =>
         _spasmsRunning || _insertEjacActive || _ejacRunning || _loudCryMouthT > 0f || _mouthClimaxShakeT > 0f
         || _tongueOn || GetActiveBaseMouth() == "小嘴吐舌";
 

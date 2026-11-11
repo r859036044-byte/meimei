@@ -171,8 +171,8 @@ public partial class TrainingRoomRuntime : Node
         if (EyeFollowCtrl != null)
         {
             EyeFollowCtrl.BreathOffsetY = headBreathOffsetY; EyeFollowCtrl.ShakeOffset = BodyShake + HeadLift;
-            EyeFollowCtrl.SuppressTracking = EyesLookStraightNow();   // 高潮或吐舌頭時眼睛要是正的：不跟著滑鼠轉，回到正前方（Mouth.cs）
         }
+        if (EyeCloseCtrl != null) EyeCloseCtrl.SuppressFlip = EyesNoMirrorNow();   // 吐舌頭或高潮時眼睛不要鏡像（不翻轉）（Mouth.cs）
 
         // 其餘一般圖層：跟著上半身整體上下移動；頭部圖層用 HeadBreathRatio（比身體多一點），
         // 下半身沒被 LegLayerSettings 接管的用 BreathLowerRatio 微量跟隨。
