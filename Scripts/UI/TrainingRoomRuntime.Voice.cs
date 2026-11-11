@@ -42,6 +42,51 @@ public partial class TrainingRoomRuntime
         }
     }
 
+    // ── 語音頭尾的靜音修剪（載入時處理，不動原檔）：音檔開頭／結尾常有 0.2~1 秒幾乎無聲的空白，
+    //    會讓語音「晚一點才出聲」，依序播放（fun → baka → zako1）時前一個播完後也會空一大段才接下一個 ──
+    [ExportGroup("語音靜音修剪")]
+    [Export] public bool VoiceTrimEnabled = true;
+    [Export(PropertyHint.Range, "0.0005,0.05,0.0005")] public float VoiceTrimThreshold = 0.004f;   // 振幅低於這個（0~1，0.004≈-48dB）算靜音
+    [Export(PropertyHint.Range, "0,0.3,0.005")] public float VoiceTrimLeadPadSec = 0.015f;   // 開頭保留多少秒（保留一點點避免爆音）
+    [Export(PropertyHint.Range, "0,0.5,0.005")] public float VoiceTrimTailPadSec = 0.05f;    // 結尾保留多少秒（並在這段做淡出）
+
+    byte[] TrimVoiceSilence(byte[] pcm, int channels, int sampleRate)
+    {
+        int frameBytes = 2 * Mathf.Max(1, channels);
+        int frames = pcm.Length / frameBytes;
+        if (frames < 64) return pcm;
+        int th = (int)(32768f * VoiceTrimThreshold);
+        int first = -1, last = -1;
+        for (int i = 0; i < frames && first < 0; i++)
+            for (int c = 0; c < channels; c++)
+                if (Math.Abs((int)BitConverter.ToInt16(pcm, i * frameBytes + c * 2)) > th) { first = i; break; }
+        if (first < 0) return pcm;   // 整段都很小聲：不動
+        for (int i = frames - 1; i >= first && last < 0; i--)
+            for (int c = 0; c < channels; c++)
+                if (Math.Abs((int)BitConverter.ToInt16(pcm, i * frameBytes + c * 2)) > th) { last = i; break; }
+        int start = Math.Max(0, first - (int)(VoiceTrimLeadPadSec * sampleRate));
+        int end = Math.Min(frames, last + 1 + (int)(VoiceTrimTailPadSec * sampleRate));
+        if (start == 0 && end == frames) return pcm;
+        var outBuf = new byte[(end - start) * frameBytes];
+        Buffer.BlockCopy(pcm, start * frameBytes, outBuf, 0, outBuf.Length);
+        // 結尾淡出（最後 VoiceTrimTailPadSec 內），避免切掉殘響時爆音
+        int outFrames = end - start;
+        int fade = Math.Min(outFrames, Math.Max(1, (int)(VoiceTrimTailPadSec * sampleRate)));
+        for (int i = 0; i < fade; i++)
+        {
+            float g = (fade - 1 - i) / (float)fade;
+            int fi = outFrames - fade + i;
+            for (int c = 0; c < channels; c++)
+            {
+                int o = fi * frameBytes + c * 2;
+                short v = BitConverter.ToInt16(outBuf, o);
+                short nv = (short)(v * g);
+                outBuf[o] = (byte)(nv & 0xFF); outBuf[o + 1] = (byte)((nv >> 8) & 0xFF);
+            }
+        }
+        return outBuf;
+    }
+
     /// <summary>直接從標準 16-bit PCM WAV 檔案解析載入 AudioStreamWav，避開過期的 .godot/imported 快取</summary>
     AudioStream LoadWavDirect(string resPath)
     {
@@ -84,6 +129,7 @@ public partial class TrainingRoomRuntime
 
                     if (pcmData != null && bitsPerSample == 16)
                     {
+                        if (VoiceTrimEnabled) pcmData = TrimVoiceSilence(pcmData, channels, sampleRate);
                         return new AudioStreamWav
                         {
                             Format = AudioStreamWav.FormatEnum.Format16Bits,
@@ -173,18 +219,32 @@ public partial class TrainingRoomRuntime
     /// <summary>播放高優先級關鍵語音（破處、進入階段三、高潮、內射等），鎖定一段時間不被一般反應覆蓋，並觸發小嘴巴放大 200%</summary>
     public void PlayTrVoicePriority(string relativePath, float lockSeconds = 2.5f, float customVolScale = 1.25f)
     {
-        if (VoiceBlockedInDemo(relativePath)) return;   // 試玩版暫時封鎖的語音（VoiceBlock.cs）：連鎖定時間和嘴型都不觸發
+        if (IsDemoBlockedVoice(relativePath)) return;   // 試玩版不播的語音：連鎖定時間和嘴型都不觸發
         _voicePriorityLockTimer = 0f;
         PlayTrVoice(relativePath, forcePriority: true, customVolScale: customVolScale);
         _voicePriorityLockTimer = lockSeconds;
         TriggerLoudCryMouth(Mathf.Min(lockSeconds, 2.2f));
     }
 
+    // 試玩版：這些語音不播放（從試玩版移除，匯出時也可以排除這些檔案）。完整版（DemoMode 關閉）不受影響。
+    static readonly System.Collections.Generic.HashSet<string> DemoBlockedVoices = new()
+    {
+        "moan/mid_4.wav", "moan/high_2.wav", "moan/high_4.wav",
+        "thrust/thrust_mid_2.wav", "thrust/thrust_fast_1.wav", "thrust/thrust_fast_3.wav",
+        "climax/mini_climax_1.wav", "climax/climax_fall_2.wav", "climax/climax_fall_3.wav", "climax/climax_igu_1.wav",
+        "insert/pre_ejac_breath.wav", "insert/ejac_climax.wav",
+        "talk_sweet/sweet_sokosuki_2.wav",
+        "touch_breast/breast_touch_1.wav", "touch_breast/breast_touch_2.wav",
+        "touch_mouth/mouth_kiss_1.wav", "touch_mouth/mouth_kiss_2.wav",
+    };
+    static bool IsDemoBlockedVoice(string rel) => DemoMode.Enabled && !string.IsNullOrEmpty(rel) && DemoBlockedVoices.Contains(rel.TrimStart('/'));
+    static string[] DemoFilterVoices(string[] paths) => DemoMode.Enabled ? System.Array.FindAll(paths, x => !IsDemoBlockedVoice(x)) : paths;
+
     /// <summary>播放指定路徑的 TR 語音（相對 res://Resources/Audio/Voice/TR/）</summary>
     public void PlayTrVoice(string relativePath, bool forcePriority = false, float customVolScale = -1f)
     {
         if (string.IsNullOrEmpty(relativePath)) return;
-        if (VoiceBlockedInDemo(relativePath)) return;   // 試玩版暫時封鎖的語音（VoiceBlock.cs）
+        if (IsDemoBlockedVoice(relativePath)) return;   // 試玩版不播的語音
         if (!_seqAdvancing) { _voiceSeq.Clear(); _seqCurrent = false; }   // 別的語音插進來就取消依序佇列
         InitTrVoice();
 
@@ -247,6 +307,8 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoiceRandom(params string[] relativePaths)
     {
         if (relativePaths == null || relativePaths.Length == 0) return;
+        relativePaths = DemoFilterVoices(relativePaths);   // 試玩版：先拿掉不播的語音，再從剩下的挑
+        if (relativePaths.Length == 0) return;
         string pick = relativePaths[GD.Randi() % relativePaths.Length];
         PlayTrVoice(pick);
     }
@@ -255,8 +317,115 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoicePriorityRandom(float lockSeconds, float customVolScale, params string[] relativePaths)
     {
         if (relativePaths == null || relativePaths.Length == 0) return;
+        relativePaths = DemoFilterVoices(relativePaths);
+        if (relativePaths.Length == 0) return;
         string pick = relativePaths[GD.Randi() % relativePaths.Length];
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
+    }
+
+    // ── 指定台詞改用「正常音效」5 個檔，每次隨機播其中一個（只有下面 NormalVoiceLines 列的 9 句；其他台詞照舊）──
+    [ExportGroup("台詞語音")]
+    [Export] public bool UseNormalVoiceForLines = true;   // true＝下面指定的台詞播正常音效；false＝全部回到依關鍵字配音的舊規則
+    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float NormalVoiceVolScale = 0.7f;   // 這 5 個音效的音量倍率（跟一般觸碰語音差不多）
+    static readonly string[] NormalVoicePaths =
+    {
+        "normal/breast_touch_5.wav",
+        "normal/low_1.wav",
+        "normal/moan_breath_breath_1.wav",
+        "normal/sleep_kiss_2.wav",
+        "normal/touch_body_sleep_sigh_2.wav",
+    };
+
+    // 指定改用正常音效的台詞：「什麼都沒做」的正常話前 6 句（BratNormalLines）＋ 摸頭反應通用（ReactHead）3 句
+    static readonly string[] NormalVoiceLines =
+    {
+        "今天辛苦了。", "謝謝你。", "嗯，我知道了。", "要不要一起吃點東西？", "今天天氣不錯呢。", "你今天有好好吃飯嗎？",
+        "嗯……", "呼嗯…", "嗯…♪",
+    };
+
+    /// <summary>台詞（已加工過：可能被加了愛心或「不要…」）是不是等於 line。愛心不比較，後面接的拒絕詞也算。</summary>
+    bool LineMatches(string text, string line)
+    {
+        static string Strip(string t) => t.Replace("\uFE0F", "").Replace("❤", "").Replace("♡", "").Replace("♥", "").Trim();
+        string s = Strip(text), l = Strip(line);
+        if (s == l) return true;
+        if (s.StartsWith(l, System.StringComparison.Ordinal) && GirlRefuseWords != null)
+        {   // 不舒服時台詞後面會被自動接上「不要…」之類的拒絕詞
+            string rest = s.Substring(l.Length).Trim();
+            foreach (var w in GirlRefuseWords) if (rest == w) return true;
+        }
+        return false;
+    }
+
+    /// <summary>這句台詞是不是指定要播正常音效的那 9 句之一。</summary>
+    bool IsNormalVoiceLine(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (var line in NormalVoiceLines) if (LineMatches(text, line)) return true;
+        return false;
+    }
+
+    // 摸頭反應（ReactHeadNormal）6 句：各自指定音檔；寫多個＝依序輪流播（前一個播完才接下一個）
+    static readonly (string line, string[] files)[] HeadPatVoiceMap =
+    {
+        ("哼～笨蛋雜魚♪",                 new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav", "talk_brat/brat_zako_1.wav" }),
+        ("才沒有覺得很舒服呢…雜魚♡",       new[] { "talk_brat/fun.wav", "talk_brat/brat_zako_2.wav" }),
+        ("嘻嘻…雜魚大哥哥摸得還挺舒服的嘛♪", new[] { "talk_brat/brat_taunt.wav" }),
+        ("唔…別把我當小孩子啦！",           new[] { "normal/low_1.wav" }),
+        ("哼…笨蛋…♪",                    new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav" }),
+        ("再多摸一下也可以喔…♡",           new[] { "talk_brat/brat_zako_1.wav" }),
+    };
+
+    // 摸頭台詞（PatTalk，沒插入時 PatGirlLines）5 句：各自指定音檔（寫多個＝依序輪流播）
+    // 注意：「才沒有覺得很舒服呢…雜魚♡」這句在上面的摸頭反應也有，兩邊音檔不同，所以分兩張表、由各自的呼叫端查。
+    static readonly (string line, string[] files)[] PatTalkVoiceMap =
+    {
+        ("哼～別以為摸摸頭我就會聽話喔…笨蛋雜魚♡", new[] { "talk_brat/fun.wav", "talk_brat/brat_baka.wav", "talk_brat/brat_zako_1.wav" }),
+        ("才沒有覺得很舒服呢…雜魚♡",             new[] { "talk_brat/brat_zako_2.wav" }),
+        ("嘻嘻…再多摸一下也不是不行啦♪",          new[] { "talk_brat/brat_zako_1.wav" }),
+        ("唔…別把我當小孩子啦！",                 new[] { "talk_brat/fun.wav" }),
+        ("笨蛋雜魚…♪",                        new[] { "talk_brat/brat_baka.wav", "talk_brat/brat_zako_2.wav" }),
+    };
+
+    bool PlayMappedVoice(string text, (string line, string[] files)[] map)
+    {
+        foreach (var (line, files) in map)
+        {
+            if (!LineMatches(text, line)) continue;
+            if (files.Length == 1 && files[0].StartsWith("normal/")) PlayTrVoice(files[0], false, NormalVoiceVolScale);
+            else PlayTrVoiceSeq(files);
+            return true;
+        }
+        return false;
+    }
+
+    // 被捏的反應（正常話 BratPinchNormalReplyLines）：前兩句只播 fun（第三句「……」維持原本規則）
+    static readonly (string line, string[] files)[] PinchNormalVoiceMap =
+    {
+        ("…你幹嘛？", new[] { "talk_brat/fun.wav" }),
+        ("好痛…",     new[] { "talk_brat/fun.wav" }),
+    };
+
+    // 被捏的反應（雌小鬼話 BratPinchReplyLines）3 句：各自指定音檔。只在「被捏（雌小鬼）」情境生效（「嗚…」別區也有同一句，不能只比對文字）
+    static readonly (string line, string[] files)[] PinchBratVoiceMap =
+    {
+        ("痛痛痛～！", new[] { "pain/iyada.wav" }),
+        ("嗚…",       new[] { "moan/low_2.wav" }),
+        ("放手啦～！", new[] { "pain/yamete.wav" }),
+    };
+    bool _inPinchBratReply;     // 正在說「被捏（雌小鬼話）」的反應（Brat.cs 設定）
+    bool _inPinchNormalReply;   // 正在說「被捏（正常話）」的反應（Brat.cs 設定）
+
+    bool TryPlayHeadPatVoice(string text) => PlayMappedVoice(text, HeadPatVoiceMap) || PlayMappedVoice(text, PinchNormalVoiceMap);
+
+    /// <summary>摸頭台詞（PatTalk）：有指定音檔就播並回傳 true；沒指定回傳 false（呼叫端用原本的摸頭語音）。</summary>
+    public bool TryPlayPatTalkVoice(string text) => !string.IsNullOrEmpty(text) && PlayMappedVoice(text, PatTalkVoiceMap);
+
+    /// <summary>從正常音效 5 個檔隨機挑一個播（高優先語音正在播時不蓋掉，由呼叫端先判斷）。</summary>
+    void PlayNormalLineVoice()
+    {
+        string pick = NormalVoicePaths[(int)(GD.Randi() % (uint)NormalVoicePaths.Length)];
+        PlayTrVoice(pick, false, NormalVoiceVolScale);
     }
 
     static readonly int[] BreathIds = { 1,2,3,4,5,6,7,8,9, 11,12, 15, 21,22,23,24,25,26, 30,31, 33, 35,36,37,38, 41,42,43,44,45,46,47,48,49,50 };
@@ -381,9 +550,29 @@ public partial class TrainingRoomRuntime
         // 通知嘴巴：內部會自動檢查是否為純叫聲（IsSoundOnly）或教程，只有真正台詞才會用倒笑壓扁開合嘴巴
         NotifyVoiceSpeakForText(text);
 
+        // 被捏（正常話）第三句「……」：不發出任何音效（只限這個情境，別區同樣的「……」不受影響）
+        if (_inPinchNormalReply && LineMatches(text, "……")) return;
+
+        // 睡著（ZZZ）的台詞（ReactSleep：「Zzz…」「嗯…（睡）」「呼…呼…」）：不發出任何音效
+        if (ReactSleep != null)
+            foreach (var sl in ReactSleep) if (LineMatches(text, sl)) return;
+
         // 若高優先級語音正在播放（如破處、高潮、內射），不覆蓋音訊
         if (_voicePriorityLockTimer > 0f && IsVoicePlaying)
         {
+            return;
+        }
+
+        // 被捏（雌小鬼話）3 句：各自指定的音檔（見 PinchBratVoiceMap）
+        if (_inPinchBratReply && PlayMappedVoice(text, PinchBratVoiceMap)) return;
+
+        // 摸頭反應 6 句：各自指定的音檔（見 HeadPatVoiceMap）
+        if (TryPlayHeadPatVoice(text)) return;
+
+        // 指定的 9 句台詞：用「正常音效」5 個檔隨機播一個（其他台詞、或 UseNormalVoiceForLines 關掉，走下面原本的關鍵字規則）
+        if (UseNormalVoiceForLines && IsNormalVoiceLine(text))
+        {
+            PlayNormalLineVoice();
             return;
         }
 

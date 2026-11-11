@@ -135,6 +135,28 @@ public partial class TrainingRoomRuntime
     public void TriggerMouthSmile() { }
 
     string _mouthShown;
+    [Export] public Vector2 MouthTouchShakeSec = new Vector2(1f, 2f);   // 剛被碰到小穴／胸部時，抖動嘴持續幾秒（隨機 X~Y）
+    float  _touchShakeT; bool _touchShakePrev;
+    bool   _bratSpoke;   // 雌小鬼說過話（說完／捏完之後要回到雌小鬼嘴）
+    /// <summary>雌小鬼嘴＝笑臉「張嘴1」（雌小鬼值 ≥ MouthBratSmileAt 時）</summary>
+    bool BratMouthOn => BratEnabled && BratValue >= MouthBratSmileAt;
+    bool   _pinchMouthOn;   // 捏臉中嘴巴正顯示倒笑（放手時要還原）
+    [Export(PropertyHint.Range, "0,5,0.1")] public float PinchFrownDelaySec = 1f;   // 捏住多久才換成倒笑
+    [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleX = 0.45f;   // 倒笑嘴左右壓縮（0.45＝跟小嘴巴同寬）
+    [Export(PropertyHint.Range, "0.1,1.5,0.01")] public float PinchFrownScaleY = 1f;      // 倒笑嘴上下大小（1＝翻轉後不壓扁）
+    [Export] public float PinchFrownCenterY = 747f;   // 倒笑嘴中心的貼圖 Y（757＝小嘴巴的中心，兩者位置對齊；往上減、往下加）
+
+    /// <summary>倒笑：「笑」上下翻轉＋左右壓縮，並讓翻轉後的嘴巴中心落在小嘴巴的位置。</summary>
+    void ApplyFrownMouth()
+    {
+        if (!Layers.TryGetValue("笑", out var node) || node is not Control c) return;
+        var ctr = _mouthCenters["笑"];
+        float sy = Mathf.Max(0.01f, PinchFrownScaleY);
+        // 以 pivot 為軸縮放：中心 cy 翻轉後落在 target → pivot = (target + sy*cy) / (1 + sy)
+        float py = (PinchFrownCenterY + sy * ctr.Y) / (1f + sy);
+        c.PivotOffset = new Vector2(ctr.X, py) * c.Size / new Vector2(2000f, 3200f);
+        c.Scale = new Vector2(PinchFrownScaleX, -sy);
+    }
     float  _mouthScaleX = 1f;
 
     void UpdateMouthOperate(float dt)
@@ -157,7 +179,32 @@ public partial class TrainingRoomRuntime
     {
         _mouthSmileT -= dt;
         _mouthNearTarget = 1f;
+        // 被觸碰小穴、胸部或乳頭的瞬間：嘴巴抖動 1~2 秒（只在「剛碰到」那一刻觸發，不是按著一直重觸發）
+        bool tsTouch_ = _reactFlags.breast || _reactFlags.nipple || _reactFlags.pussy;
+        if (_bratLineType == 1) _bratSpoke = true;
+        if (tsTouch_ && !_touchShakePrev) { if (_bratLineType == 0) _bratSpoke = false; _touchShakeT = (float)GD.RandRange(MouthTouchShakeSec.X, MouthTouchShakeSec.Y); _hasBeenTouched = true; }
+        _touchShakePrev = tsTouch_;
+        if (_touchShakeT > 0f) _touchShakeT -= dt;
         if (!MouthReactOnOperate || FaceController == null || !FaceController.IsReady) return;
+
+        // 捏臉（按住臉頰拖動）：捏滿 PinchFrownDelaySec 秒才換成倒笑（一捏就換太突兀）；放手就還原
+        if (_pinchDrag && _pinchPressT >= PinchFrownDelaySec)
+        {
+            _pinchMouthOn = true;
+            ShowOnlyMouth("笑");
+            ApplyFrownMouth();
+            return;
+        }
+        if (_pinchMouthOn && !_pinchDrag)
+        {
+            _pinchMouthOn = false;
+            if (BratMouthOn)
+            {   // 有雌小鬼：變回雌小鬼嘴（笑臉張嘴1）
+                ShowOnlyMouth("張嘴1");
+                ApplyMouthScale("張嘴1", Vector2.One);
+            }
+            else ReleaseMouth("");
+        }
 
         // 若正在用舌頭親嘴（_tongueOn），嘴巴圖層由 TongueOverlay 遮蓋，不顯示底層嘴巴
         if (_tongueOn)
@@ -185,6 +232,14 @@ public partial class TrainingRoomRuntime
 
         string baseMouth = GetActiveBaseMouth();
 
+        // 剛被碰到小穴／胸部：抖動嘴 1~2 秒（插入中由下面三段式嘴巴負責，不在這裡處理）
+        if (_touchShakeT > 0f && _jijiPhase != 3)
+        {
+            ShowOnlyMouth("抖動嘴");
+            ApplyMouthScale("抖動嘴", Vector2.One);
+            return;
+        }
+
         // ════════════════════════════════════════════════════════════
         //  1. 插入過程三段式嘴巴反應：先是小嘴巴 -> 抖動嘴 -> 小嘴巴放大
         // ════════════════════════════════════════════════════════════
@@ -209,8 +264,7 @@ public partial class TrainingRoomRuntime
             // ③ 突破瞬間（OnBreakthroughWetCheck）或處於破處高潮叫聲中：小嘴巴放大 200%
             if (_loudCryMouthT > 0f)
             {
-                ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                ShowBigMouth(baseMouth);   // 吐舌的嘴不放大（BigMouth 說明見下面）
                 return;
             }
 
@@ -219,8 +273,7 @@ public partial class TrainingRoomRuntime
             float normSpeedNow = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
             if (normSpeedNow >= 0.65f || ClimaxLevel >= 85f)
             {
-                ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                ShowBigMouth(baseMouth);   // 吐舌的嘴不放大
                 return;
             }
 
@@ -241,8 +294,7 @@ public partial class TrainingRoomRuntime
         if (_loudCryMouthT > 0f || _mouthClimaxShakeT > 0f || _spasmsRunning || _insertEjacActive || _ejacRunning)
         {
             if (_mouthClimaxShakeT > 0f) _mouthClimaxShakeT = Mathf.Max(0f, _mouthClimaxShakeT - dt);
-            ShowOnlyMouth("小嘴巴");
-            ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+            ShowBigMouth(baseMouth);   // 吐舌的嘴不放大
             return;
         }
 
@@ -277,7 +329,7 @@ public partial class TrainingRoomRuntime
             {
                 // 說完台詞：普通摸頭回到笑，其他回到小嘴巴（或小嘴吐舌），不會變回原本的嘴巴
                 _isTalking = false;
-                string talkEndMouth = (_patOn && _jijiPhase != 3) ? "笑" : baseMouth;
+                string talkEndMouth = (_patOn && _jijiPhase != 3) ? "笑" : ((_bratSpoke && BratMouthOn) ? "張嘴1" : baseMouth);
                 ShowOnlyMouth(talkEndMouth);
                 ApplyMouthScale(talkEndMouth, Vector2.One);
                 return;
@@ -293,6 +345,14 @@ public partial class TrainingRoomRuntime
         {
             ShowOnlyMouth("笑");
             ApplyMouthScale("笑", Vector2.One);
+            return;
+        }
+
+        // 雌小鬼對話之後：回到雌小鬼嘴（笑臉張嘴1）
+        if (_bratSpoke && BratMouthOn)
+        {
+            ShowOnlyMouth("張嘴1");
+            ApplyMouthScale("張嘴1", Vector2.One);
             return;
         }
 
@@ -323,8 +383,31 @@ public partial class TrainingRoomRuntime
         _mouthScaleX = 1f;
     }
 
+    /// <summary>「叫很大聲」的嘴：一般狀態是小嘴巴放大 2 倍；但現在的嘴如果已經是吐舌頭（小嘴吐舌），就維持吐舌頭、不放大
+    /// （吐舌頭的嘴不應該被放大，也不該被換成放大的小嘴巴）。</summary>
+    void ShowBigMouth(string baseMouth)
+    {
+        if (baseMouth == "小嘴吐舌")
+        {
+            ShowOnlyMouth("小嘴吐舌");
+            ApplyMouthScale("小嘴吐舌", Vector2.One);
+        }
+        else
+        {
+            ShowOnlyMouth("小嘴巴");
+            ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+        }
+    }
+
+    /// <summary>現在眼睛要不要「不鏡像」（關掉睫毛／眼皮的翻轉）：高潮（痙攣／叫聲／射精中／高潮度很高）、或吐舌頭（嘴型是吐舌、舌頭動作中）時，眼睛都不要鏡像，
+    /// 就算表情還停在睡著 ZZZ／做愛4 這種會翻轉眼睛的表情也一樣。</summary>
+    bool EyesNoMirrorNow() =>
+        _spasmsRunning || _insertEjacActive || _ejacRunning || _loudCryMouthT > 0f || _mouthClimaxShakeT > 0f
+        || _tongueOn || GetActiveBaseMouth() == "小嘴吐舌";
+
     void ApplyMouthScale(string layerName, Vector2 scale)
     {
+        if (layerName == "小嘴吐舌" || layerName == "吐舌") scale = Vector2.One;   // 保險：吐舌頭的嘴任何情況都不放大
         if (!Layers.TryGetValue(layerName, out var node) || node is not Control c) return;
         var center = _mouthCenters.TryGetValue(layerName, out var mc) ? mc : MouthCenterTex;
         c.PivotOffset = center * c.Size / new Vector2(2000f, 3200f);

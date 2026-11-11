@@ -130,6 +130,9 @@ public partial class MainMenuRuntime : Control
                 SetAlpha(txt, a * 0.45f);
         }, ct);
 
+        // ── 「吉太研究部」LOGO 之後：先問玩家要用什麼語言開啟遊戲（第一次啟動才問；MainMenuRuntime.LanguagePick.cs）──
+        await AskLanguageIfNeeded(ct);
+
         if (DemoMode.Enabled)
         {   // 試玩版：LOGO 播完 → 不播 OP 動畫，直接到標題畫面（音樂慢慢淡入）
             _demoLogoDone = true;

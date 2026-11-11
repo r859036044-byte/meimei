@@ -125,7 +125,7 @@ public partial class TrainingRoomRuntime
         {
             BratHideChoices();
             if (_bratTimer < 0f) _bratTimer = (float)GD.RandRange(BratLineInterval.X, BratLineInterval.Y);
-            _bratTimer -= dt;
+            _bratTimer -= dt / TalkTouchedMul();   // 有觸碰時說話間隔拉長（沒觸碰＝正常）
             if (_bratTimer <= 0f && _lessonT <= 0f)
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
@@ -242,13 +242,17 @@ public partial class TrainingRoomRuntime
         if (_bratLineType == 1)
         {
             BratValue -= BratPinchDown * strength;
+            _inPinchBratReply = true;   // 這句的語音要用被捏（雌小鬼）專屬音檔，見 Voice.cs PinchBratVoiceMap
             BratSay(BratPinchReplyLines);
+            _inPinchBratReply = false;
         }
         else if (_bratLineType == 2)
         {
             Mood -= NormalPinchMoodDown * (0.4f + 0.6f * strength);
             BratValue -= NormalPinchBratDown * strength;
+            _inPinchNormalReply = true;   // 這句的語音判斷要知道「現在是被捏的正常反應」（第三句「……」不發聲，見 Voice.cs）
             BratSay(BratPinchNormalReplyLines);
+            _inPinchNormalReply = false;
         }
         else
         {

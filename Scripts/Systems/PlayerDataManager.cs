@@ -17,7 +17,7 @@ public partial class PlayerDataManager : Node
     //  ① 全域開關
     // ═══════════════════════════════════════════════════════════
     /// <summary>R18 成人內容總開關；關閉後遮蔽所有成人相關畫面與 H 邏輯</summary>
-    public bool R18ContentEnabled { get; set; } = false; // 預設全年齡；R18 需在設定中手動開啟
+    public bool R18ContentEnabled { get; set; } = DemoMode.Enabled; // 預設全年齡；R18 需在設定中手動開啟（試玩版預設 R18）
 
     // ═══════════════════════════════════════════════════════════
     //  ② 玩家差分開關（影響劇情、CG、對話分支）
@@ -363,7 +363,7 @@ public partial class PlayerDataManager : Node
         // 讀取全年齡/R18 設定（SettingsManager 比本節點先載入，所以由這裡自己讀；預設 false = 全年齡）
         var _cfg = new ConfigFile();
         if (_cfg.Load("user://settings.cfg") == Error.Ok)
-            R18ContentEnabled = (bool)_cfg.GetValue("game", "r18", false);
+            R18ContentEnabled = (bool)_cfg.GetValue("game", "r18", DemoMode.Enabled);
 
         _rng.Randomize();
 

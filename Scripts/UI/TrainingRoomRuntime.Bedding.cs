@@ -10,30 +10,30 @@ public partial class TrainingRoomRuntime
     [Export] public float DuvetOffsetY = -20f;     // 蓋著的被子整體往上 20px（背景本地 px，負＝往上）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBleach = 0f;   // 漂白（降低飽和，去掉偏紫）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBright = 0f;   // 提亮
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintAmount = 0.3f;   // 粉紅（覆蓋混合）「右邊最濃」時的強度（左邊漸層到 0）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintAmount = 0f;   // 粉紅（覆蓋混合）「右邊最濃」時的強度（左邊漸層到 0）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintFadeU0 = 0f;   // 粉紅濾鏡漸層起點（貼圖左右位置，0＝最左）：這裡以左完全沒有
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTintFadeU1 = 1f;   // 漸層終點（1＝最右）：這裡以右達到完整強度
     [Export] public Color DuvetTint = new Color(1f, 0.78f, 0.87f);               // 粉紅濾鏡顏色
     // 深藍色「色彩增值」（相乘）：左邊最濃，往右漸層到被子一半就沒有
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueAmount = 0.2f;   // 最左邊的強度（現在整張一樣，見下面右邊強度）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueAmountRight = 0.04f;   // 右邊的強度（跟左邊一樣＝整張被子均勻 40%；0＝右半邊沒有）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueAmount = 0f;   // 最左邊的強度（現在整張一樣，見下面右邊強度）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueAmountRight = 0f;   // 右邊的強度（跟左邊一樣＝整張被子均勻 40%；0＝右半邊沒有）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueFadeU0 = 0.15f;     // 這個位置（0＝最左）以左＝左邊強度
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueFadeU1 = 0.95f;   // 這個位置（1＝最右）以右＝右邊強度（0.5＝漸層到被子一半）
     [Export] public Color DuvetBlueColorBottom = new Color(0.12f, 0.16f, 0.40f);   // 下面偏藍
     [Export] public Color DuvetKickedBlueColorBottom = new Color(0.14f, 0.18f, 0.42f);
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBlueBottomStart = 0.5f;   // 從這個高度往下加強
     [Export] public Color DuvetLeftTopBlueColor = new Color(0.20f, 0.30f, 0.90f);   // 左邊＋上面再疊一層的偏藍色彩增值（蓋著的被子＋踢開的被子）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetLeftTopBlueAmount = 0.27f;
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetLeftTopBlueAmount = 0f;
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float DuvetLeftTopBlueRange = 0.4f;   // 從邊緣往內漸層的範圍
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedTopBlueScale = 0.1f;   // 踢開的被子「上面」的偏藍增值比例（1＝跟左邊一樣濃，越小越淡）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedCornerAmount = 0.15f;   // 踢開的被子左上角額外加強（原本寫死 0.5，這是上面看起來太濃的主因）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedCornerAmount = 0f;   // 踢開的被子左上角額外加強（原本寫死 0.5，這是上面看起來太濃的主因）
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float DuvetKickedCornerRange = 0.5f;
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedLeftTopBlueAmount = 0f;   // 踢開的被子左邊＋上面偏藍增值的強度（跟蓋著的分開調）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBottomBlueAmount = 0.2f;   // 蓋著的被子底部再加一層藍
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetBottomBlueAmount = 0f;   // 蓋著的被子底部再加一層藍
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTopRightScale = 0.3f;   // 蓋著的被子右上角偏藍的比例（1＝跟左上一樣，越小越淡）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetTopBlueScale = 0.5f;   // 蓋著的被子「上面」偏藍增值的比例（只影響上面，1＝原本）
     [Export] public Color DuvetDiagColor = new Color(0.49f, 0.50f, 0.83f);   // 被子左上角斜切變暗的顏色（色彩增值）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetDiagAmount = 0.3f;   // 強度
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetDiagAmount = 0f;   // 強度
     [Export(PropertyHint.Range, "0,2,0.01")] public float DuvetDiagPos = 0.7f;      // 斜線的位置（左上角往右下推；0＝沒有，2＝整張）
     [Export(PropertyHint.Range, "0.001,0.5,0.001")] public float DuvetDiagSoft = 0.15f;   // 斜線邊緣柔和程度（小＝俐落的斜切）
     [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedDiagAmount = 0f;   // 踢開的被子的左上角斜切變暗強度（預設 0＝踢開的被子不變）
@@ -60,7 +60,7 @@ public partial class TrainingRoomRuntime
     [Export] public Vector2 DuvetKickedPivot = new Vector2(0.33f, 1.0f);               // 縮放中心（背景 UV）：y＝1 是被子底邊＝床的下緣，縮放時底邊不動
     [Export] public Vector2 DuvetKickedOffsetPx = new Vector2(100f, 50f);               // 踢掉的被子位置偏移（貼圖像素；右、下為正）
     // 踢掉的被子左邊和下面的深藍「色彩增值」漸層（跟蓋著的被子同一種效果）
-    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedBlueAmount = 0.2f;   // 最邊緣的強度（原 0.5，減弱三分之一）
+    [Export(PropertyHint.Range, "0,1,0.01")] public float DuvetKickedBlueAmount = 0f;   // 最邊緣的強度（原 0.5，減弱三分之一）
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float DuvetKickedBlueRange = 0.45f; // 從邊緣往內漸層的範圍（佔被子寬／高）
     [Export] public Color DuvetKickedBlueColor = new Color(0.32f, 0.09f, 0.25f);           // 紫紅色（色彩增值）
     [Export] public float DuvetKickedClipPx = 5f;            // 超出床多少 px（貼圖像素）以外裁掉（平均值）

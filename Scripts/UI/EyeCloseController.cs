@@ -170,6 +170,9 @@ public partial class EyeCloseController : Node
     /// 眼皮/睫毛/眼角/下睫毛/眼白/眼球/眼淚都已經完全交給這個控制器管位置，
     /// 不會再經過通用呼吸迴圈，呼吸時的自然起伏要靠這裡疊加。</summary>
     public float BreathOffsetY = 0f;
+    /// <summary>true＝不做任何眼睛翻轉（全閉2／全閉3／半閉2 的睫毛、眼皮 scaleY 翻轉＝鏡像）：翻轉部位強制還原成沒翻轉的樣子。
+    /// 由 TrainingRoomRuntime 在「吐舌頭」「高潮」時每幀設定（睡著 ZZZ、做愛4 的翻轉眼睛，在這兩種狀態下不該還是鏡像）。</summary>
+    public bool SuppressFlip = false;
     /// <summary>高潮痙攣時整個身體的抖動位移（由 TrainingRoomRuntime 每幀傳入 _spasmsBodyShake），
     /// 眼睛圖層不經過通用呼吸迴圈，沒有這個的話臉在抖、眼睛不抖，看起來左右眼高度亂跳。</summary>
     public Vector2 ShakeOffset = Vector2.Zero;
@@ -596,17 +599,17 @@ public partial class EyeCloseController : Node
             p.RT.Position = pos + breathV;
         }
 
-        if (_expressionClosed2)
+        if (_expressionClosed2 && !SuppressFlip)
             ApplyFlip(ClosedFlipParts, Mathf.InverseLerp(HalfCloseAmount, 1f, t), breathV);
         else
             ResetFlip(ClosedFlipParts);
 
-        if (_expressionClosed3)
+        if (_expressionClosed3 && !SuppressFlip)
             ApplyFlip(EyelidFlipParts, Mathf.InverseLerp(HalfCloseAmount, 1f, t), breathV);
         else
             ResetFlip(EyelidFlipParts);
 
-        if (_expressionHalfClosed2)
+        if (_expressionHalfClosed2 && !SuppressFlip)
         {
             float flipT = Mathf.InverseLerp(0f, HalfCloseAmount, t);
             ApplyFlip(HalfFlipParts, flipT, breathV);
