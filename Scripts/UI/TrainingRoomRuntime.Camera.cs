@@ -164,8 +164,9 @@ public partial class TrainingRoomRuntime
     [Export] public float BellyGapMarginPx = 6f;      // 安全距離：身體下緣離畫面底邊至少再多幾個螢幕 px 才算看不到（調大更保守）
     [Export(PropertyHint.Range, "0.02,0.5,0.01")] public float BellyGapAlpha = 0.1f;   // 判斷「不透明」的透明度門檻（貼圖邊緣有零星淡雜點，要略過）
     [Export] public bool  BellyDockFollow = true;     // 「掛在身體上」：鏡頭拉到最底時，會黏在男人身體上、跟著身體一起上下動（身歷其境）；關掉＝只是被限制頂住
-    [Export(PropertyHint.Range, "0,30,0.5")] public float BellyFollowSmooth = 12f;   // 身體往下時鏡頭跟下去的順暢度（越大越貼、0＝完全同步硬貼）；身體往上時一律立刻跟上
-    bool  _bellyDocked; float _bellyDockLast;
+    [Export(PropertyHint.Range, "0,30,0.5")] public float BellyFollowSmooth = 4f;   // 身體往下時鏡頭跟下去的順暢度（越大越貼、0＝完全同步硬貼）；身體往上時一律立刻跟上
+    [Export(PropertyHint.Range, "0,1,0.05")] public float BellyFollowAmp = 0.01f;   // 晃動幅度：掛上身體後鏡頭跟著身體動的比例（1＝完全跟、0＝幾乎不晃；身體往上時為了不露出空隙仍會被頂住）
+    bool  _bellyDocked; float _bellyDockLast, _bellyPeak;
     float _bellyBottomTexRow = -1f;   // 貼圖上不透明部分下緣的那一列（像素）；-1＝還沒算、-2＝算不出來
     float _bellyMidXTex;
 
@@ -256,13 +257,19 @@ public partial class TrainingRoomRuntime
             float gapLo = Mathf.Min(vp.Y + BellyGapMarginPx - gapB * _camZoom, 0f);
             // 「掛在身體上」：玩家把鏡頭拉到最底（頂著這條限制）→ 鏡頭黏在身體上，身體上下動鏡頭就跟著動（第一人稱：我就是男人）
             if (_bellyDocked && _camOffset.Y > _bellyDockLast + 1.5f) _bellyDocked = false;      // 玩家自己把鏡頭往上移開了 → 解除
-            if (!_bellyDocked && BellyDockFollow && _camOffset.Y <= gapLo + 2f) _bellyDocked = true;   // 拉到最底 → 掛上去
+            if (!_bellyDocked && BellyDockFollow && _camOffset.Y <= gapLo + 2f) { _bellyDocked = true; _bellyPeak = gapLo; }   // 拉到最底 → 掛上去
             if (_camOffset.Y < gapLo) _camOffset.Y = gapLo;   // 硬限制：任何時候都不會讓下緣進畫面
             if (_bellyDocked)
             {
                 if (gapLo >= _camOffset.Y) _camOffset.Y = gapLo;   // 身體往上（靠近小穴）：鏡頭立刻同步跟上（不然會露出空隙）
                 else if (BellyFollowSmooth <= 0f) _camOffset.Y = gapLo;
-                else _camOffset.Y = Mathf.Lerp(_camOffset.Y, gapLo, 1f - Mathf.Exp(-BellyFollowSmooth * dt));   // 身體往下：鏡頭順順地跟下去
+                else
+                {   // 只跟一部分幅度：以「身體最高點」（慢慢衰減）為基準，往下的行程只跟 BellyFollowAmp 的比例
+                    _bellyPeak = Mathf.Max(gapLo, Mathf.Lerp(_bellyPeak, gapLo, 1f - Mathf.Exp(-0.8f * dt)));
+                    float tgt = Mathf.Lerp(_bellyPeak, gapLo, BellyFollowAmp);
+                    _camOffset.Y = Mathf.Lerp(_camOffset.Y, tgt, 1f - Mathf.Exp(-BellyFollowSmooth * dt));
+                    if (_camOffset.Y < gapLo) _camOffset.Y = gapLo;
+                }   // 身體往下：鏡頭順順地跟下去
                 _camOffset.Y = Mathf.Max(_camOffset.Y, loY);   // 還是不能超出背景範圍
                 _bellyDockLast = _camOffset.Y;
             }
