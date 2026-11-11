@@ -264,8 +264,7 @@ public partial class TrainingRoomRuntime
             // ③ 突破瞬間（OnBreakthroughWetCheck）或處於破處高潮叫聲中：小嘴巴放大 200%
             if (_loudCryMouthT > 0f)
             {
-                ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                ShowBigMouth(baseMouth);   // 吐舌的嘴不放大（BigMouth 說明見下面）
                 return;
             }
 
@@ -274,8 +273,7 @@ public partial class TrainingRoomRuntime
             float normSpeedNow = S2SpeedLvMax > 0f ? Mathf.Clamp(_s2SpeedLv / S2SpeedLvMax, 0f, 1f) : 0f;
             if (normSpeedNow >= 0.65f || ClimaxLevel >= 85f)
             {
-                ShowOnlyMouth("小嘴巴");
-                ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+                ShowBigMouth(baseMouth);   // 吐舌的嘴不放大
                 return;
             }
 
@@ -296,8 +294,7 @@ public partial class TrainingRoomRuntime
         if (_loudCryMouthT > 0f || _mouthClimaxShakeT > 0f || _spasmsRunning || _insertEjacActive || _ejacRunning)
         {
             if (_mouthClimaxShakeT > 0f) _mouthClimaxShakeT = Mathf.Max(0f, _mouthClimaxShakeT - dt);
-            ShowOnlyMouth("小嘴巴");
-            ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+            ShowBigMouth(baseMouth);   // 吐舌的嘴不放大
             return;
         }
 
@@ -386,8 +383,30 @@ public partial class TrainingRoomRuntime
         _mouthScaleX = 1f;
     }
 
+    /// <summary>「叫很大聲」的嘴：一般狀態是小嘴巴放大 2 倍；但現在的嘴如果已經是吐舌頭（小嘴吐舌），就維持吐舌頭、不放大
+    /// （吐舌頭的嘴不應該被放大，也不該被換成放大的小嘴巴）。</summary>
+    void ShowBigMouth(string baseMouth)
+    {
+        if (baseMouth == "小嘴吐舌")
+        {
+            ShowOnlyMouth("小嘴吐舌");
+            ApplyMouthScale("小嘴吐舌", Vector2.One);
+        }
+        else
+        {
+            ShowOnlyMouth("小嘴巴");
+            ApplyMouthScale("小嘴巴", new Vector2(2.0f, 2.0f));
+        }
+    }
+
+    /// <summary>現在是不是該讓眼睛看正前方（不跟著滑鼠轉）：高潮（痙攣／叫聲／射精中／高潮度很高）、或吐舌頭（嘴型是吐舌、舌頭動作中）時，眼睛都要是正的。</summary>
+    bool EyesLookStraightNow() =>
+        _spasmsRunning || _insertEjacActive || _ejacRunning || _loudCryMouthT > 0f || _mouthClimaxShakeT > 0f
+        || _tongueOn || GetActiveBaseMouth() == "小嘴吐舌";
+
     void ApplyMouthScale(string layerName, Vector2 scale)
     {
+        if (layerName == "小嘴吐舌" || layerName == "吐舌") scale = Vector2.One;   // 保險：吐舌頭的嘴任何情況都不放大
         if (!Layers.TryGetValue(layerName, out var node) || node is not Control c) return;
         var center = _mouthCenters.TryGetValue(layerName, out var mc) ? mc : MouthCenterTex;
         c.PivotOffset = center * c.Size / new Vector2(2000f, 3200f);

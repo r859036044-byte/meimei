@@ -168,7 +168,11 @@ public partial class TrainingRoomRuntime : Node
         // 不會再跟通用呼吸迴圈搶位置（那正是之前「眨眼時眼球跳到頭上」的成因）。
         float headBreathOffsetY = -globalY * HeadBreathRatio;
         if (EyeCloseCtrl != null) { EyeCloseCtrl.BreathOffsetY = headBreathOffsetY; EyeCloseCtrl.ShakeOffset = BodyShake + HeadLift; }
-        if (EyeFollowCtrl != null) { EyeFollowCtrl.BreathOffsetY = headBreathOffsetY; EyeFollowCtrl.ShakeOffset = BodyShake + HeadLift; }
+        if (EyeFollowCtrl != null)
+        {
+            EyeFollowCtrl.BreathOffsetY = headBreathOffsetY; EyeFollowCtrl.ShakeOffset = BodyShake + HeadLift;
+            EyeFollowCtrl.SuppressTracking = EyesLookStraightNow();   // 高潮或吐舌頭時眼睛要是正的：不跟著滑鼠轉，回到正前方（Mouth.cs）
+        }
 
         // 其餘一般圖層：跟著上半身整體上下移動；頭部圖層用 HeadBreathRatio（比身體多一點），
         // 下半身沒被 LegLayerSettings 接管的用 BreathLowerRatio 微量跟隨。
