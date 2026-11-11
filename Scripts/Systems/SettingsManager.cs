@@ -21,6 +21,8 @@ public partial class SettingsManager : Node
     public float SFXVolume     { get; private set; } = 0.5f;
     public float VoiceVolume   { get; private set; } = 0.5f;
     public int   LanguageIndex { get; private set; } = 0;
+    /// <summary>玩家是否已經在啟動時的語言選擇畫面選過語言（第一次啟動才會問；MainMenuRuntime.LanguagePick.cs）。</summary>
+    public bool  LanguageChosen { get; private set; } = false;
     public bool  IsFullscreen  { get; private set; } = false;
     public int   TextSpeed     { get; private set; } = 1;
     /// <summary>調教房互動物件（手、舌頭）的不透明度 0.2~1。</summary>
@@ -104,6 +106,13 @@ public partial class SettingsManager : Node
         OnVolumeChanged?.Invoke();
     }
 
+    /// <summary>記下「玩家已經選過語言」並存檔，之後啟動就不再問（除非 MainMenuRuntime.AskLanguageEveryLaunch 打開）。</summary>
+    public void MarkLanguageChosen()
+    {
+        LanguageChosen = true;
+        Save();
+    }
+
     public void SetLanguage(int i)
     {
         LanguageIndex = Mathf.Clamp(i, 0, Languages.Length - 1);
@@ -179,6 +188,7 @@ public partial class SettingsManager : Node
         cfg.SetValue(Section, "sfx",     SFXVolume);
         cfg.SetValue(Section, "voice",   VoiceVolume);
         cfg.SetValue(SectionUI,   "language",   LanguageIndex);
+        cfg.SetValue(SectionUI,   "language_chosen", LanguageChosen);
         cfg.SetValue(SectionUI,   "fullscreen", IsFullscreen);
         cfg.SetValue(SectionUI,   "textspeed",  TextSpeed);
         cfg.SetValue(SectionUI,   "resolution", ResolutionIndex);
@@ -206,6 +216,7 @@ public partial class SettingsManager : Node
         SFXVolume     = (float)cfg.GetValue(Section, "sfx",     0.5f);
         VoiceVolume   = (float)cfg.GetValue(Section, "voice",   0.5f);
         LanguageIndex = (int)cfg.GetValue(SectionUI, "language",   0);
+        LanguageChosen = (bool)cfg.GetValue(SectionUI, "language_chosen", false);
         IsFullscreen  = (bool)cfg.GetValue(SectionUI, "fullscreen", false);
         TextSpeed     = (int)cfg.GetValue(SectionUI, "textspeed",  1);
         SetInteractAlpha((float)cfg.GetValue(SectionUI, "interact_alpha", 0.85f));
