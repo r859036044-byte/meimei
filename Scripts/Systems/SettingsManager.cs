@@ -194,7 +194,7 @@ public partial class SettingsManager : Node
         cfg.SetValue(SectionUI,   "resolution", ResolutionIndex);
         cfg.SetValue(SectionUI,   "interact_alpha", InteractAlpha);
         // 全年齡 / R18 設定
-        bool r18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
+        bool r18 = PlayerDataManager.Instance?.R18ContentEnabled ?? DemoMode.Enabled;
         cfg.SetValue(SectionGame, "r18",        r18);
         cfg.Save(ConfigPath);
     }
@@ -225,7 +225,7 @@ public partial class SettingsManager : Node
         SetLanguage(LanguageIndex);
         SetTextSpeed(TextSpeed);
         // 全年齡 / R18 設定（預設 true = R18 開啟）
-        bool savedR18 = (bool)cfg.GetValue(SectionGame, "r18", false);
+        bool savedR18 = (bool)cfg.GetValue(SectionGame, "r18", DemoMode.Enabled);
         if (PlayerDataManager.Instance != null)
             PlayerDataManager.Instance.SetR18(savedR18);
         // 套用音量

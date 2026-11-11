@@ -340,6 +340,7 @@ public partial class TrainingRoomRuntime
     {
         UpdateHoverTip();   // 懸停提示氣泡（HoverTip.cs）
         UpdateBarNumbers(); // 條上的具體數值
+        UpdateDemoTimer(dt); // 試玩版倒數（DemoEnd.cs）
         // 倒數：進房間就開始算
         if (PlayTimeLimitOn && !DemoMode.Enabled && !_playTimeUp)
         {

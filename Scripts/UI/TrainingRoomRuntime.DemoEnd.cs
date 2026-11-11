@@ -12,6 +12,39 @@ public partial class TrainingRoomRuntime
     [Export] public float  DemoEndFadeSec  = 0.25f;   // 轉黑的時間（越小越「瞬間」）
     [Export] public float  DemoEndButtonDelay = 1.5f; // 多久之後才出現「返回標題」按鈕
 
+    [Export] public bool  DemoTimeLimitOn  = true;     // 試玩版時間限制（左上角狀態卡右上顯示倒數，時間到強制結束試玩）
+    [Export(PropertyHint.Range, "10,3600,1")] public float DemoTimeLimitSec = 180f;   // 3 分鐘
+    float _demoTime; Label _demoTimeLbl;
+
+    /// <summary>每幀（UpdatePlayEnd）呼叫：試玩版倒數，左上角狀態卡右上角顯示剩餘時間；歸零就直接結束試玩。</summary>
+    void UpdateDemoTimer(float dt)
+    {
+        if (!DemoMode.Enabled || !DemoTimeLimitOn || _demoEnded) return;
+        _demoTime += dt;
+        float left = Mathf.Max(0f, DemoTimeLimitSec - _demoTime);
+        if (_demoTimeLbl == null || !IsInstanceValid(_demoTimeLbl))
+        {
+            var host = (Node)UiRoot ?? _canvas;   // 狀態卡預設是隱藏的（F1 才顯示），所以不放在卡裡，直接放在 HUD 層左上角
+            if (host != null)
+            {
+                _demoTimeLbl = new Label { Name = "DemoTimeLbl", MouseFilter = Control.MouseFilterEnum.Ignore };
+                _demoTimeLbl.AnchorLeft = 0; _demoTimeLbl.AnchorTop = 0; _demoTimeLbl.AnchorRight = 0; _demoTimeLbl.AnchorBottom = 0;
+                _demoTimeLbl.OffsetLeft = 24f; _demoTimeLbl.OffsetTop = 16f; _demoTimeLbl.OffsetRight = 224f; _demoTimeLbl.OffsetBottom = 56f;
+                _demoTimeLbl.AddThemeFontSizeOverride("font_size", 30);
+                _demoTimeLbl.AddThemeConstantOverride("outline_size", 8);
+                _demoTimeLbl.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.85f));
+                _demoTimeLbl.ZIndex = 100;
+                host.AddChild(_demoTimeLbl);
+            }
+        }
+        if (_demoTimeLbl != null && IsInstanceValid(_demoTimeLbl))
+        {
+            _demoTimeLbl.Text = $"⏳ {(int)(left / 60f)}:{(int)(left % 60f):00}";
+            _demoTimeLbl.Modulate = left <= 30f ? new Color(1f, 0.35f, 0.35f) : Colors.White;
+        }
+        if (_demoTime >= DemoTimeLimitSec) { GD.Print("[Demo] 時間到 → 試玩版結束"); ShowDemoEnd(); }
+    }
+
     bool _demoEnded;
 
     void ShowDemoEnd()

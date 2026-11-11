@@ -225,10 +225,25 @@ public partial class TrainingRoomRuntime
         TriggerLoudCryMouth(Mathf.Min(lockSeconds, 2.2f));
     }
 
+    // 試玩版：這些語音不播放（從試玩版移除，匯出時也可以排除這些檔案）。完整版（DemoMode 關閉）不受影響。
+    static readonly System.Collections.Generic.HashSet<string> DemoBlockedVoices = new()
+    {
+        "moan/mid_4.wav", "moan/high_2.wav", "moan/high_4.wav",
+        "thrust/thrust_mid_2.wav", "thrust/thrust_fast_1.wav", "thrust/thrust_fast_3.wav",
+        "climax/mini_climax_1.wav", "climax/climax_fall_2.wav", "climax/climax_fall_3.wav", "climax/climax_igu_1.wav",
+        "insert/pre_ejac_breath.wav", "insert/ejac_climax.wav",
+        "talk_sweet/sweet_sokosuki_2.wav",
+        "touch_breast/breast_touch_1.wav", "touch_breast/breast_touch_2.wav",
+        "touch_mouth/mouth_kiss_1.wav", "touch_mouth/mouth_kiss_2.wav",
+    };
+    static bool IsDemoBlockedVoice(string rel) => DemoMode.Enabled && !string.IsNullOrEmpty(rel) && DemoBlockedVoices.Contains(rel.TrimStart('/'));
+    static string[] DemoFilterVoices(string[] paths) => DemoMode.Enabled ? System.Array.FindAll(paths, x => !IsDemoBlockedVoice(x)) : paths;
+
     /// <summary>播放指定路徑的 TR 語音（相對 res://Resources/Audio/Voice/TR/）</summary>
     public void PlayTrVoice(string relativePath, bool forcePriority = false, float customVolScale = -1f)
     {
         if (string.IsNullOrEmpty(relativePath)) return;
+        if (IsDemoBlockedVoice(relativePath)) return;   // 試玩版不播的語音
         if (!_seqAdvancing) { _voiceSeq.Clear(); _seqCurrent = false; }   // 別的語音插進來就取消依序佇列
         InitTrVoice();
 
@@ -291,6 +306,8 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoiceRandom(params string[] relativePaths)
     {
         if (relativePaths == null || relativePaths.Length == 0) return;
+        relativePaths = DemoFilterVoices(relativePaths);   // 試玩版：先拿掉不播的語音，再從剩下的挑
+        if (relativePaths.Length == 0) return;
         string pick = relativePaths[GD.Randi() % relativePaths.Length];
         PlayTrVoice(pick);
     }
@@ -299,6 +316,8 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoicePriorityRandom(float lockSeconds, float customVolScale, params string[] relativePaths)
     {
         if (relativePaths == null || relativePaths.Length == 0) return;
+        relativePaths = DemoFilterVoices(relativePaths);
+        if (relativePaths.Length == 0) return;
         string pick = relativePaths[GD.Randi() % relativePaths.Length];
         PlayTrVoicePriority(pick, lockSeconds, customVolScale);
     }
