@@ -173,6 +173,7 @@ public partial class TrainingRoomRuntime
     /// <summary>播放高優先級關鍵語音（破處、進入階段三、高潮、內射等），鎖定一段時間不被一般反應覆蓋，並觸發小嘴巴放大 200%</summary>
     public void PlayTrVoicePriority(string relativePath, float lockSeconds = 2.5f, float customVolScale = 1.25f)
     {
+        if (VoiceBlockedInDemo(relativePath)) return;   // 試玩版暫時封鎖的語音（VoiceBlock.cs）：連鎖定時間和嘴型都不觸發
         _voicePriorityLockTimer = 0f;
         PlayTrVoice(relativePath, forcePriority: true, customVolScale: customVolScale);
         _voicePriorityLockTimer = lockSeconds;
@@ -183,6 +184,7 @@ public partial class TrainingRoomRuntime
     public void PlayTrVoice(string relativePath, bool forcePriority = false, float customVolScale = -1f)
     {
         if (string.IsNullOrEmpty(relativePath)) return;
+        if (VoiceBlockedInDemo(relativePath)) return;   // 試玩版暫時封鎖的語音（VoiceBlock.cs）
         if (!_seqAdvancing) { _voiceSeq.Clear(); _seqCurrent = false; }   // 別的語音插進來就取消依序佇列
         InitTrVoice();
 
