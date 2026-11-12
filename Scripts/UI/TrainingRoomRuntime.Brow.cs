@@ -21,6 +21,8 @@ public partial class TrainingRoomRuntime
     [Export] public float BrowSmoothSec      = 2.5f;    // 舒服／不舒服程度的平滑時間（越大眉毛變化越慢）
     [Export] public float BrowTouchCooldownSec = 3.0f;  // 「剛觸碰就跳到 3／2 號」最短間隔（秒）；0＝每碰到新部位都跳（舊行為）
 
+    [Export] public bool BrowClimaxInstant = false;   // 高潮時眉毛是否瞬間皺到位（false＝用 BrowMoveSec 慢慢皺）
+    bool _browClimaxOn;
     float _browLingerT, _browTouchCd;
     int   _browPrevMask;
     float _browPos, _browNeg;     // 平滑後的舒服／不舒服程度（0~1）
@@ -29,6 +31,16 @@ public partial class TrainingRoomRuntime
     void UpdateBrowOperate(float dt)
     {
         if (FaceController == null || !FaceController.IsReady) return;
+
+        // 高潮（或吐舌頭）狀態：眉毛固定成 4 號（煩惱、皺眉），不跟著上面的舒服程度跑；結束後交還給下面的邏輯
+        if (EyesNoMirrorNow())
+        {
+            if (!_browClimaxOn) { _browClimaxOn = true; FaceController.SetBrowPose(-1f, false, instant: BrowClimaxInstant); }
+            else FaceController.SetBrowPose(-1f, false);
+            _browLingerT = BrowLingerSec;   // 高潮結束後再停留一下才慢慢回到 1 號
+            return;
+        }
+        if (_browClimaxOn) { _browClimaxOn = false; _browTouchCd = 0f; }
 
         bool inserted = _jijiPhase == 3 && _jijiStage >= 1 && !_jijiAnus;   // 小穴插入中
 
