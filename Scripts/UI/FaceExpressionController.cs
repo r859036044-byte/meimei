@@ -292,7 +292,8 @@ public partial class FaceExpressionController : Node
 
         // ZZZ（睡覺）暫時把眼淚圖層藏起來（使用者反應：睡覺表情不應該掛著眼淚）。
         // 眼淚圖層在其他表情下預設一律顯示，所以離開 ZZZ 時這裡會把它們設回 true 還原。
-        bool isZzz = expressionName == "ZZZ";
+        // 高潮（高潮／高潮1／高潮2）也一樣：睫毛用插入那套閉眼睫毛，但是「沒有眼淚」的版本（水滴也靠這四層判斷，一起不顯示）。
+        bool isZzz = expressionName == "ZZZ" || expressionName == "高潮" || expressionName == "高潮1" || expressionName == "高潮2";
         foreach (var tearLayer in _zzzHiddenTearLayers)
             SetLayerActive(tearLayer, !isZzz);
 
