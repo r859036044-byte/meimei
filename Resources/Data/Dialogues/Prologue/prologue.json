@@ -476,7 +476,7 @@
     {
       "speaker": "莉奈",
       "text": "吵死了，雜魚哥哥閉嘴啦。要不是看在爸爸的面子上，誰想來這種貧民窟啊。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -492,7 +492,7 @@
     {
       "speaker": "莉奈",
       "text": "喂，還愣在那裡幹嘛？是不會幫忙拿行李喔？身為男人這是你應該做的吧。快點搬啊，雜魚哥哥。",
-      "showCH": "miaoshi"
+      "chFace": "miaoshi"
     },
     {
       "text": "",
@@ -533,28 +533,29 @@
     {
       "fadein": "60",
       "bgName": "bg_LivingRoom",
-      "showCH": "Linai2(white), laugh1",
+      "showCG1": "linai sofa phone 1",
+      "showCG2": "linai sofa phone 2",
       "speaker": "男主",
       "text": "呼...呼... 搬、搬完了。莉奈，妳的行李箱還真重，裡面到底是裝了什麼啊..."
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "那是女孩子的隱私，雜魚哥哥想窺探妹妹的隱私嗎？好噁心"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "我沒那個意思……只是抱怨一下箱子有點重而已……"
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "雜魚搬個箱子就喘成這樣，你這雜魚身體也太虛了吧？平常是有多不運動啊"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "我每天上班很累的……"
     },
     {
@@ -563,42 +564,42 @@
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "學校裡前輩都這麼叫的啊"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "什麼啊??"
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "因為前輩男友很雜魚~"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "不是啦，我是說什麼前輩會滿嘴雜魚掛嘴邊啊?"
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "那當然是美樹鳳學姐了!"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "不認識....但是你.別學她的語氣啊，都學壞了都"
     },
     {
       "speaker": "莉奈",
-      "showCH": "cixiaoguixiao",
+      "_off_showCH": "cixiaoguixiao",
       "text": "我就是喜歡這麼~雜魚雜魚~"
     },
     {
       "speaker": "男主",
-      "showCH": "laugh1",
+      "_off_showCH": "laugh1",
       "text": "這就是學壞了啊......"
     },
     {
@@ -607,17 +608,17 @@
     },
     {
       "text": "（莉奈手指停在螢幕上，發出一聲冷笑）",
-      "showCH": "biaoqing1"
+      "_off_showCH": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？和你有什麼關係？你是哪來的居委會大媽嗎？",
-      "showCH": "shengqi2"
+      "_off_showCH": "shengqi2"
     },
     {
       "speaker": "男主",
       "text": "……",
-      "showCH": "biaoqing1"
+      "_off_showCH": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -626,12 +627,12 @@
     {
       "speaker": "莉奈",
       "text": "我怎麼知道，那種人，死在哪裡都跟我沒關係吧，這種事別煩我",
-      "showCH": "fanbaiyan"
+      "_off_showCH": "fanbaiyan"
     },
     {
       "speaker": "男主",
       "text": "這樣啊…",
-      "showCH": "shengqi1"
+      "_off_showCH": "shengqi1"
     },
     {
       "r18Only": true,
@@ -646,7 +647,7 @@
     {
       "speaker": "莉奈",
       "text": "我去洗澡了",
-      "showCH": "xieyanmiaoshi"
+      "_off_showCH": "xieyanmiaoshi"
     },
     {
       "speaker": "男主",
@@ -689,7 +690,7 @@
     {
       "speaker": "莉奈",
       "text": "喂，雜魚哥哥",
-      "showCH": "biaoqing1"
+      "_off_showCH": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -698,7 +699,7 @@
     {
       "speaker": "莉奈",
       "text": "從剛才開始，你就一直保持著那個噁心的勃起狀態吧？",
-      "showCH": "xieyanmiaoshi"
+      "_off_showCH": "xieyanmiaoshi"
     },
     {
       "speaker": "莉奈",
@@ -711,7 +712,7 @@
     {
       "speaker": "莉奈",
       "text": "還不承認！",
-      "showCH": "shengqi2"
+      "_off_showCH": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -720,7 +721,7 @@
     {
       "speaker": "莉奈",
       "text": "你過來……",
-      "showCH": "biaoqing1"
+      "_off_showCH": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -729,12 +730,12 @@
     {
       "speaker": "莉奈",
       "text": "叫你過來啦，過來！",
-      "showCH": "shengqi2"
+      "_off_showCH": "shengqi2"
     },
     {
       "speaker": "",
       "text": "男主來到了莉奈的身邊",
-      "showCH": "biaoqing1",
+      "_off_showCH": "biaoqing1",
       "chScale": "1.5, 180",
       "chY": "-500, 180",
       "bgScale": 1.5,
@@ -1035,7 +1036,10 @@
     {
       "speaker": "莉奈",
       "text": "把腦子裡的髒精蟲都吐乾淨後，現在總算能清醒一點了吧？雜魚♥蘿莉控哥哥",
-      "showCH": "Linai2(white), cixiaoguixiao",
+      "chOutfit": "shirt",
+      "chHair": "twin",
+      "chSocks": "white",
+      "chFace": "cixiaoguixiao",
       "fadein": "60"
     },
     {
@@ -1045,7 +1049,7 @@
     {
       "speaker": "莉奈",
       "text": "道歉？變態做完壞事之後道歉就有用了嗎？你可是對著親妹妹勃起還射精了，你這輩子都別想洗掉『死變態』這個標籤了。雜魚哥哥♥",
-      "showCH": "laugh"
+      "chFace": "laugh"
     },
     {
       "speaker": "男主",
@@ -1054,7 +1058,7 @@
     {
       "speaker": "莉奈",
       "text": "既然爽完了，就趕快給我把地板擦乾淨！我可不想一整晚都踩著這種黏糊糊的雜魚精液，光是待在同一間房間我都覺得空氣變髒了",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
@@ -1067,7 +1071,7 @@
     {
       "speaker": "莉奈",
       "text": "哼，知道害怕就好。雜魚就該有雜魚的樣子。我要去洗腳了，這股臭味真的噁心死我了",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主（內心）",
@@ -1100,7 +1104,10 @@
     {
       "speaker": "莉奈",
       "text": "什麼東西，光是聞到這種寒酸的飯菜光是聞到味道就沒胃口",
-      "showCH": "Linai2(none), biaoqing1"
+      "chOutfit": "shirt",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -1109,17 +1116,17 @@
     {
       "speaker": "莉奈",
       "text": "那是幾百年前的事了？現在的小孩誰還吃那種幼稚的東西啊。嘖，看在肚子餓的份上，我就勉為其難吃一點好了",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "男主",
       "text": "……好吃嗎？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "普通。雜魚哥哥做的飯，果然也就只有雜魚等級的水準呢",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主（內心）",
@@ -1136,17 +1143,17 @@
     {
       "speaker": "男主",
       "text": "啊…………莉奈，我一直想問。妳在學校過得怎麼樣？交到朋友了嗎？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？擔心？雜魚哥哥是在演什麼溫情家庭劇嗎？那種噁心的家長式發言，拜託收起來好嗎？聽得我雞皮疙瘩都起來了",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
       "text": "我的生活、我的朋友，跟你有什麼關係？你該不會以為讓你搬個行李、給你踩個幾下，你就有資格介入我的私生活了吧？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -1156,22 +1163,22 @@
     {
       "speaker": "莉奈",
       "text": "少在那邊擺架子了。一個雜魚哥哥有什麼資格跟我談什麼『應該不應該』？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "",
       "text": "男主拳頭不自覺地攥緊，胸口憋著一股悶氣。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主（內心）",
       "text": "莉奈……真的完全沒辦法溝通。明明想好好跟她說話，卻被她當成垃圾一樣踐踏",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "嘖，吃飽了。地板記得擦乾淨。我去洗澡了，別想著過來偷看喔，雜魚哥哥",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1180,7 +1187,7 @@
     {
       "speaker": "莉奈",
       "text": "不會就好，你敢偷看我一定報警抓你",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主（內心）",
@@ -1214,12 +1221,12 @@
     {
       "fadein": "30",
       "text": "莉奈穿著一件寬鬆到幾乎蓋不住大腿根部的長版 T 恤，頭髮濕漉漉地披在肩上，領口歪向一邊，露出大片白皙的鎖骨",
-      "showCH": "Linai4(12+), biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "喂，看什麼看？變態雜魚哥哥...就喜歡看妹妹剛洗好澡的樣子嗎？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1228,17 +1235,17 @@
     {
       "speaker": "莉奈",
       "text": "要你管？這是我家，我想怎麼穿就怎麼穿。",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
       "text": "妳這小鬼……別太過分了！這裡是我的公寓，既然妳住在這裡，就得聽我的。而且妳穿成這樣在客廳晃，到底有沒有羞恥心？就算我是妳哥，也是個正常的男人，妳這樣真的會出事的！",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？正常男人？我看是『膽小男人』才對吧？少在那邊擺出哥哥的架子了",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
@@ -1247,24 +1254,24 @@
     {
       "speaker": "莉奈",
       "text": "嘻嘻，雜魚老哥你還是多練練才來教我做事吧。晚安，哥哥♥",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     { "branchEnd": true },
     { "branchStart": "r18" },
     {
       "speaker": "莉奈",
       "text": "少在那邊擺架子了。對著親妹妹的腳都能發情的變態，有什麼資格跟我談什麼『應該不應該』？我看你腦子裡除了那點噁心的處男幻想，也裝不下別的東西了吧",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主（內心）",
       "text": "拳頭不自覺地攥緊，胸口憋著一股悶氣。這孩子……真的完全沒辦法溝通。明明想好好跟她說話，卻被她當成垃圾一樣踐踏",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "嘖，吃飽了。地板記得擦乾淨，處男臭味真的讓人反胃。我去洗澡了，別想著過來偷看喔，雜魚哥哥",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1273,7 +1280,7 @@
     {
       "speaker": "莉奈",
       "text": "你要剛剛沒發情我可能就信了~",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主（內心）",
@@ -1307,12 +1314,12 @@
     {
       "fadein": "30",
       "text": "莉奈穿著一件寬鬆到幾乎蓋不住大腿根部的長版 T 恤，頭髮濕漉漉地披在肩上，領口歪向一邊，露出大片白皙的鎖骨",
-      "showCH": "Linai4(18+), biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "喂，看什麼看？眼珠子都快掉出來了。果然是變態，看到妹妹剛洗完澡的樣子就又不行了嗎？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1321,17 +1328,17 @@
     {
       "speaker": "莉奈",
       "text": "要你管？這是我家，我想怎麼穿就怎麼穿。反正是給你這種雜魚看的，看得到吃不到的感覺很痛苦吧？",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
       "text": "妳這小鬼……別太過分了！這裡是我的公寓，既然妳住在這裡，就得聽我的。而且妳穿成這樣在客廳晃，到底有沒有羞恥心？就算我是妳哥，也是個正常的男人，妳這樣真的會出事的！",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？正常男人？我看是『發情處男』才對吧？少在那邊擺出哥哥的架子了",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
@@ -1340,7 +1347,7 @@
     {
       "speaker": "莉奈",
       "text": "嘻嘻，雜魚老哥你就抱著那種幻想去睡覺吧。晚安，變態哥哥♥",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     { "branchEnd": true },
     {
