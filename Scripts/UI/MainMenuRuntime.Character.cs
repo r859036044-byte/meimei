@@ -900,6 +900,7 @@ public partial class MainMenuRuntime : Control
 		public bool varEnd;          // true → 變數條件段落結束
 		public string gotoIfAllAges; // 非空 → 全年齡模式時跳到指定場景（而非預設目標）
 		public string gotoIfR18;     // 非空 → R18 模式時跳到指定場景（而非預設目標）
+		public string stopAndGoto;   // 非空 → 劇情播到這一行就停，直接前往這個場景（後面的文本保留但不播；拿掉這一行就恢復）
 		// 選擇框分歧：{ "choice": ["A","B"] } → 顯示選擇框；
 		// 之後用 { "optionStart": 0 } ... { "optionEnd": true } 包住對應選項的劇情
 		public string[] choice;      // 非空 → 顯示選擇框，選項文字依序為陣列內容

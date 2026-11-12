@@ -1420,6 +1420,7 @@
       "speaker": "男主",
       "text": "真是的，肚臍都露在外面了，會著涼的…。"
     },
+    { "stopAndGoto": "TrainingRoom" },
     { "choice": ["蓋被子", "不蓋被子"] },
     { "optionStart": 0 },
     { "addVar": "day1_blanket" },

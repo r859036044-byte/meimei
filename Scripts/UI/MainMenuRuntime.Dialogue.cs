@@ -489,11 +489,15 @@ public partial class MainMenuRuntime : Control
 
         bool isR18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
         int activeChoice = -1; // 最近一次選擇框的結果（0 起算）
+        string stopGotoScene = null; // stopAndGoto 指定的場景（有的話優先於 gotoIfAllAges／gotoIfR18）
         string lastSpk = "", lastTxt = ""; // 最近一句顯示的台詞（選擇框出現時要保留在對話框上）
 
         for (int _i = 0; _i < data.lines.Length; _i++)
         {
             var line = data.lines[_i];
+
+            // { "stopAndGoto": "場景名" }：劇情播到這裡就停，直接前往指定場景；後面的文本保留在檔案裡但暫時不播
+            if (!string.IsNullOrEmpty(line.stopAndGoto)) { stopGotoScene = line.stopAndGoto; break; }
 
             // ── 分歧跳躍邏輯 ─────────────────────────────────────
             // 全年齡模式：遇到 r18 分歧開始 → 跳到對應的 branchEnd
@@ -1345,6 +1349,7 @@ public partial class MainMenuRuntime : Control
             if (!isR18 && !string.IsNullOrEmpty(l.gotoIfAllAges)) { nextScene = l.gotoIfAllAges; break; }
             if ( isR18 && !string.IsNullOrEmpty(l.gotoIfR18))     { nextScene = l.gotoIfR18;     break; }
         }
+        if (stopGotoScene != null) nextScene = stopGotoScene;
         GD.Print($"[Dialogue] 序章播放完畢，前往 {nextScene}");
         if (_reader != null) _reader.KeepChrome = false;
         SetActive(_dialoguePanel, false);
