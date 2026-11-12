@@ -57,7 +57,7 @@ public partial class TrainingRoomRuntime
         UpdateBreakChoices();   // 破功結束就收掉「慢下來／射進去」選項（BreakChoice.cs）
         if (_vertBarsPanel != null && IsInstanceValid(_vertBarsPanel)) _vertBarsPanel.Visible = !HideErectBar;
 
-        bool show = !GateJijiHud || _erectOn || _jijiPhase != 0;
+        bool show = (!GateJijiHud || _erectOn || _jijiPhase != 0) && !AllAgesLocked;   // 全年齡：左下角的雞雞按鈕、精力條、忍耐、射精都不出現
         float step = dt / Mathf.Max(0.01f, HudGateFadeSec);
         _hudGateA = Mathf.MoveToward(_hudGateA, show ? 1f : 0f, step);
         var col = new Color(1f, 1f, 1f, _hudGateA);
