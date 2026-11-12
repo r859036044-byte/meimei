@@ -214,7 +214,12 @@ public partial class TrainingRoomRuntime : Node
         int night = pdm.CurrentNight;
         if (pdm.TodayDidNothing) pdm.IdleNightCount++;
 
-        if (night == 1 || night == 2)
+        if (night == 1 && LivingRoomRuntime.PrologueLastPending)
+        {   // 第一次從 TrainingRoom 出來：先接 PrologueLast（LivingRoom 自己會播），再進 Day2，不直接跳 Day2
+            pdm.ResetTodayTracking();
+            GetTree().ChangeSceneToFile("res://Scenes/LivingRoom.tscn");
+        }
+        else if (night == 1 || night == 2)
         {
             pdm.ResetTodayTracking();
             LivingRoomRuntime.PendingDay3 = true;
@@ -244,7 +249,11 @@ public partial class TrainingRoomRuntime : Node
             return;
         }
 
-        if (night == 1 || night == 2)
+        if (night == 1 && LivingRoomRuntime.PrologueLastPending)
+        {   // 第一次從 TrainingRoom 出來：先接 PrologueLast（LivingRoom 自己會播），再進 Day2，不直接跳 Day2
+            GetTree().ChangeSceneToFile("res://Scenes/LivingRoom.tscn");
+        }
+        else if (night == 1 || night == 2)
         {
             // LivingRoomRuntime 只公開 PendingDay3 旗標；日夜文本內容由
             // LivingRoomRuntime 依 PlayerDataManager.CurrentNight 自行判斷。

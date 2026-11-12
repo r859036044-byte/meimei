@@ -22,6 +22,8 @@ public partial class LivingRoomRuntime : Node
     // ── 初次進入判斷 ─────────────────────────────────────────────
     static readonly HashSet<string> _playedDialogues = new();
     static bool HasDialoguePlayed(string id) => _playedDialogues.Contains(id);
+    /// <summary>PrologueLast 還沒播過（第一次從 TrainingRoom 出來時要先接這段，再進 Day2）。</summary>
+    public static bool PrologueLastPending => !HasDialoguePlayed("PrologueLast");
     static void MarkDialoguePlayed(string id) => _playedDialogues.Add(id);
     /// <summary>開新遊戲時清掉「已播過」紀錄與待播旗標（NewGameReset 呼叫）</summary>
     public static void ResetForNewGame()
