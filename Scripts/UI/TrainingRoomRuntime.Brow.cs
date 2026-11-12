@@ -21,18 +21,8 @@ public partial class TrainingRoomRuntime
     [Export] public float BrowSmoothSec      = 2.5f;    // 舒服／不舒服程度的平滑時間（越大眉毛變化越慢）
     [Export] public float BrowTouchCooldownSec = 3.0f;  // 「剛觸碰就跳到 3／2 號」最短間隔（秒）；0＝每碰到新部位都跳（舊行為）
 
-    [Export] public bool BrowClimaxInstant = true;   // 高潮時眉毛是否瞬間皺到位（false＝用 BrowMoveSec 慢慢皺）
-    [Export] public float ClimaxEyesHoldSec = 3f;   // 高潮抖動結束後，高潮的睫毛／眉毛再維持幾秒才變回原本的
+    [Export] public bool BrowClimaxInstant = false;   // 高潮時眉毛是否瞬間皺到位（false＝用 BrowMoveSec 慢慢皺）
     bool _browClimaxOn;
-    ulong _climaxEyesUntilMs;
-
-    /// <summary>高潮的睫毛／眉毛現在要不要出現：身體正在高潮抖動（痙攣）時開，抖動結束後再維持 ClimaxEyesHoldSec 秒；再抖動就再出現。</summary>
-    bool ClimaxEyesNow()
-    {
-        ulong now = Time.GetTicksMsec();
-        if (_spasmsRunning) _climaxEyesUntilMs = now + (ulong)(Mathf.Max(0f, ClimaxEyesHoldSec) * 1000f);
-        return now < _climaxEyesUntilMs;
-    }
     float _browLingerT, _browTouchCd;
     int   _browPrevMask;
     float _browPos, _browNeg;     // 平滑後的舒服／不舒服程度（0~1）
@@ -43,7 +33,7 @@ public partial class TrainingRoomRuntime
         if (FaceController == null || !FaceController.IsReady) return;
 
         // 高潮（或吐舌頭）狀態：眉毛固定成 4 號（煩惱、皺眉），不跟著上面的舒服程度跑；結束後交還給下面的邏輯
-        if (ClimaxEyesNow())
+        if (EyesNoMirrorNow())
         {
             if (!_browClimaxOn) { _browClimaxOn = true; FaceController.SetBrowPose(-1f, false, instant: BrowClimaxInstant); }
             else FaceController.SetBrowPose(-1f, false);

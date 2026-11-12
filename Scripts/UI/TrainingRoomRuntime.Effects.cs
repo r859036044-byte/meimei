@@ -173,7 +173,7 @@ public partial class TrainingRoomRuntime : Node
             EyeFollowCtrl.BreathOffsetY = headBreathOffsetY; EyeFollowCtrl.ShakeOffset = BodyShake + HeadLift;
         }
         if (EyeCloseCtrl != null) EyeCloseCtrl.SuppressFlip = EyesNoMirrorNow();
-        FaceController?.SetClimaxEyes(ClimaxEyesNow());   // 高潮／吐舌頭狀態：睫毛眉毛換成插入那一套、不帶眼淚（FaceExpressionController.cs）   // 吐舌頭或高潮時眼睛不要鏡像（不翻轉）（Mouth.cs）
+        FaceController?.SetClimaxEyes(EyesNoMirrorNow());   // 高潮／吐舌頭狀態：睫毛眉毛換成插入那一套、不帶眼淚（FaceExpressionController.cs）   // 吐舌頭或高潮時眼睛不要鏡像（不翻轉）（Mouth.cs）
 
         // 其餘一般圖層：跟著上半身整體上下移動；頭部圖層用 HeadBreathRatio（比身體多一點），
         // 下半身沒被 LegLayerSettings 接管的用 BreathLowerRatio 微量跟隨。
