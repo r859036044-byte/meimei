@@ -298,6 +298,35 @@ public partial class FaceExpressionController : Node
             SetLayerActive(tearLayer, !isZzz);
 
         ApplyExpressionTransforms(expressionName);
+        if (_climaxEyesOn) ApplyClimaxEyes();   // 高潮狀態中，別的表情切換進來也維持高潮的眼睛
+    }
+
+    // ── 高潮的眼睛（睫毛＋眉毛＋沒有眼淚）──
+    // 嘴巴是跟著「狀態」變的（高潮痙攣／叫聲／射精／吐舌頭，見 TrainingRoomRuntime.Mouth.cs），不是跟著表情名稱；
+    // 所以嘴巴已經是高潮的樣子，表情本身可能還停在別的（例如做愛3、ZZZ），睫毛眉毛就沒跟著變。
+    // 這裡在那些狀態下，直接把睫毛／眉毛／眼淚調成「插入」那一套（閉眼睫毛＋眉毛位移）、不帶眼淚。
+    bool _climaxEyesOn;
+
+    /// <summary>true＝現在是高潮／吐舌頭狀態：睫毛、眉毛強制成插入那一套、不帶眼淚；false＝還原成目前表情本來的樣子。</summary>
+    public void SetClimaxEyes(bool on)
+    {
+        if (on == _climaxEyesOn) return;
+        _climaxEyesOn = on;
+        if (on) ApplyClimaxEyes();
+        else if (!string.IsNullOrEmpty(_currentExpr)) { _climaxEyesOn = false; SetExpression(_currentExpr); }
+    }
+
+    void ApplyClimaxEyes()
+    {
+        if (_eyeCloseCtrl != null)
+        {
+            _eyeCloseCtrl.ClosedExtraOffsetY = 0f;
+            _eyeCloseCtrl.LowerLashExtraUpY = 0f;
+            _eyeCloseCtrl.ClosedExtraRotateZ = 0f;
+            _eyeCloseCtrl.SetClosed(true);   // 跟「插入」「高潮」表情一樣的閉眼睫毛
+        }
+        ApplyExpressionTransforms("插入1");   // 眉毛和臉層的位移／旋轉，跟插入一樣
+        foreach (var tearLayer in _zzzHiddenTearLayers) SetLayerActive(tearLayer, false);   // 沒有眼淚的版本
     }
 
     public void SetExpression(int index)
