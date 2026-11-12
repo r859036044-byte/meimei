@@ -282,8 +282,8 @@ public partial class SpineChar : Control
             foreach (var k in _anims.Keys) { Body = k; break; }
         }
 
-        GD.Print("[SpineChar] 載入完成：骨骼 " + _bones.Count + "、欄位 " + _slots.Count +
-                 "、皮膚 " + _skins.Count + "、動畫 " + _anims.Count);
+        GD.Print("[SpineChar] 載入完成：" + jsonPath + "（" + FileAccess.GetFileAsString(jsonPath).Length + " 字元）骨骼 " + _bones.Count + "、欄位 " + _slots.Count +
+                 "、皮膚 " + _skins.Count + "、動畫 " + _anims.Count + "　［新版：骨骼 17、欄位 10；舊版：骨骼 16、欄位 7］");
         return true;
     }
 
