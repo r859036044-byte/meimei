@@ -1221,6 +1221,9 @@
     {
       "fadein": "30",
       "text": "莉奈穿著一件寬鬆到幾乎蓋不住大腿根部的長版 T 恤，頭髮濕漉漉地披在肩上，領口歪向一邊，露出大片白皙的鎖骨",
+      "chOutfit": "sleep",
+      "chHair": "long",
+      "chSocks": "none",
       "chFace": "biaoqing1"
     },
     {
@@ -1314,6 +1317,9 @@
     {
       "fadein": "30",
       "text": "莉奈穿著一件寬鬆到幾乎蓋不住大腿根部的長版 T 恤，頭髮濕漉漉地披在肩上，領口歪向一邊，露出大片白皙的鎖骨",
+      "chOutfit": "sleep",
+      "chHair": "long",
+      "chSocks": "none",
       "chFace": "biaoqing1"
     },
     {
