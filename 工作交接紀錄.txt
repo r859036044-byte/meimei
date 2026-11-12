@@ -1,0 +1,125 @@
+meimei（Godot 4.7.2 .NET / C#）工作交接紀錄
+整理日期：2026-11-09
+專案路徑：D:\Godot\meimei
+注意：以下所有改動「都沒有在 Godot 裡實際編譯或執行驗證過」（這邊沒有 Godot 環境），
+請先在本機 build、跑一遍遊戲確認，再 commit。
+
+==================================================
+0. 專案背景（給下一個 Claude／自己看）
+==================================================
+- 遊戲畫面全部用程式在 TrainingRoomRuntime（partial class，很多個 .cs）建出來，
+  角色是 2000x3200 全畫布 PNG（Resources/Sprites/），圖層順序 = _charRoot 子節點順序，
+  由 TrainingRoomRuntime.Fields.cs 的 LayerOrder 決定；Layers 字典用名稱（如 "m腿/腿1"）取控制項。
+- 命名：腿=大腿、腳=小腿、足=腳掌；_M = 舉腳(M腿)版本；腿底_M=皮膚底；內褲_M=舉腳內褲。
+- C# 檔多為 CRLF 換行（Cloth.cs、HudGate.cs、Camera.cs、Voice.cs、DemoEnd.cs…），改檔要保留 CRLF。
+- csproj 會編譯子資料夾所有 .cs：備份 .cs 一定要改副檔名（例如 .cs.txt），否則重複類別報錯。
+- 試玩版開關：Scripts/Systems/DemoMode.cs（DefaultEnabled = true）。
+
+==================================================
+1. 已完成的改動（依主題）
+==================================================
+
+[A] 建置／視窗／音檔整理
+- meimei.csproj：加 <Compile Remove="Scripts/SpineChar.cs" />，解掉 SpineChar 重複定義的編譯錯誤。
+- Scripts/Systems/SettingsManager.cs：預設改成視窗模式 1600x900（不再全螢幕）。
+- D:\Godot\meimei\_使用中音檔\：把實際用到的音檔整理出來（165 檔，含「音檔使用清單.md」與 .gdignore）。
+
+[B] 舉腿(M腿)相關
+1) 手在腿下面：Scripts/UI/TrainingRoomRuntime.Cloth.cs
+   - 新增 UpdateHandUnderMLeg()，在 UpdateClothTop() 裡 ApplyClothOnTop() 後呼叫；
+     M腿打開時把「手2」移到最低的腿遮罩圖層之前，關閉時放回「衣服」之前。
+2) 腿放下時不該出現的舉腳圖層：Scripts/UI/TrainingRoomRuntime.HudGate.cs
+   - EnforceMLegLayersHidden() 加保險：非 M腿狀態下強制隱藏 "洞","開1","開上","插入","肚子"（並印 [MLegGuard] log）。
+   - 注意：真正漏出來的圖層從未確認，這是「防禦性保險」。
+3) 鏡頭：Scripts/UI/TrainingRoomRuntime.Camera.cs
+   - 已拉近時抬腿不會再更近；滾輪可縮小（最小 1.1）；Home 鍵在 M腿時不再被擋。
+   - _mLegZoomFloor 改為 _mLegSetZoom；關閉 M腿時只在縮放值沒被使用者改過才還原。
+4) 貼圖修正（Resources/Sprites/）
+   - 腿1_M_cut.png、腿2_M_cut.png：找回被 _cut 吃掉的黑色輪廓線。
+   - 身體.png：移除內褲下方的粉色區塊（x880–1120, y1585–1740 內、腿 alpha≤25 的像素）。
+   - 腳1_M.png、腳2_M.png：小腿黑線加粗（區域限制＋羽化）。
+   - 腿2_M.png、腿2_M_cut.png：膝蓋上緣右側（約畫布 x636–692, y1090–1150）那段很淺的細黑線加粗。
+   - 原版備份在 D:\Godot\meimei\_備份\（腿1_M_cut/腿2_M_cut/身體/腿1_M/腿2_M/腳1_M/腳2_M 等原圖，含 .gdignore）。
+   - 雜物：_備份\腳_orig_check_skip.txt 是我誤建的空檔，請手動刪除。
+   - 加粗方法（可重現）：用「暗線遮罩 alpha>30 & r<215 & g<140 & b<140」找線，
+     距離變換量局部半寬，只在指定區域內往外擴 2~3px、邊緣羽化，填色 (62,20,24)。
+
+[C] 語音（Scripts/UI/TrainingRoomRuntime.Voice.cs，CRLF）
+1) 隨機嬌喘 PlayBreathMoan() 只從指定編號抽：
+   moan_breath/breath_ 的 1~9、11~12、15、21~26、30~31、33、35~38、41~50（BreathIds 陣列）。
+2) 「無觸碰」固定語音（不再隨機）：新增 PlayTrVoiceSeq / UpdateVoiceSeq / TryPlayIdleFixedVoice，
+   在 PlayGirlVoiceForText 的「雌小鬼規則」之前，且只在沒有任何部位被碰時生效：
+     哼～雜魚      -> fun → brat_zako_1
+     ～弱雞        -> brat_zako_2
+     笨蛋笨蛋      -> brat_baka
+     才不聽你的呢  -> fun → brat_baka
+     雜魚好沒用    -> brat_taunt
+     雜魚也敢命令我-> fun → sono_teido
+     等好久了      -> fun
+   - 同一句內音檔依序播（前一個播完才接下一個）；新台詞出現會立刻中斷上一輪、直接播最新的。
+   - fun.wav、sono_teido.wav 原本不在遊戲音檔夾，已複製到 Resources/Audio/Voice/TR/talk_brat/。
+   - 備份：D:\Godot\meimei\無觸碰音效原備份\TrainingRoomRuntime.Voice.cs.txt（改動前版本，含說明.txt、.gdignore）。
+     還原：複製回 Scripts\UI\ 並去掉 .txt。
+3) 摸頭語音：PlayPartTouchVoice 的 "head"（沒插入時）拿掉 sleep_hum_1/2，
+   現在是 brat_zako_1 / brat_zako_2 / brat_taunt / sweet_aha；插入中仍是 sleep_sigh_1/2 + sweet_gyutte。
+   （中途試過「只播 4 個」又撤回，最終以此為準。）
+
+[D] 表情（睡覺 ZZZ，預設進房表情）
+- Scripts/UI/FaceExpressionController.cs：ZZZ 眉毛 OffsetY 15 -> 9（往上 6px）；
+  新增 _lowerLashUpMap（ZZZ = 6）→ 設到 EyeCloseController.LowerLashExtraUpY。
+- Scripts/UI/EyeCloseController.cs：SlidePart 新增 IsLowerLash；新增 LowerLashExtraUpY，
+  閉眼位置計算時下睫毛再往上扣這個值。
+- Scripts/UI/TrainingRoomRuntime.Expression.cs：下睫毛1/2 的 SlidePart 設 IsLowerLash = true。
+- 使用者曾說「鼻子不要動」：程式沒有動任何鼻子圖層（表情/鼻子），鼻子座標沒變；
+  若使用者實際看到鼻子位置變了，需要截圖對照再查。
+
+[E] 試玩版倒計時（目前「已關閉」）
+- Scripts/UI/TrainingRoomRuntime.DemoEnd.cs：新增 UpdateDemoCountdown(dt)、DemoCountdownSec=90、
+  DemoCountdownEnabled=false（總開關；要恢復改 true）。左上角「試玩 m:ss」，最後 10 秒變紅，
+  歸零自動呼叫 ShowDemoEnd()（黑屏「試玩版已結束」→ 1.5 秒後「返回標題」按鈕）。
+- Scripts/UI/TrainingRoomRuntime.cs：_Process 內 UpdateTrVoice(dt) 後加 UpdateDemoCountdown(dt)。
+- 射精即結束的原機制不變。
+
+==================================================
+2. 這次改過的檔案總表（commit 時可對照）
+==================================================
+meimei.csproj
+Scripts/Systems/SettingsManager.cs
+Scripts/UI/TrainingRoomRuntime.cs
+Scripts/UI/TrainingRoomRuntime.Cloth.cs
+Scripts/UI/TrainingRoomRuntime.HudGate.cs
+Scripts/UI/TrainingRoomRuntime.Camera.cs
+Scripts/UI/TrainingRoomRuntime.Voice.cs
+Scripts/UI/TrainingRoomRuntime.Expression.cs
+Scripts/UI/TrainingRoomRuntime.DemoEnd.cs
+Scripts/UI/FaceExpressionController.cs
+Scripts/UI/EyeCloseController.cs
+Resources/Sprites/腿1_M_cut.png, 腿2_M_cut.png, 腿2_M.png, 身體.png, 腳1_M.png, 腳2_M.png
+Resources/Audio/Voice/TR/talk_brat/fun.wav, sono_teido.wav（新增）
+新增資料夾：_備份/、無觸碰音效原備份/、_使用中音檔/（都有 .gdignore）
+
+git 建議：
+- 備份資料夾與 _使用中音檔 可以不進 git（或寫進 .gitignore），它們只是本機整理用。
+- 圖片檔很大，若尚未用 Git LFS 可考慮設定 *.png / *.wav 走 LFS。
+
+==================================================
+3. 待辦／尚未驗證
+==================================================
+- 全部改動需在 Godot 編譯、實測：手在腿下、舉腿鏡頭縮放、黑線粗細、粉色區塊消失、
+  無觸碰固定語音順序與中斷、摸頭語音、ZZZ 眉毛/下睫毛位置。
+- 手動刪除 _備份\腳_orig_check_skip.txt。
+- 使用者說音樂搬到 D:\Godot（專案外）；程式沒有改任何音檔路徑。
+  若遊戲找不到音檔，需要確認新位置並把路徑指過去（目前程式讀 res://Resources/Audio/...）。
+- 膝蓋細黑線：已針對 腿2_M（左腿）處理；若右腿（腿1_M）也有同樣問題要再處理。
+- 眉毛/下睫毛上移量（6px）若不合適，改 FaceExpressionController.cs 裡的 9 與 _lowerLashUpMap。
+
+==================================================
+4. 工具限制（在 Claude 雲端 + 本機橋接時）
+==================================================
+- 本機 device_bash 無法使用（Workspace unavailable）；改檔流程是：
+  device_stage_files（≤50 檔）→ 在雲端容器處理 → 寫到 /mnt/user-data/outputs → device_commit_files
+  （用 expectedMtimeMs 防止蓋掉使用者剛改的檔）。
+- 本機無法刪檔（沒有刪除權限），所以「備份」都是複製、雜檔需手動刪。
+- 容器內可用 PIL / numpy / scipy / skimage 做貼圖處理。
+
+（完）

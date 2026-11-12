@@ -2,16 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dil4xtp4d3iu"
-path="res://.godot/imported/bg_Apartment.png-c6761411cb3b677b97120f9fb2d77bbe.ctex"
-metadata={
-"vram_texture": false
-}
+uid="uid://cnj6qtwygt1da"
+valid=false
 
 [deps]
 
 source_file="res://Resources/Backgrounds/bg_Apartment.png"
-dest_files=["res://.godot/imported/bg_Apartment.png-c6761411cb3b677b97120f9fb2d77bbe.ctex"]
 
 [params]
 
