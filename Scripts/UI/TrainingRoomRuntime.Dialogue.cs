@@ -190,6 +190,7 @@ public partial class TrainingRoomRuntime : Node
         if (pdm == null) return;
 
         _endingDay = true;
+        RecordBlanketState(pdm);   // 離開時記錄今晚蓋沒蓋被子：dayN_blanket／dayN_noBlanket（劇本條件用）
         if (pdm.TodayDidNothing)
         {
             TaskLogger.Run(IdleEndFlowAsync(), "TrainingRoom.IdleEndFlowAsync");
@@ -202,6 +203,20 @@ public partial class TrainingRoomRuntime : Node
         var branch = pdm.GetDay2Branch();
         bool success = branch != PlayerDataManager.Day2Branch.InsertNoOrgasm;
         TaskLogger.Run(TrainingEndFlowAsync(success), "TrainingRoom.TrainingEndFlowAsync");
+    }
+
+    /// <summary>離開 TrainingRoom 時，依被子狀態設定劇情變數：蓋著＝dayN_blanket、踢開＝dayN_noBlanket（N＝今晚是第幾晚，只記第 1、2 晚）。
+    /// 兩個變數互斥：設其中一個為 1、另一個歸 0，劇本的 varStart 條件就能判斷。</summary>
+    void RecordBlanketState(PlayerDataManager pdm)
+    {
+        int night = pdm.CurrentNight;
+        if (night < 1 || night > 2) return;
+        bool covered = DuvetState == 0;   // 0＝蓋著、1＝踢開
+        string yes = $"day{night}_" + (covered ? "blanket" : "noBlanket");
+        string no  = $"day{night}_" + (covered ? "noBlanket" : "blanket");
+        pdm.AddDialogueVar(yes, 1 - pdm.GetDialogueVar(yes));
+        pdm.AddDialogueVar(no, -pdm.GetDialogueVar(no));
+        GD.Print($"[Troom] 被子狀態：{(covered ? "蓋被子" : "不蓋被子")} → {yes}=1、{no}=0");
     }
 
     async Task IdleEndFlowAsync()
