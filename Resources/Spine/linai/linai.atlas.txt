@@ -1,4 +1,4 @@
-linai.png
+妹妹立繪.png
 size:4080,1348
 filter:Linear,Linear
 側髮右
