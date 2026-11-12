@@ -214,6 +214,7 @@ public partial class MainMenuRuntime : Control
 	}
 
 	// ── Spine 立繪 ──────────────────────────────────────────────
+	[Export] public bool Spine18PlusOutfit = true;   // true＝R18 時劇本的 sleep 自動換成 sleep2（18+ 睡衣）；false＝不換
 	static bool HasSpine(PrologueLine l)
 		=> !string.IsNullOrWhiteSpace(l.chOutfit) || !string.IsNullOrWhiteSpace(l.chSkin)
 		|| !string.IsNullOrWhiteSpace(l.chHair)   || !string.IsNullOrWhiteSpace(l.chSocks)
@@ -225,6 +226,8 @@ public partial class MainMenuRuntime : Control
 		if (_spineChar == null || !_spineChar.EnsureLoaded()) return;
 
 		string outfit = !string.IsNullOrWhiteSpace(l.chOutfit) ? l.chOutfit : l.chSkin;
+		// sleep＝12+（全年齡睡衣，不透）、sleep2＝18+（R18 睡衣，半透明）：劇本一律寫 sleep，R18 開著時自動換成 sleep2
+		if (Spine18PlusOutfit && outfit != null && outfit.Trim() == "sleep" && (PlayerDataManager.Instance?.R18ContentEnabled ?? false)) outfit = "sleep2";
 		_spineChar.Apply(outfit, l.chHair, l.chSocks, l.chFace, l.chAnim);
 
 		// 已經在畫面上 → 只換外觀，不重新淡入
