@@ -131,6 +131,7 @@ public partial class TrainingRoomRuntime
 
     void SayMale(string[] lines)
     {
+        if (AllAgesLocked) return;   // 全年齡：男主不說跟雞雞、勃起、插入有關的台詞（這組台詞全年齡一律不出現）
         string t = Pick(lines);
         if (string.IsNullOrEmpty(t)) return;
         var parts = t.Split('|', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);   // 太長的台詞用「|」分成幾段，先後出現

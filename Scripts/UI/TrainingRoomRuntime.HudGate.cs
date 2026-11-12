@@ -54,6 +54,7 @@ public partial class TrainingRoomRuntime
     void UpdateHudGate(float dt)
     {
         EnforceMLegLayersHidden();
+        if (AllAgesLocked) HideAllAgesBottomUi();
         UpdateBreakChoices();   // 破功結束就收掉「慢下來／射進去」選項（BreakChoice.cs）
         if (_vertBarsPanel != null && IsInstanceValid(_vertBarsPanel)) _vertBarsPanel.Visible = !HideErectBar;
 
@@ -81,6 +82,17 @@ public partial class TrainingRoomRuntime
             _jijiGauge.Value = Mathf.Clamp(Stamina / 100f, 0f, 1f);   // 溫度計滿格＝精力 100（破功線）
             _jijiGauge.Full = _breaking || Stamina >= 100f;           // 滿了：放大並震動，這段時間可以按忍耐回去
             _jijiGauge.Urgency = BreakProgress;                       // 破功倒數越接近射，放大和震動越強
+        }
+    }
+
+    // 全年齡：左下角那排工具按鈕（左手／右手／雞雞／舌頭／衣服模式／滑鼠）全部不出現（右上「?」和離開房間不動）
+    static readonly string[] _allAgesHiddenUi = { "BtnLeft", "BtnRight", "Btn2", "BtnTongue", "BtnDrag", "BtnMouse", "JijiGauge", "StaminaPanel", "VertBars", "BtnEndure", "BtnEjac" };
+    void HideAllAgesBottomUi()
+    {
+        foreach (var n in _allAgesHiddenUi)
+        {
+            var c = UiRoot?.GetNodeOrNull<Control>(n);
+            if (c != null && c.Visible) c.Visible = false;
         }
     }
 }
