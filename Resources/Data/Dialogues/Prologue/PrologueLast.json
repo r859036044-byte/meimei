@@ -11,12 +11,15 @@
     {
       "speaker": "男主",
       "text": "……早、早啊，莉奈。昨天睡得還好嗎？",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哼，還算可以啦。雜魚把房間照顧得還可以呢，不過被子蓋得有點太暖了，弄得我臉頰都有點熱熱的呢~❤。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -25,12 +28,12 @@
     {
       "speaker": "莉奈",
       "text": "是啊~不知道是不是昨晚有什麼溫柔的東西跑進來了呢？真是雜魚房間呢~❤。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
       "text": "還不趕快去給我做早餐！難道要讓可愛的妹妹餓肚子嗎？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -54,7 +57,10 @@
     {
       "speaker": "莉奈",
       "text": "哼，今天的煎蛋勉強及格吧。看在你這麼賣力討好我的份上，就稍微稱讚一下雜魚哥哥好了❤。吃飽了，我出門了！",
-      "showCH": "Linai1, biaoqing1"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -63,12 +69,12 @@
     {
       "speaker": "",
       "text": "莉奈剛走到門口突然回頭，帶著狡黠的笑意",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
       "text": "…記得以後把手洗乾淨一點喔，雜魚哥哥再見～❤",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -104,17 +110,20 @@
     {
       "speaker": "男主",
       "text": "……早、早啊，莉奈。昨天睡得還好嗎？",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "看什麼看？噁心死了，一大早就用那種雜魚般的眼神盯著別人看。",
-      "showCH": "miaoshi"
+      "chFace": "miaoshi"
     },
     {
       "speaker": "莉奈",
       "text": "還不趕快去給我做早餐！難道要讓可愛的妹妹餓肚子嗎？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -123,7 +132,7 @@
     {
       "speaker": "莉奈",
       "text": "隨便啦！反正雜魚也做不出什麼高級料理，只要能吃就行。動作快點，沒用的雜魚哥哥❤。",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "speaker": "男主（內心）",
@@ -132,12 +141,12 @@
     {
       "speaker": "莉奈",
       "text": "雜魚❤在那邊發什麼呆？該不會腦子裡又在想什麼蠢事吧？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
       "text": "反正雜魚就是雜魚❤就是個什麼都做不好的雜魚❤呢~！",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
@@ -161,7 +170,10 @@
     {
       "speaker": "莉奈",
       "text": "哼，今天的煎蛋勉強及格吧。吃飽了，我出門了！別忘了把盤子洗乾淨啊，沒用的雜魚哥哥❤。",
-      "showCH": "Linai1, fanbaiyan"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
@@ -190,12 +202,15 @@
     {
       "speaker": "男主",
       "text": "……早、早啊，莉奈。昨天睡得還好嗎？",
-      "showCH": "Linai3(18+), biaoqing1"
+      "chOutfit": "sleep2",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "看屁啊！眼珠子再亂轉我就把它挖出來喔！",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -204,7 +219,7 @@
     {
       "speaker": "莉奈",
       "text": "吵死了！閉嘴！還不趕快去給我做早餐！沒用的東西，難道要讓可愛的妹妹餓著肚子開始新的一天嗎？",
-      "showCH": "miaoshi"
+      "chFace": "miaoshi"
     },
     {
       "speaker": "男主",
@@ -213,7 +228,7 @@
     {
       "speaker": "莉奈",
       "text": "隨便啦！只要不是雜魚等級的食物就好。動作快點，，變態處男哥哥。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -222,7 +237,7 @@
     {
       "speaker": "莉奈",
       "text": "喂！你在那邊自言自語什麼？一臉噁心的笑，該不會腦子裡又在想什麼下流的事吧？變態！噁心！垃圾！",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "男主",
@@ -234,7 +249,7 @@
     {
       "speaker": "莉奈",
       "text": "……嘖。那種黏糊糊的感覺還在…可惡，真的得快點去洗個澡才行。…",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "text": "",
@@ -276,7 +291,10 @@
     },
     {
       "speaker": "莉奈",
-      "showCH": "Linai1, biaoqing1",
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing1",
       "text": "哼，勉強及格吧。這就是雜魚哥哥最後的價值了。我出門了！"
     },
     {

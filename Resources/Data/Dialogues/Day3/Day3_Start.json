@@ -11,12 +11,15 @@
     {
       "speaker": "男主",
       "text": "莉奈，早安。",
-      "showCH": "Linai1, biaoqing1"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "早安呀，哥哥~❤",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -25,17 +28,17 @@
     {
       "speaker": "莉奈",
       "text": "嗯，是沒睡好，但是是因為什麼沒睡好的呢，嘻嘻",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "欸……幹嘛那麼神神秘秘的？",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "沒事，雜魚哥哥，你專心做的你飯吧~❤",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -333,12 +336,15 @@
     {
       "speaker": "男主",
       "text": "莉奈，早安。",
-      "showCH": "Linai1, biaoqing1"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "早安呀，哥哥~❤",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -347,17 +353,17 @@
     {
       "speaker": "莉奈",
       "text": "哎呀，被哥哥看出來啦？昨晚確實沒怎麼睡呢，不過……人家可是非常開心喔❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "很開心？沒睡好有什麼好開心的？",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "因為啊，昨晚房間裡跑進來一隻好大、好笨的「老鼠」呢。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -370,12 +376,12 @@
     {
       "speaker": "男主",
       "text": "老、老鼠！？家裡怎麼會有老鼠！而且這有什麼好開心的……",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "因為那隻老鼠雖然遲鈍了一天，但還是笨得很可愛呀~❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -396,7 +402,7 @@
     {
       "speaker": "莉奈",
       "text": "可是人家就是想吃哥哥手裡的嘛~。來，啊——❤。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "text": "男主不知所措地把麵包遞過去"
@@ -411,7 +417,7 @@
     {
       "speaker": "莉奈",
       "text": "嗯~❤，果然哥哥餵的最好吃了。那人家吃飽了，準備出門囉~。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -434,27 +440,30 @@
       "fadein": "60",
       "speaker": "男主",
       "text": "莉奈，今天的晚餐我做了妳喜歡的漢堡排，趁熱吃吧。",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哼，賣相看起來真差。不過雜魚哥哥的廚藝也就這點程度了吧❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "妳也用不著一直這麼損我吧？我可是花了不少心思弄的。那個……今天學校還好嗎？",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "不對～雜魚哥哥是不是想偷窺我的八卦～才不告訴你呢❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
       "text": "而且我吃飽了。我要去洗澡了，剩下的碗盤就交給雜魚哥哥自己慢慢洗吧❤。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -470,17 +479,17 @@
     {
       "speaker": "莉奈",
       "text": "那是因為雜魚哥哥的腦袋不好使吧❤。不過還是辛苦你啦，笨蛋哥哥。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "妳也稍微感謝我一下吧，教了妳快兩個小時，我腰都痠了。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "好啦好啦，看在雜魚哥哥這麼辛苦的份上，你就稍微在我的床上躺一下吧。我去幫你倒杯水。",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "text": "男主順勢躺在莉奈床上，過了一會兒，莉奈端著一杯特調的洋甘菊花草茶走進房間。"
@@ -488,27 +497,27 @@
     {
       "speaker": "莉奈",
       "text": "給，雜魚哥哥的水❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "謝啦。咕嚕咕嚕……嗯，不過……奇怪，怎麼突然覺得頭有點暈暈的……眼皮好沉，手腳也沒什麼力氣……",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "哎呀，濃萃助眠花草茶的效果這麼快就發作了嗎？看來雜魚哥哥熬夜加班的身體真的很虛弱呢❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "助眠茶！？妳到底想幹嘛！",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "我想幹嘛？呵呵❤，你以為我這兩天晚上真的睡得像頭死豬一樣嗎？",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "莉奈",
@@ -528,7 +537,7 @@
     {
       "speaker": "莉奈",
       "text": "哼，以前跟著媽媽沒人保護我，我才不得不跟那種混混追求者虛與委蛇充場面。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -537,7 +546,7 @@
     {
       "speaker": "莉奈",
       "text": "那種連給我提鞋都不配的混混追求者，本小姐早就叫他滾遠點了❤！",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -546,7 +555,7 @@
     {
       "speaker": "莉奈",
       "text": "怎麼？感動了嗎？不過你第一天晚上居然敢放本小姐鴿子，這筆帳還沒算呢❤！",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "text": "莉奈輕巧地爬上床，直接跨坐在渾身痠軟的男主背上，雙手開始在男主背與腰上又揉又踩又搔癢！"
@@ -558,7 +567,7 @@
     {
       "speaker": "男主",
       "text": "嗚……！痛痛痛！好癢！等、等等，莉奈！外面好像有動靜……老爸好像提前回來了！快從我背上下來！",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -581,7 +590,7 @@
     {
       "speaker": "莉奈",
       "text": "啊，爸爸回來啦。我在幫哥哥「按摩」呢。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "父親",
@@ -594,7 +603,7 @@
     {
       "speaker": "莉奈",
       "text": "對吧，哥哥？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -615,7 +624,7 @@
     {
       "speaker": "莉奈",
       "text": "好~謝謝爸爸~。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "text": "父親笑著關上了房門。門鎖「喀噠」一聲落下的瞬間，莉奈原本放輕的手勁瞬間又變得狂野無比。"
@@ -623,7 +632,7 @@
     {
       "speaker": "莉奈",
       "text": "呵呵❤，雜魚哥哥聽見了嗎？爸爸誇我按摩技術很好呢❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -654,7 +663,10 @@
     {
       "speaker": "男主",
       "text": "莉奈，早安。妳眼角好像有點黑眼圈，沒睡好嗎？",
-      "showCH": "Linai3(12+), biaoqing2"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -671,7 +683,10 @@
     {
       "speaker": "莉奈",
       "text": "還湊合。這樣就挺好的，普通的雜魚早餐和普通雜魚哥哥過著普通的日子~。我吃飽了，出門了。",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "text": "夜晚時分的廚房"
@@ -683,7 +698,7 @@
     {
       "speaker": "莉奈",
       "text": "我說了沒有。你只要管好你自己吧雜魚~❤。",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "莉奈",
@@ -703,7 +718,10 @@
     {
       "speaker": "莉奈",
       "text": "吶~雜魚哥哥❤，你為什麼要這麼緊張？",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -727,7 +745,10 @@
     {
       "speaker": "男主",
       "text": "（想要像小時候一樣接她回家，把話說清楚。）",
-      "showCH": "Linai1, laugh1"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -739,7 +760,7 @@
     },
     {
       "text": "莉奈站在屋簷下，眼神瞥見了遠處淋著雨、手裡握著傘僵在原地的男主。",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "text": "她微微張開嘴，臉上寫滿了複雜的遺憾，最終卻只是用力咬了咬下唇，別過頭去"
@@ -747,7 +768,7 @@
     {
       "speaker": "莉奈",
       "text": "……沒什麼。只是突然發現，所謂的家人根本靠不住，關鍵時刻還是只會丟下我一個人。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -792,7 +813,10 @@
     {
       "speaker": "莉奈",
       "text": "……喂。",
-      "showCH": "Linai1, biaoqing2"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing2"
     },
     {
       "text": "男主身體微微一震"
@@ -824,12 +848,12 @@
     {
       "speaker": "莉奈",
       "text": "你是重聽喔！這種話我不會說第二次！",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
       "text": "我只是覺得……老是看著你那副快哭出來的雜魚臉，害我也跟著心情變差。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -849,12 +873,15 @@
     {
       "speaker": "男主",
       "text": "今天的菜還合胃口嗎？如果不夠的話我再去弄一點。",
-      "showCH": "Linai3(12+), biaoqing2"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
       "text": "夠了啦，雜魚哥哥。你以為每個人都像你一樣是個只會吃的豬嗎？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -871,7 +898,7 @@
     {
       "speaker": "莉奈",
       "text": "雜魚哥哥對我的印象，還停留在那個拿著滿分考卷跑去跟你討摸頭獎勵的小鬼吧？",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -880,7 +907,7 @@
     {
       "speaker": "莉奈",
       "text": "哈！那種東西能當飯吃嗎？如果不讓自己看起來不好惹，早就被那些債主和爛人啃得連骨頭都不剩了吧。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -893,7 +920,7 @@
     {
       "speaker": "莉奈",
       "text": "還能怎麼過？每天回家看到的不是空酒瓶子就是傳票，還有不停上門找麻煩的人。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -902,7 +929,7 @@
     {
       "speaker": "莉奈",
       "text": "為了幫她還那些利滾利的爛債，我從國中就開始在外面打工……",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
@@ -915,7 +942,7 @@
     {
       "speaker": "莉奈",
       "text": "告訴你們有什麼用？當初離婚法院最後就是這麼判的……",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -924,11 +951,11 @@
     {
       "speaker": "莉奈",
       "text": "別太自以為是了。我在那些朋友那裡學到了很多喔，只要我夠兇、夠不好對付，就沒人敢隨便動我。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "text": "看著她纖細的手腕，還有那雖然染過白髮但依然藏不住疲態的眼神",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "text": "我突然明白為什麼她會變成現在這副模樣。那不是叛逆，那是她活下去的唯一手段。"
@@ -936,7 +963,7 @@
     {
       "speaker": "莉奈",
       "text": "喂，幹嘛那種眼神？同情我喔？少噁心了。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
@@ -953,7 +980,7 @@
     {
       "speaker": "莉奈",
       "text": "如果不想要我這個麻煩的妹妹，現在就把我趕出去啊。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -961,17 +988,17 @@
     },
     {
       "text": "莉奈夾菜的手頓了一下，眼神迅速閃避開來",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
       "text": "笨……笨蛋雜魚哥哥！你不要以為你說那些軟話我就會不說你雜魚哦！雜魚不管怎麼樣都還是雜魚！",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "莉奈",
       "text": "喂，雜魚哥哥。我有件事跟你說一下。",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "男主",
@@ -988,12 +1015,12 @@
     {
       "speaker": "莉奈",
       "text": "少臭美了，才不是因為你。只是覺得每天看著那種虛張聲勢的嘴臉很反胃而已。",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "speaker": "莉奈",
       "text": "而且，我本來就不喜歡那種混混，當初只是為了保護自己……",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -1006,7 +1033,7 @@
     {
       "speaker": "莉奈",
       "text": "放心啦，那種傢伙也就是個只會欺負弱小的膽小鬼而已。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -1019,7 +1046,7 @@
     {
       "speaker": "莉奈",
       "text": "……我打算慢慢回歸正常的生活了。畢竟，現在已經沒人上門討債了……",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "speaker": "莉奈",
@@ -1028,7 +1055,7 @@
     {
       "speaker": "莉奈",
       "text": "每天裝得那麼累，我也受夠了。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
@@ -1037,7 +1064,7 @@
     {
       "speaker": "莉奈",
       "text": "只要待在這個家裡，我就覺得……不需要再害怕任何事。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -1052,12 +1079,12 @@
     },
     {
       "text": "莉奈臉頰瞬間泛起一抹紅暈",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "你是笨蛋嗎！這間公寓除了你還有誰啊！",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -1066,7 +1093,7 @@
     {
       "speaker": "莉奈",
       "text": "只是……稍微沒那麼討厭了而已。",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "text": "第三天深夜——莉奈房間"
@@ -1074,7 +1101,10 @@
     {
       "speaker": "男主",
       "text": "呼……吃飽洗個澡，舒服多了。",
-      "showCH": "Linai3(12+), biaoqing2"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "男主",
@@ -1091,7 +1121,7 @@
     {
       "speaker": "莉奈",
       "text": "很失禮誒，我想怎麼叫就怎麼叫！不行喔？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "text": "我走到床邊坐下。莉奈從床頭拿出了一個很舊的、用毛巾跟海綿手工縫製的醜醜小狼布偶娃娃。"
@@ -1099,7 +1129,7 @@
     {
       "speaker": "莉奈",
       "text": "還記得嗎，哥哥？小時候，我不小心撞見你在房間裡對著電腦裡的美少女遊戲擺中二姿勢……",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -1108,7 +1138,7 @@
     {
       "speaker": "莉奈",
       "text": "當時你嚇得半死，為了封我的口，就把這個娃娃塞給我了。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -1125,7 +1155,7 @@
     {
       "speaker": "莉奈",
       "text": "才不要。這可是我和哥哥之間最初的秘密喔。吶，哥哥。你知道我為什麼要把頭髮漂白嗎？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -1134,7 +1164,7 @@
     {
       "speaker": "莉奈",
       "text": "才不是。是因為我記得……哥哥以前最喜歡那個遊戲裡的『白毛狼娘』了。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -1147,7 +1177,7 @@
     {
       "speaker": "莉奈",
       "text": "可是……這十年裡，我看了太多像媽媽身邊那種討厭的大人。",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -1164,7 +1194,7 @@
     {
       "speaker": "莉奈",
       "text": "這兩天晚上，哥哥偷偷溜進來幫我蓋被子、摸我的頭，我其實開心得快瘋了……",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "莉奈",
@@ -1177,12 +1207,12 @@
     {
       "speaker": "莉奈",
       "text": "那從今天起，就由我來當哥哥真正的『白毛小狼』吧，哥哥❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "既然妳都坦白了，那我也有個要求……",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "text": "沒等男主說要求，莉奈走到衣櫃前翻找，竟然在角落的箱子裡……"
@@ -1197,12 +1227,12 @@
     {
       "speaker": "莉奈",
       "text": "哼哼❤，那可是我特地準備的喔。哥哥以前不是最喜歡那個遊戲裡的小狼娘了嗎？",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "今天……就讓妹妹變成你的專屬小寵物吧❤。主人，喜歡這條尾巴嗎？汪❤！",
-      "showCH": "cixiaoguixiao",
+      "chFace": "cixiaoguixiao",
       "hideCH": "1"
     },
     {
@@ -1223,12 +1253,15 @@
     {
       "speaker": "莉奈（白毛狼裝）",
       "text": "汪！❤主人，小狼犬出來散步就是要到處探險做記號的呀❤。",
-      "showCH": "Linai2(white), laugh1"
+      "chOutfit": "shirt",
+      "chHair": "twin",
+      "chSocks": "white",
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈（白毛狼裝）",
       "text": "小狼散步完了，主人不給點摸頭獎勵跟草莓蛋糕嗎？❤",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -1237,7 +1270,7 @@
     {
       "speaker": "莉奈（白毛狼裝）",
       "text": "也沒什麼，這就是普通妹妹cosplay陪哥哥散步啊",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "男主",
@@ -1246,7 +1279,7 @@
     {
       "speaker": "莉奈（白毛狼裝）",
       "text": "雜魚哥哥~❤竟然覺得興奮~❤真是變態呢~❤",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "text": "數日後 —— 社區大門"
@@ -1287,7 +1320,10 @@
     },
     {
       "text": "莉奈嘴角勾起一抹惡魔般的甜美微笑",
-      "showCH": "Linai2(white), laugh1"
+      "chOutfit": "shirt",
+      "chHair": "twin",
+      "chSocks": "white",
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -1304,7 +1340,7 @@
     {
       "speaker": "莉奈",
       "text": "好吧汪❤！知道了，雜魚主人❤。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "endTitle": "True End",
@@ -1326,7 +1362,10 @@
     {
       "speaker": "莉奈",
       "text": "喂，發什麼呆啊，雜魚。早餐還沒弄好嗎？想餓死我喔？",
-      "showCH": "Linai3(12+), shengqi1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "shengqi1"
     },
     {
       "speaker": "男主",
@@ -1335,7 +1374,7 @@
     {
       "speaker": "莉奈",
       "text": "動作慢吞吞的，看著就煩。每天早上都要看你這張陰沉的臉，真是倒楣。",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "text": "男主默默把早餐端上桌。看著她一臉不耐煩地吃著，連正眼都不屑看一眼，男主心裡有些五味雜陳。"
@@ -1343,7 +1382,7 @@
     {
       "speaker": "莉奈",
       "text": "看屁啊？難吃死了。我吃飽了，去上課了。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1352,7 +1391,7 @@
     {
       "speaker": "莉奈",
       "text": "哼。",
-      "showCH": "shengqi1",
+      "chFace": "shengqi1",
       "hideCH": "1"
     },
     {
@@ -1370,7 +1409,10 @@
     {
       "speaker": "莉奈",
       "text": "勉強能吃吧，也就這點水準。",
-      "showCH": "Linai3(12+), biaoqing1"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -1379,7 +1421,7 @@
     {
       "speaker": "莉奈",
       "text": "哈？你突然問這個幹嘛？吃錯藥了嗎？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1388,7 +1430,7 @@
     {
       "speaker": "莉奈",
       "text": "我的事輪不到你來管。",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "男主",
@@ -1397,7 +1439,7 @@
     {
       "speaker": "莉奈",
       "text": "囉唆死了。我的事不用你管！我吃飽了。再見。",
-      "showCH": "shengqi2",
+      "chFace": "shengqi2",
       "hideCH": "1"
     },
     {
@@ -1447,7 +1489,10 @@
     {
       "speaker": "莉奈",
       "text": "笑死我了，虧他白天還擺出一副哥哥的架子教訓我……",
-      "showCH": "Linai3(12+), cixiaoguixiao"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -1460,17 +1505,17 @@
     {
       "speaker": "莉奈",
       "text": "哎呀，別提他了，光是想到他那副唯唯諾諾的窩囊樣子就覺得有夠可悲。",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "莉奈",
       "text": "不知道是不是因為天生沒膽又自卑，才連妹妹都不敢管？",
-      "showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "speaker": "莉奈",
       "text": "跟這種雜魚住在一起真是笑死人了，哈哈……",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "text": "男主再也忍不住，一把推開房門衝了進去！"
@@ -1478,7 +1523,7 @@
     {
       "speaker": "男主",
       "text": "莉奈！妳在說什麼呢！",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "",
@@ -1487,7 +1532,7 @@
     {
       "speaker": "莉奈",
       "text": "我在跟追求我的人講電話，關你什麼事？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1496,7 +1541,7 @@
     {
       "speaker": "莉奈",
       "text": "哎呀，雜魚哥哥生氣了？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -1505,12 +1550,12 @@
     {
       "speaker": "莉奈",
       "text": "我有說錯嗎？哥哥就是個連半點魄力都沒有、沒膽子的廢物啊。雜魚❤ 還是被我戳中痛處了？膽小又沒用的雜魚哥哥~",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？雜~魚❤想幹嘛？握著拳頭惱羞成怒想打人嗎？諒你也不敢打我啦，雜~魚❤~雜~魚❤！",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "choice": [
@@ -1550,7 +1595,7 @@
     {
       "speaker": "莉奈",
       "text": "哈？就這樣？夾著尾巴逃跑的樣子真的很適合雜魚哥哥耶。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "混混追求者（電話擴音）",
@@ -1598,7 +1643,7 @@
     {
       "speaker": "莉奈",
       "text": "哈？雜~魚❤想幹嘛？惱羞成怒想打人嗎？諒你也不敢雜~魚❤~雜~魚——",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -1606,7 +1651,7 @@
     },
     {
       "text": "啪——！！」一聲清脆而響亮的巴掌聲在房間裡炸開！莉奈手裡的手機瞬間摔落在地毯上。",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "",
@@ -1615,7 +1660,7 @@
     {
       "speaker": "莉奈",
       "text": "啊……痛……！你、你打我！？雜魚哥哥你發什麼瘋！",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "",
@@ -1628,7 +1673,7 @@
     {
       "speaker": "男主",
       "text": "現在知道怕了？？我前兩天晚上只是念在妳是我妹妹才一再忍讓妳，妳還真以為我是怕了妳？！",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "",
@@ -1637,7 +1682,7 @@
     {
       "speaker": "莉奈",
       "text": "放開……好痛！你弄痛我了！快點放開我雜魚！",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -1646,7 +1691,7 @@
     {
       "speaker": "莉奈",
       "text": "嗚嗚……你這個暴力狂！最差勁的人渣！快點放開我！救命啊！",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -1655,7 +1700,7 @@
     {
       "speaker": "莉奈",
       "text": "嗚嗚…好可怕…你是最差勁的垃圾哥哥！我絕對不會原諒你的！",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",

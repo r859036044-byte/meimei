@@ -13,7 +13,10 @@
     {
       "speaker": "",
       "text": "正當我準備上樓時，視線被轉角處的人影吸住了。那是……莉奈？她旁邊那個穿著破洞牛仔褲、染著金髮抽煙的男人是誰？",
-      "showCH": "Linai1, laugh1",
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "laugh1",
       "chX": 350,
       "chScale": 0.9,
       "showCH2": "yellow mao2, fade",
@@ -43,7 +46,10 @@
     {
       "speaker": "莉奈",
       "text": "誒誒誒！這不是那個需要排隊預約才能搶到的限量草莓千層嗎！",
-      "showCH": "Linai1, xingxingyan"
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "xingxingyan"
     },
     {
       "speaker": "男主",
@@ -52,7 +58,7 @@
     {
       "speaker": "莉奈",
       "text": "哇！謝謝哥哥❤！一直都想吃",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -65,7 +71,7 @@
     {
       "speaker": "莉奈",
       "text": "呵呵❤，你說樓下那個喔？那是最近一直纏著我的追求者啦。",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
@@ -74,22 +80,22 @@
     {
       "speaker": "莉奈",
       "text": "還是說，雜魚哥哥吃醋了？",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "我為什麼要吃醋啊……",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "因為雜魚哥哥你可能羨慕那追求者的身材呢❤",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "才不是！我是因為你和混混在一起所以才那麼問！",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -102,7 +108,7 @@
     {
       "speaker": "莉奈",
       "text": "那……那他也還在追我啊，我也沒答應啊……",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -130,7 +136,10 @@
       "fadein": "60",
       "text": "莉奈洗完澡後打著哈欠",
       "bgName": "bg_LivingRoom, fade",
-      "showCH": "Linai3(12+), shuijiao"
+      "chOutfit": "sleep",
+      "chHair": "twin",
+      "chSocks": "none",
+      "chFace": "shuijiao"
     },
     {
       "speaker": "男主",
@@ -139,7 +148,7 @@
     {
       "speaker": "莉奈",
       "text": "不用你說我也會去睡……吶，看在蛋糕的份上……晚安，雜魚哥哥。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "varEnd": true
@@ -154,17 +163,17 @@
     {
       "speaker": "莉奈",
       "text": "哈？草莓千層？你以為用一塊破蛋糕就能討好我嗎？雜魚哥哥的腦迴路還真是可悲。。",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
       "text": "我只是想說……對了，剛才下班回來，看到妳跟一個男的在樓下說話……那個人是誰？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "喔，你說那個喔？那是最近一直纏著我的追求者啊。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "莉奈",
@@ -177,12 +186,12 @@
     {
       "speaker": "男主",
       "text": "追求者！？莉奈，那個男的一看就是個不三不四的混混！妳為了保護自己跟這種人混在一起，早晚會引火燒身吃大虧的！",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "你只會這些無聊的說教嗎？他會不會讓我吃虧我不知道。",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "莉奈",
@@ -191,12 +200,12 @@
     {
       "speaker": "男主",
       "text": "我是妳哥！我不能眼睜睜看著妳跟那種混混攪和在一起！",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "囉唆死了。看在蛋糕的份上，我今天懶得跟你吵。我要去洗澡睡覺了，可不想再聽雜魚廢話。",
-      "showCH": "biaoqing2",
+      "chFace": "biaoqing2",
       "hideCH": "1"
     },
     {
@@ -373,32 +382,32 @@
     {
       "speaker": "莉奈",
       "text": "喔？這不是超難買的那家嗎？哼，雜魚哥哥今天倒是挺上道的嘛，竟然懂得討好我了。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "對了，莉奈。我剛才下班回來，看到妳跟一個男的在樓下說話……那個人是誰？",
-      "showCH": "laugh1"
+      "chFace": "laugh1"
     },
     {
       "speaker": "莉奈",
       "text": "喔，你說那個喔？那是我男朋友啊。長得挺帥的吧？比你這種陰沉的社畜雜魚強多了。",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
       "text": "男朋友！？莉奈，我雖然不反對妳交朋友，但那個男的一看就是個混混。跟這種人混在一起，妳早晚會吃虧的。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哈？又來了。每天只會重複這些無聊的說教。我跟誰在一起是我的自由，你管得著嗎？",
-      "showCH": "fanbaiyan"
+      "chFace": "fanbaiyan"
     },
     {
       "speaker": "男主",
       "text": "我是妳哥！我不能眼睜睜看著妳被那種人帶壞！聽我的，以後少跟那種人來往，那種人根本給不了妳未來……",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "",
@@ -411,7 +420,7 @@
     {
       "speaker": "莉奈",
       "text": "……知道了啦。看在蛋糕的份上，我會……考慮看看的。",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "男主",
@@ -420,7 +429,7 @@
     {
       "speaker": "莉奈",
       "text": "你是耳聾喔？說一次就夠了。我也沒說一定要跟他一直走下去啊……只是覺得有趣而已。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
@@ -429,7 +438,7 @@
     {
       "speaker": "莉奈",
       "text": "囉唆死了。我要去洗澡了。吃太飽想睡覺了，我可不想聽到雜魚說教。",
-      "showCH": "miaoshi"
+      "chFace": "miaoshi"
     },
     {
       "speaker": "男主",
@@ -439,7 +448,10 @@
     {
       "fadein": "60",
       "bgName": "bg_LivingRoom, fade",
-      "showCH": "Linai4(18+), biaoqing2",
+      "chOutfit": "sleep2",
+      "chHair": "long",
+      "chSocks": "none",
+      "chFace": "biaoqing2",
       "speaker": "男主",
       "text": "莉奈？洗好了？我看妳眼睛都快睜不開了。"
     },
@@ -454,12 +466,12 @@
     {
       "speaker": "莉奈",
       "text": "要你管！反正肚子吃得飽飽的，現在只想睡覺。",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "莉奈",
       "text": "哈啊……整個人輕飄飄的，連思考都變得很遲鈍……",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "男主",
@@ -468,7 +480,7 @@
     {
       "speaker": "莉奈",
       "text": "我才沒那麼雜魚！一定是這間破公寓的空氣太悶了，讓我缺氧了吧？",
-      "showCH": "shengqi1"
+      "chFace": "shengqi1"
     },
     {
       "speaker": "男主",
@@ -477,7 +489,7 @@
     {
       "speaker": "莉奈",
       "text": "或許這種狀況唯獨對雜魚無效吧~",
-      "showCH": "cixiaoguixiao"
+      "chFace": "cixiaoguixiao"
     },
     {
       "speaker": "男主",
@@ -490,7 +502,7 @@
     {
       "speaker": "莉奈",
       "text": "不用你說我也會去睡……吶，看在蛋糕的份上……晚安，雜魚哥哥。",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "text": "",
