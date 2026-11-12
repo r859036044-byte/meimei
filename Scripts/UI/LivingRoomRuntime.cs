@@ -47,6 +47,7 @@ public partial class LivingRoomRuntime : Node
     Label _contentText;
     Control _panel;
     TextureRect _charBodyImage;
+    SpineChar _spineChar;   // Spine 動態立繪（掛在身體圖底下，跟著它的位置／縮放／淡入淡出）
     TextureRect _charFaceImage;
     TextureRect _char2Image;
     Panel _nameBarPanel;
@@ -593,6 +594,7 @@ public partial class LivingRoomRuntime : Node
             if (!foPriority && line.hideCH2 != null && !string.IsNullOrEmpty(line.showCH2))
                 await FadeChar2Async(false);
 
+            if (!foPriority && HasSpine(line)) await SpineApplyAsync(line, false);
             if (!foPriority)
             {
                 bool hasCH  = !string.IsNullOrEmpty(line.showCH);
@@ -683,6 +685,7 @@ public partial class LivingRoomRuntime : Node
                     }
                     ApplyCGTransformImmediate(line);
                     ApplyCharTransformImmediate(line);
+                    if (HasSpine(line)) await SpineApplyAsync(line, true);
                     if (!string.IsNullOrEmpty(line.showCH)) await FadeCharAsync(line.showCH, true);
                     for (int li = 0; li < DialogueSystem.CG_LAYER_COUNT; li++)
                     {
@@ -1058,6 +1061,40 @@ public partial class LivingRoomRuntime : Node
     // ─────────────────────────────────────────────────────────────
     // 立繪
     // ─────────────────────────────────────────────────────────────
+    // ── Spine 動態立繪（跟序章 MainMenuRuntime.Character.cs 同一套做法）──
+    [Export] public bool Spine18PlusOutfit = true;   // true＝R18 時劇本的 sleep 自動換成 sleep2（18+ 睡衣）；false＝不換
+    static bool HasSpine(DialogueSystem.DialogueLine l)
+        => !string.IsNullOrWhiteSpace(l.chOutfit) || !string.IsNullOrWhiteSpace(l.chSkin)
+        || !string.IsNullOrWhiteSpace(l.chHair)   || !string.IsNullOrWhiteSpace(l.chSocks)
+        || !string.IsNullOrWhiteSpace(l.chFace)   || !string.IsNullOrWhiteSpace(l.chAnim);
+
+    /// <summary>套用這一行的 Spine 設定；還沒顯示時淡入（instant＝true 直接顯示）。</summary>
+    async Task SpineApplyAsync(DialogueSystem.DialogueLine l, bool instant)
+    {
+        if (_spineChar == null || !_spineChar.EnsureLoaded()) return;
+        string outfit = !string.IsNullOrWhiteSpace(l.chOutfit) ? l.chOutfit : l.chSkin;
+        if (Spine18PlusOutfit && outfit != null && outfit.Trim() == "sleep" && (PlayerDataManager.Instance?.R18ContentEnabled ?? false)) outfit = "sleep2";
+        _spineChar.Apply(outfit, l.chHair, l.chSocks, l.chFace, l.chAnim);
+
+        if (_spineChar.Visible && _charBodyImage.Modulate.A > 0.01f) return;   // 已經在畫面上：只換外觀，不重新淡入
+
+        if (_charBodyImage.Texture != null || _charFaceImage.Texture != null)
+        {   // 圖片立繪還在 → 先清掉
+            _charBodyImage.Texture = null; _charFaceImage.Texture = null;
+            _charFaceImage.Modulate = new Color(1, 1, 1, 0); _charBodyImage.Modulate = new Color(1, 1, 1, 0);
+        }
+        _spineChar.Visible = true;
+        if (instant) { _charBodyImage.Modulate = Colors.White; return; }
+        float startA = _charBodyImage.Modulate.A, t = 0f;
+        while (t < 0.5f)
+        {
+            t += (float)GetProcessDeltaTime();
+            _charBodyImage.Modulate = new Color(1, 1, 1, Mathf.Lerp(startA, 1f, Mathf.Clamp(t / 0.5f, 0f, 1f)));
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        _charBodyImage.Modulate = Colors.White;
+    }
+
     async Task FadeCharAsync(string name, bool fadeIn)
     {
         float duration = 0.5f;
@@ -1065,6 +1102,7 @@ public partial class LivingRoomRuntime : Node
         {
             string bodyName = null, faceName = null, char2Name = null;
             bool forceFade = false;
+            if (_spineChar != null && _spineChar.Visible && !name.Contains(" ")) _spineChar.Visible = false;   // 圖片立繪要出來了：Spine 先收起來
             if (name.Contains(","))
             {
                 var parts = name.Split(',');
@@ -1156,6 +1194,7 @@ public partial class LivingRoomRuntime : Node
             _charBodyImage.Modulate = new Color(1,1,1,0); _charFaceImage.Modulate = new Color(1,1,1,0);
             _char2Image.Modulate    = new Color(1,1,1,0);
             _charBodyImage.Texture  = null; _charFaceImage.Texture = null; _char2Image.Texture = null;
+            if (_spineChar != null) _spineChar.Visible = false;
             _charBodyOffset = Vector2.Zero; _charBodySize = new Vector2(650, 1338); ApplyCharBodyTransform();
             _char2Offset    = Vector2.Zero; _char2Size    = new Vector2(650, 1338); ApplyChar2Transform();
         }
@@ -1651,6 +1690,9 @@ public partial class LivingRoomRuntime : Node
             portraitLayer.AddChild(tr);
         }
         SetupChar(out _charBodyImage, "CharBody");
+        _spineChar = new SpineChar { Name = "CharSpine", Visible = false };
+        _charBodyImage.AddChild(_spineChar);
+        _spineChar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         SetupChar(out _charFaceImage, "CharFace");
         SetupChar(out _char2Image,    "Char2");
         ApplyCharBodyTransform(); ApplyChar2Transform();

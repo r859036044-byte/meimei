@@ -71,6 +71,13 @@ public partial class DialogueSystem : Node
         [JsonPropertyName("chScale")] public string chScale { get; set; }
         [JsonPropertyName("chX")]     public string chX     { get; set; }
         [JsonPropertyName("chY")]     public string chY     { get; set; }
+        // Spine 動態立繪（跟序章同格式）：有任何一個欄位就改用 Spine 顯示
+        [JsonPropertyName("chOutfit")] public string chOutfit { get; set; }   // school / school2 / shirt / sleep / sleep2 / nude
+        [JsonPropertyName("chSkin")]   public string chSkin   { get; set; }   // chOutfit 的別名
+        [JsonPropertyName("chHair")]   public string chHair   { get; set; }   // twin / long / none
+        [JsonPropertyName("chSocks")]  public string chSocks  { get; set; }   // white / black / none
+        [JsonPropertyName("chFace")]   public string chFace   { get; set; }   // 表情動畫（舊圖片名稱也可以）
+        [JsonPropertyName("chAnim")]   public string chAnim   { get; set; }   // 身體動畫
 
         // 第二角色
         [JsonPropertyName("showCH2")]  public string showCH2  { get; set; }
