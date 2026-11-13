@@ -1,0 +1,4 @@
+【重要提醒 / IMPORTANT NOTICE】
+本專案的 Resources/Spine/ 目錄（包含 linai/ 等所有 Spine 動態立繪素材）已由使用者親自調製完成並固定。
+任何同步腳本（.bat / .ps1）、Git 操作或 AI 助理（Antigravity、Claude 等），均禁止自動覆蓋、還原或刪除本資料夾內容！
+若需安全備份，請參閱 D:\Godot\_backup_spine_user_frozen_safe。
