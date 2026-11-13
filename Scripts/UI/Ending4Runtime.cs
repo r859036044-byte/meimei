@@ -12,4 +12,5 @@ public partial class Ending4Runtime : EndingBaseRuntime
 
     // 對應圖鑒 E4（見 GalleryScreen.EndingSceneFile 對照表）
     protected override int GalleryEndingNumber => 4;
+    protected override int AAEndingNumber => 7;   // 全年齡結局7「斷線的風箏」
 }

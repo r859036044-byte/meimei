@@ -27,7 +27,7 @@ public partial class GalleryDataManager : Node
     private readonly HashSet<string> _storyNodes = new();
 
     // 全年齡版結局 [1..AAEndingCount]（與 R18 的 18 個結局完全分開記錄）
-    public const int AAEndingCount = 5;
+    public const int AAEndingCount = 7;
     private readonly bool[] _aaEndings = new bool[AAEndingCount + 1];
 
     /// <summary>目前是否為全年齡模式（設定裡的全年齡開關）。圖鑒、分支、樹狀圖依此切換</summary>

@@ -252,7 +252,8 @@ public partial class LivingRoomRuntime : Node
         _varsBeforeReplay = pdm?.GetAllDialogueVars();
         pdm?.SetAllDialogueVars(new System.Collections.Generic.Dictionary<string, int> { [e.Day1Var] = 1, [e.Day2Var] = 1 });
         _forcedChoice = e.Pick;
-        await PlayDialogueAsync("Day3/Day3_Start");
+        if (e.Day1Var == StoryTreeData.AAEndingBadEndVar) await PlayDialogueAsync("Endings/Day2_Start(bad end)");   // 結局7：斷線的風箏
+        else await PlayDialogueAsync("Day3/Day3_Start");
         await FinishAAEndingAsync();
     }
 

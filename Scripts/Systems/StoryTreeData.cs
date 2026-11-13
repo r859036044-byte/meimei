@@ -51,6 +51,7 @@ public static class StoryTreeData
             => (Name, Desc, Day1Var, Day2Var, Pick) = (name, desc, d1, d2, pick);
     }
 
+    public const string AAEndingBadEndVar = "__aa_badend7";   // 結局7 重播用的標記（不是真的劇情變數）
     public static readonly AAEnding[] AAEndings =
     {
         default, // [0] 不使用
@@ -59,6 +60,8 @@ public static class StoryTreeData
         new("課後輔導~❤",   "第1晚不做 → 第2晚蓋被子",        "day1_noBlanket", "day2_blanket",   -1), // 結局3
         new("無聲的拒絕",       "第1晚蓋被子 → 第2晚不做",        "day1_blanket",   "day2_noBlanket", -1), // 結局4
         new("兄妹專屬散步~❤",     "第1晚蓋被子 → 第2晚蓋被子",      "day1_blanket",   "day2_blanket",   -1), // 結局5
+        new("雌小鬼大小姐",     "雌小鬼值滿 100（心情沒歸 0）→ 第3天清晨",  "mesugaki100",    "mesugaki100",    -1), // 結局6：重播時把 mesugaki100 設成 1，播 Day3_Start 開頭那段
+        new("斷線的風箏",       "心情歸 0 → 莉奈離家出走",        AAEndingBadEndVar, AAEndingBadEndVar, -1), // 結局7：播 Day2_Start(bad end)（重播時特別處理，見 LivingRoomRuntime.ReplayAAEndingAsync）
     };
 
     public static readonly (string id, string label, string night)[] AABranchDefs =
@@ -89,11 +92,13 @@ public static class StoryTreeData
         ["AE3"] = new() { Id="AE3", Label="結局3 課後輔導~❤", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=3, EndingLabel="結局3", Preview="" },
         ["AE4"] = new() { Id="AE4", Label="結局4 無聲的拒絕",     Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=4, EndingLabel="結局4", Preview="" },
         ["AE5"] = new() { Id="AE5", Label="結局5 兄妹專屬散步~❤",   Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=5, EndingLabel="結局5", Preview="" },
+        ["AE6"] = new() { Id="AE6", Label="結局6 雌小鬼大小姐", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=6, EndingLabel="結局6", Preview="" },
+        ["AE7"] = new() { Id="AE7", Label="結局7 斷線的風箏",   Type=NodeType.Ending, Time="D2", File="Endings/Day2_Start(bad end)", EndingNum=7, EndingLabel="結局7", Preview="" },
     };
 
     public static readonly Dictionary<string, List<StoryEdge>> AAEdges = new()
     {
-        ["A00"] = new() { new("繼續", "A01") },
+        ["A00"] = new() { new("繼續", "A01"), new("雌小鬼值滿100", "AE6"), new("心情歸0", "AE7") },
         ["A01"] = new() { new("什麼都不做", "A02"), new("蓋被子", "A03") },
         ["A02"] = new() { new("繼續", "A04") },
         ["A03"] = new() { new("繼續", "A05") },

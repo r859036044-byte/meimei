@@ -322,7 +322,8 @@
     },
     {
       "endTitle": "Good End ?",
-      "endSubtitle": "雌小鬼大小姐"
+      "endSubtitle": "雌小鬼大小姐",
+      "endNo": 6
     },
     {
       "varEnd": true

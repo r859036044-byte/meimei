@@ -338,7 +338,8 @@
     },
     {
       "endTitle": "BAD END",
-      "endSubtitle": "斷線的風箏"
+      "endSubtitle": "斷線的風箏",
+      "endNo": 7
     },
     { "branchEnd": true },
     { "branchStart": "r18" },

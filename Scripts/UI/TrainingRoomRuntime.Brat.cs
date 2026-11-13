@@ -85,7 +85,7 @@ public partial class TrainingRoomRuntime
         var pdm = PlayerDataManager.Instance;
         if (pdm == null || pdm.GetDialogueVar(BratVarEnd) != 0) return;
         if (Mood <= 0f)           { BratSetVar(BratVarEnd, 1); GD.Print("[Brat] 心情歸 0 → 隔天結局：莉奈搬走"); }
-        else if (BratValue >= 100f) { BratSetVar(BratVarEnd, 2); GD.Print("[Brat] 雌小鬼值 100 → 隔天結局：莉奈讓男主當奴隸"); }
+        else if (BratValue >= 100f) { BratSetVar(BratVarEnd, 2); BratSetVar("mesugaki100", 1); GD.Print("[Brat] 雌小鬼值 100（心情 > 0）→ mesugaki100＝1：第3天清晨播雌小鬼大小姐結局"); }
     }
 
     /// <summary>莉奈說話（台詞可用「|」分段、「=>」男主回應，舒服加愛心、不舒服加「不要…」，見 GirlTalk.cs）。回傳這句有沒有帶男主回應。</summary>

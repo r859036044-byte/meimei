@@ -46,6 +46,7 @@ public abstract partial class EndingBaseRuntime : Node
     /// 預設為 0 表示「尚未對應到圖鑒編號」，不會觸發解鎖。
     /// </summary>
     protected virtual int GalleryEndingNumber => 0;
+    protected virtual int AAEndingNumber => 0;   // 全年齡圖鑒的結局編號（0＝沒有）
 
     // ── 初次進入判斷 ─────────────────────────────────────────────
     static readonly HashSet<string> _playedDialogues = new();
@@ -154,7 +155,10 @@ public abstract partial class EndingBaseRuntime : Node
             FromGallery = false;
             // 僅在「正式遊玩抵達結局」（非圖鑒重播）時解鎖圖鑒條目
             if (!fromGallery && GalleryEndingNumber > 0)
-                GalleryDataManager.Instance?.UnlockEnding(GalleryEndingNumber);
+            {
+                if (GalleryDataManager.AllAgesMode && AAEndingNumber > 0) GalleryDataManager.Instance?.UnlockAAEnding(AAEndingNumber);   // 全年齡：解鎖全年齡圖鑒（不解鎖 R18 的）
+                else GalleryDataManager.Instance?.UnlockEnding(GalleryEndingNumber);
+            }
             if (fromGallery || !HasDialoguePlayed(PlayedKey))
             {
                 await OnBeforeDialogueAsync();
