@@ -211,7 +211,12 @@ public partial class TrainingRoomRuntime : Node
     {
         int night = pdm.CurrentNight;
         if (night < 1 || night > 2) return;
-        bool covered = DuvetState == 0;   // 0＝蓋著、1＝踢開
+        bool covered = DuvetState == 0;   // 0＝蓋著、1＝踢開（R18 照被子狀態）
+        if (!pdm.R18ContentEnabled)
+        {   // 全年齡：蓋不蓋被子不再決定劇情路徑，由心情／雌小鬼值決定
+            var path = StoryTreeData.AAEndingPath(StoryTreeData.PickAAEndingByStats(Mood, BratValue));
+            covered = night == 1 ? path.d1Cover : path.d2Cover;
+        }
         string yes = $"day{night}_" + (covered ? "blanket" : "noBlanket");
         string no  = $"day{night}_" + (covered ? "noBlanket" : "blanket");
         pdm.AddDialogueVar(yes, 1 - pdm.GetDialogueVar(yes));
