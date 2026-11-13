@@ -60,6 +60,7 @@ public abstract partial class EndingBaseRuntime : Node
     Label      _contentText;
     Control    _panel;
     TextureRect _charBodyImage;
+    SpineChar _spineChar;   // Spine 動態立繪（掛在身體圖底下，跟著它的位置／縮放／淡入淡出）
     TextureRect _charFaceImage;
     TextureRect _char2Image;
     Panel      _nameBarPanel;
@@ -205,8 +206,34 @@ public abstract partial class EndingBaseRuntime : Node
         EnsureReader();
         _panel.Visible = true;
 
-        foreach (var line in data.Lines)
+        bool isR18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
+        for (int _i = 0; _i < data.Lines.Count; _i++)
         {
+            var line = data.Lines[_i];
+
+            // ── 分歧跳轉：全年齡模式跳過 r18 段落，R18 模式跳過 allAges 段落（跟客廳對話引擎同一套）──
+            if (!string.IsNullOrEmpty(line.branchStart))
+            {
+                string b = line.branchStart.Trim();
+                bool shouldSkip = (!isR18 && b == "r18") || (isR18 && b == "allAges");
+                if (shouldSkip) _i = DialogueSystem.FindBranchEnd(data.Lines, _i);
+                continue;
+            }
+            if (line.branchEnd) continue;
+            // ── 劇情變數：addVar +1 / varStart 條件段落 ──
+            if (!string.IsNullOrEmpty(line.addVar))
+            {
+                PlayerDataManager.Instance?.AddDialogueVar(line.addVar.Trim());
+                if (string.IsNullOrEmpty(line.text)) continue;
+            }
+            if (!string.IsNullOrEmpty(line.varStart))
+            {
+                if ((PlayerDataManager.Instance?.GetDialogueVar(line.varStart.Trim()) ?? 0) <= 0)
+                    _i = DialogueSystem.FindVarEnd(data.Lines, _i);
+                continue;
+            }
+            if (line.varEnd) continue;
+
             // ── 音訊 ──────────────────────────────────────────────
             await HandleAudioAsync(line);
 
@@ -308,6 +335,7 @@ public abstract partial class EndingBaseRuntime : Node
             if (!foPriority && line.hideCH2 != null && !string.IsNullOrEmpty(line.showCH2))
                 await FadeChar2Async(false);
 
+            if (!foPriority && HasSpine(line)) await SpineApplyAsync(line, false);
             // ── showCH / showCH2（可並行）─────────────────────────
             if (!foPriority)
             {
@@ -441,6 +469,7 @@ public abstract partial class EndingBaseRuntime : Node
                     }
                     ApplyCGTransformImmediate(line);
                     ApplyCharTransformImmediate(line);
+                    if (HasSpine(line)) await SpineApplyAsync(line, true);
                     if (!string.IsNullOrEmpty(line.showCH))
                         await FadeCharAsync(line.showCH, true);
                     for (int li = 0; li < DialogueSystem.CG_LAYER_COUNT; li++)
@@ -997,6 +1026,39 @@ public abstract partial class EndingBaseRuntime : Node
     // ─────────────────────────────────────────────────────────────
     // 立繪淡入/淡出
     // ─────────────────────────────────────────────────────────────
+    // ── Spine 動態立繪（跟序章／客廳同一套做法）──
+    [Export] public bool Spine18PlusOutfit = true;   // true＝R18 時劇本的 sleep 自動換成 sleep2（18+ 睡衣）
+    static bool HasSpine(DialogueSystem.DialogueLine l)
+        => !string.IsNullOrWhiteSpace(l.chOutfit) || !string.IsNullOrWhiteSpace(l.chSkin)
+        || !string.IsNullOrWhiteSpace(l.chHair)   || !string.IsNullOrWhiteSpace(l.chSocks)
+        || !string.IsNullOrWhiteSpace(l.chFace)   || !string.IsNullOrWhiteSpace(l.chAnim);
+
+    async Task SpineApplyAsync(DialogueSystem.DialogueLine l, bool instant)
+    {
+        if (_spineChar == null || !_spineChar.EnsureLoaded()) return;
+        string outfit = !string.IsNullOrWhiteSpace(l.chOutfit) ? l.chOutfit : l.chSkin;
+        if (Spine18PlusOutfit && outfit != null && outfit.Trim() == "sleep" && (PlayerDataManager.Instance?.R18ContentEnabled ?? false)) outfit = "sleep2";
+        _spineChar.Apply(outfit, l.chHair, l.chSocks, l.chFace, l.chAnim);
+
+        if (_spineChar.Visible && _charBodyImage.Modulate.A > 0.01f) return;   // 已經在畫面上：只換外觀
+
+        if (_charBodyImage.Texture != null || _charFaceImage.Texture != null)
+        {
+            _charBodyImage.Texture = null; _charFaceImage.Texture = null;
+            _charFaceImage.Modulate = new Color(1, 1, 1, 0); _charBodyImage.Modulate = new Color(1, 1, 1, 0);
+        }
+        _spineChar.Visible = true;
+        if (instant) { _charBodyImage.Modulate = Colors.White; return; }
+        float startA = _charBodyImage.Modulate.A, t = 0f;
+        while (t < 0.5f)
+        {
+            t += (float)GetProcessDeltaTime();
+            _charBodyImage.Modulate = new Color(1, 1, 1, Mathf.Lerp(startA, 1f, Mathf.Clamp(t / 0.5f, 0f, 1f)));
+            await NextPlaybackFrameAsync();
+        }
+        _charBodyImage.Modulate = Colors.White;
+    }
+
     async Task FadeCharAsync(string name, bool fadeIn)
     {
         float duration = 0.5f;
@@ -1109,6 +1171,7 @@ public abstract partial class EndingBaseRuntime : Node
             _charBodyImage.Modulate = new Color(1, 1, 1, 0); _charBodyImage.Texture = null;
             _charFaceImage.Modulate = new Color(1, 1, 1, 0); _charFaceImage.Texture = null;
             _char2Image.Modulate    = new Color(1, 1, 1, 0); _char2Image.Texture    = null;
+            if (_spineChar != null) _spineChar.Visible = false;
             _charBodyOffset = Vector2.Zero; _charBodySize = new Vector2(650, 1338); ApplyCharBodyTransform();
             _char2Offset    = Vector2.Zero; _char2Size    = new Vector2(650, 1338); ApplyChar2Transform();
         }
@@ -1617,6 +1680,9 @@ public abstract partial class EndingBaseRuntime : Node
             portraitLayer.AddChild(tr);
         }
         SetupChar(out _charBodyImage, "CharBody");
+        _spineChar = new SpineChar { Name = "CharSpine", Visible = false };
+        _charBodyImage.AddChild(_spineChar);
+        _spineChar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         SetupChar(out _charFaceImage, "CharFace");
         SetupChar(out _char2Image,    "Char2");
         ApplyCharBodyTransform(); ApplyChar2Transform();

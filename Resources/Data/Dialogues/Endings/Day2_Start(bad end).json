@@ -8,7 +8,10 @@
     {
       "speaker": "男主",
       "text": "莉奈，早安。妳今天起得挺早的。",
-      "showCH": "Linai1, biaoqing2",
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing2",
       "chScale": 0.9
     },
     {
@@ -58,7 +61,7 @@
       "speaker": "男主（內心）",
       "text": "嗯……一早上狀態就不對勁，心底裡好像在害怕什麼……"
     },
-條件分歧：全年齡
+    { "branchStart": "allAges" },
     {
       "text": "（手機鈴聲響起）"
     },
@@ -118,7 +121,10 @@
     },
     {
       "text": "電話被接起",
-      "showCH": "Linai1, biaoqing2",
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing2",
       "chScale": 0.9,
       "chX": 500
     },
@@ -137,17 +143,17 @@
     {
       "speaker": "莉奈",
       "text": "我在哪裡都跟你無關。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
       "text": "什麼叫跟我無關？我是妳哥哥！妳是不是去跟什麼不三不四的人混在一起了？",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "男主",
       "text": "妳知道自己在做什麼？！現在馬上給我回學校去上課！",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -168,22 +174,22 @@
     {
       "speaker": "莉奈",
       "text": "我沒必要和一個半夜闖進妹妹房間不斷欺負妹妹的人解釋清楚",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
       "text": "妳……妳在胡說什麼！我哪有做那種事，妳是不是做惡夢搞混了？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "哼，搞混嗎，走進我的房間裡，無論我說什麼都捏我的臉，肆意的欺負我",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
       "text": "有你這樣的哥哥，我真的很失望",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -196,7 +202,7 @@
     {
       "speaker": "莉奈",
       "text": "哥哥，你還記得小時候，你送給我的那個娃娃嗎？",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -213,7 +219,7 @@
     {
       "speaker": "莉奈",
       "text": "你知道為什麼嗎？",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -222,7 +228,7 @@
     {
       "speaker": "莉奈",
       "text": "因為我心底裡一直都記著哥哥你，一直都期待和哥哥的會面",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -235,7 +241,7 @@
     {
       "speaker": "莉奈",
       "text": "不用，哥哥你不必解釋，我也不需要聽哥哥的解釋",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -248,12 +254,12 @@
     {
       "speaker": "莉奈",
       "text": "結果哥哥進門第一天就是詢問我媽媽的情況，詢問那爛賭鬼的情況！",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "莉奈",
       "text": "比起被爛賭鬼照顧長大的妹妹，哥哥你覺得爛賭鬼值得關心是吧",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -262,7 +268,7 @@
     {
       "speaker": "莉奈",
       "text": "……",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -279,7 +285,7 @@
     {
       "speaker": "莉奈",
       "text": "別再打來了。如果你再騷擾我，我會立刻報警，全部告訴警察。",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -289,7 +295,7 @@
       "speaker": "莉奈",
       "text": "以後就別再糾纏我了。再見。",
       "hideCH": "1",
-      "showCH": "linai butt, fade",
+      "chFace": "fade",
       "chScale": "linai butt, 0.9",
       "chX": 500
     },
@@ -333,8 +339,9 @@
     {
       "endTitle": "BAD END",
       "endSubtitle": "斷線的風箏"
-    }
-條件分歧：R18
+    },
+    { "branchEnd": true },
+    { "branchStart": "r18" },
     {
       "speaker": "男主（內心）",
       "text": "果然還是因為做的太過分了嗎……"
@@ -382,7 +389,10 @@
     },
     {
       "text": "電話被接起",
-      "showCH": "Linai1, biaoqing2",
+      "chOutfit": "school",
+      "chHair": "twin",
+      "chSocks": "black",
+      "chFace": "biaoqing2",
       "chScale": 0.9,
       "chX": 500
     },
@@ -401,12 +411,12 @@
     {
       "speaker": "莉奈",
       "text": "我在哪裡都跟你無關。",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
       "text": "什麼叫跟我無關？我是妳哥哥！妳是不是去跟什麼不三不四的人混在一起了？妳知道自己在做什麼？！現在馬上給我回學校去上課！",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -427,22 +437,22 @@
     {
       "speaker": "莉奈",
       "text": "我跟一個會趁妹妹睡著時硬上的強姦犯有什麼好解釋的？",
-      "showCH": "shengqi2"
+      "chFace": "shengqi2"
     },
     {
       "speaker": "男主",
       "text": "妳……妳在胡說什麼！我哪有做那種事，妳是不是做惡夢搞混了？",
-      "showCH": "biaoqing1"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "莉奈",
       "text": "我的身體發生了什麼事，我自己最清楚。還是說，你希望我現在去醫院掛急診驗傷？",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
       "text": "我想醫生應該很容易就能從我體內，提取到你留下的那些犯罪證據吧。",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -455,7 +465,7 @@
     {
       "speaker": "莉奈",
       "text": "哥哥，你還記得小時候，你送給我的那個娃娃嗎？",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -472,7 +482,7 @@
     {
       "speaker": "莉奈",
       "text": "今天早上醒來，我在自己的下面，聞到了跟那個娃娃一模一樣的味道。你覺得我還需要猜嗎？",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -481,7 +491,7 @@
     {
       "speaker": "莉奈",
       "text": "因為我不笨。",
-      "showCH": "biaoqing2"
+      "chFace": "biaoqing2"
     },
     {
       "speaker": "莉奈",
@@ -494,7 +504,7 @@
     {
       "speaker": "莉奈",
       "text": "一個會趁著妹妹睡著的時候，強行插進去的男人，現在跟我說他控制得住自己，說他絕對不會傷害我？",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -507,7 +517,7 @@
     {
       "speaker": "莉奈",
       "text": "但是只要我假裝什麼都不知道，你就會放鬆警惕出門上班，我才能安全地把行李拿走。",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -516,7 +526,7 @@
     {
       "speaker": "莉奈",
       "text": "……",
-      "showCH": "cry"
+      "chFace": "cry"
     },
     {
       "speaker": "男主",
@@ -533,7 +543,7 @@
     {
       "speaker": "莉奈",
       "text": "別再打來了。如果你再騷擾我，我會立刻報警，全部告訴警察。",
-      "showCH": "crylaugh"
+      "chFace": "crylaugh"
     },
     {
       "speaker": "男主",
@@ -543,7 +553,7 @@
       "speaker": "莉奈",
       "text": "以後就別再糾纏我了。再見。",
       "hideCH": "1",
-      "showCH": "linai butt, fade",
+      "chFace": "fade",
       "chScale": "linai butt, 0.9",
       "chX": 500
     },
@@ -587,6 +597,7 @@
     {
       "endTitle": "BAD END",
       "endSubtitle": "斷線的風箏"
-    }
+    },
+    { "branchEnd": true }
   ]
 }

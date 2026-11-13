@@ -223,6 +223,14 @@ public partial class TrainingRoomRuntime : Node
     {
         await FadeToBlackAsync();
 
+        if (PendingBratEnding() == 1)
+        {   // 心情歸 0（莉奈搬走）→ 一定觸發 Day2_Start(bad end)（Ending4）；用掉就清掉旗標
+            BratSetVar(BratVarEnd, 0);
+            GD.Print("[Troom] 心情歸 0 → 進 Ending4（Day2_Start bad end）");
+            GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn");
+            return;
+        }
+
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) { GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn"); return; }
 
@@ -250,6 +258,14 @@ public partial class TrainingRoomRuntime : Node
     async Task TrainingEndFlowAsync(bool success)
     {
         await FadeToBlackAsync();
+
+        if (PendingBratEnding() == 1)
+        {   // 心情歸 0（莉奈搬走）→ 一定觸發 Day2_Start(bad end)（Ending4）；用掉就清掉旗標
+            BratSetVar(BratVarEnd, 0);
+            GD.Print("[Troom] 心情歸 0 → 進 Ending4（Day2_Start bad end）");
+            GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn");
+            return;
+        }
 
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) { GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn"); return; }
