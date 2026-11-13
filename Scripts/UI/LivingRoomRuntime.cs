@@ -30,10 +30,14 @@ public partial class LivingRoomRuntime : Node
     {
         _playedDialogues.Clear();
         PendingDay3 = false;
+        PendingMesugaki = false;
         ReplayAAEnding = 0;
     }
 
     public static bool PendingDay3 = false;
+    /// <summary>雌小鬼值滿 100（心情沒歸 0）→ 離開 TrainingRoom 後的隔天早上，直接播雌小鬼大小姐結局（Day3_Start 開頭那段）。</summary>
+    public static bool PendingMesugaki = false;
+    bool _mesugakiRun;
 
     /// <summary>圖鑒重播全年齡結局用：1~5（由 GalleryScreen 在開啟重播前設定）</summary>
     public static int ReplayAAEnding = 0;
@@ -161,6 +165,15 @@ public partial class LivingRoomRuntime : Node
         int night     = pdm.CurrentNight;
         int idleCount = pdm.IdleNightCount;
         bool noInsert = pdm.VaginaUseCount == 0;
+
+        if (PendingMesugaki)
+        {   // 雌小鬼大小姐結局：隔天早上直接播，播完回標題
+            PendingMesugaki = false;
+            _mesugakiRun = true;
+            await PlayDialogueAsync("Day3/Day3_Start");
+            await FinishAAEndingAsync();
+            return;
+        }
 
         if (PendingDay3)
         {
@@ -528,9 +541,9 @@ public partial class LivingRoomRuntime : Node
                 await WaitTitleClickAsync(line.autoNext);
                 await FadeOutEndTitleAsync();
                 // 全年齡結局（有 endNo）：解鎖全年齡圖鑒，這條路線到此結束
-                if (!isR18 && line.endNo > 0)
+                if ((!isR18 || _mesugakiRun) && line.endNo > 0)
                 {
-                    if (!_aaReplay) GalleryDataManager.Instance?.UnlockAAEnding(line.endNo);
+                    if (!_aaReplay && !isR18) GalleryDataManager.Instance?.UnlockAAEnding(line.endNo);   // R18 不解鎖全年齡圖鑒
                     _aaEndingDone = true;
                     break;
                 }

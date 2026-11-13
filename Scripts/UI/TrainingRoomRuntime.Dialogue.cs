@@ -231,6 +231,15 @@ public partial class TrainingRoomRuntime : Node
             return;
         }
 
+        if (PendingBratEnding() == 2)
+        {   // 雌小鬼值滿 100（心情沒歸 0）→ 隔天早上直接播雌小鬼大小姐結局
+            BratSetVar(BratVarEnd, 0);
+            LivingRoomRuntime.PendingMesugaki = true;
+            GD.Print("[Troom] 雌小鬼值滿 100 → 隔天早上播雌小鬼大小姐結局");
+            GetTree().ChangeSceneToFile("res://Scenes/LivingRoom.tscn");
+            return;
+        }
+
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) { GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn"); return; }
 
@@ -264,6 +273,15 @@ public partial class TrainingRoomRuntime : Node
             BratSetVar(BratVarEnd, 0);
             GD.Print("[Troom] 心情歸 0 → 進 Ending4（Day2_Start bad end）");
             GetTree().ChangeSceneToFile("res://Scenes/Ending4.tscn");
+            return;
+        }
+
+        if (PendingBratEnding() == 2)
+        {   // 雌小鬼值滿 100（心情沒歸 0）→ 隔天早上直接播雌小鬼大小姐結局
+            BratSetVar(BratVarEnd, 0);
+            LivingRoomRuntime.PendingMesugaki = true;
+            GD.Print("[Troom] 雌小鬼值滿 100 → 隔天早上播雌小鬼大小姐結局");
+            GetTree().ChangeSceneToFile("res://Scenes/LivingRoom.tscn");
             return;
         }
 
