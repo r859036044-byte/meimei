@@ -190,7 +190,10 @@ public partial class LivingRoomRuntime : Node
                 if (hadTouchMorning)
                     await PlayDialogueAsync("Day3/Day3_Morning_Touch");
                 else
+                {
+                    ApplyAAEndingStats();   // 全年齡：依心情／雌小鬼值決定走哪個結局（沒達標就降級）
                     await PlayDialogueAsync("Day3/Day3_Start");
+                }
                 if (_aaEndingDone) { await FinishAAEndingAsync(); return; }
                 await ScreenFadeAsync(true, 1f, Colors.Black);
                 await DetermineEndingAsync();
@@ -253,6 +256,26 @@ public partial class LivingRoomRuntime : Node
         }
         if (!_screenBlack) await ScreenFadeAsync(true, 1f, Colors.Black);
         GetTree().ChangeSceneToFile("res://Scenes/MainMenu.tscn");
+    }
+
+    /// <summary>全年齡第3天清晨前：用兩晚的蓋被變數＋心情／雌小鬼值，決定實際結局路徑；沒達標就把蓋被變數降級成較低的路徑。
+    /// （規則和數字在 StoryTreeData.ResolveAAEnding；沒玩過 TrainingRoom（沒有數值）時不調整。）</summary>
+    void ApplyAAEndingStats()
+    {
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null || _aaReplay || (pdm.R18ContentEnabled)) return;
+        if (pdm.GetDialogueVar("BratInit") == 0) return;   // 還沒有心情／雌小鬼值的紀錄
+        bool d1 = pdm.GetDialogueVar("day1_blanket") > 0, d2 = pdm.GetDialogueVar("day2_blanket") > 0;
+        float mood = pdm.GetDialogueVar("Mood"), brat = pdm.GetDialogueVar("Brat");
+        var r = StoryTreeData.ResolveAAEnding(d1, d2, mood, brat);
+        GD.Print($"[結局] 蓋被 {(d1 ? "蓋" : "不做")}→{(d2 ? "蓋" : "不做")}、心情 {mood}、雌小鬼值 {brat} → 實際走 {(r.d1Cover ? "蓋" : "不做")}→{(r.d2Cover ? "蓋" : "不做")}（結局 {(r.ending == 0 ? "1／2" : r.ending.ToString())}）");
+        void Set(string yes, string no)
+        {
+            pdm.AddDialogueVar(yes, 1 - pdm.GetDialogueVar(yes));
+            pdm.AddDialogueVar(no, -pdm.GetDialogueVar(no));
+        }
+        if (r.d1Cover != d1) Set(r.d1Cover ? "day1_blanket" : "day1_noBlanket", r.d1Cover ? "day1_noBlanket" : "day1_blanket");
+        if (r.d2Cover != d2) Set(r.d2Cover ? "day2_blanket" : "day2_noBlanket", r.d2Cover ? "day2_noBlanket" : "day2_blanket");
     }
 
     async Task ReplayAAEndingAsync(int n)

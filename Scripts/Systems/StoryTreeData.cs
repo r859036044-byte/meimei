@@ -51,6 +51,38 @@ public static class StoryTreeData
             => (Name, Desc, Day1Var, Day2Var, Pick) = (name, desc, d1, d2, pick);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    //  全年齡結局的數值門檻（心情 Mood／雌小鬼值 Brat，0~100）
+    //  蓋被子路徑決定「想走哪個結局」，數值決定「達不達標」；沒達標就降級，直到兜底（結局1／2）
+    //  之前的版本備份在專案根目錄 backup_before_ending_stats/
+    // ═══════════════════════════════════════════════════════════
+    public const float E5MoodMin = 75f, E5BratMax = 25f;                  // 結局5 兄妹專屬散步（蓋→蓋）：心情很高、雌小鬼很低
+    public const float E3MoodMin = 40f, E3MoodMax = 70f, E3BratMin = 55f; // 結局3 課後輔導（不做→蓋）：心情中等、雌小鬼偏高
+    public const float E4MoodMax = 30f, E4BratMin = 35f, E4BratMax = 65f; // 結局4 無聲的拒絕（蓋→不做）：心情很低、雌小鬼中等
+    // 結局1／2（不做→不做）：理想是心情 ≤ 15、雌小鬼值 ≥ 80，但這是最底層的兜底，達不到也還是這條路
+
+    /// <summary>依兩晚的蓋被選擇與目前心情／雌小鬼值，算出實際會走的路徑。
+    /// 回傳 (day1 蓋被, day2 蓋被, 結局編號)；結局編號 5／3／4，或 0＝兜底（結局1／2，由第3晚深夜選擇決定）。</summary>
+    public static (bool d1Cover, bool d2Cover, int ending) ResolveAAEnding(bool d1Cover, bool d2Cover, float mood, float brat)
+    {
+        if (d1Cover && d2Cover)
+        {
+            if (mood >= E5MoodMin && brat <= E5BratMax) return (true, true, 5);
+            d2Cover = false;   // 降級：蓋→蓋 沒達標 → 當作 蓋→不做
+        }
+        if (d1Cover && !d2Cover)
+        {
+            if (mood <= E4MoodMax && brat >= E4BratMin && brat <= E4BratMax) return (true, false, 4);
+            d1Cover = false;   // 降級：蓋→不做 沒達標 → 當作 不做→不做
+        }
+        if (!d1Cover && d2Cover)
+        {
+            if (mood >= E3MoodMin && mood <= E3MoodMax && brat >= E3BratMin) return (false, true, 3);
+            d2Cover = false;   // 降級：不做→蓋 沒達標 → 當作 不做→不做
+        }
+        return (false, false, 0);
+    }
+
     public const string AAEndingBadEndVar = "__aa_badend7";   // 結局7 重播用的標記（不是真的劇情變數）
     public static readonly AAEnding[] AAEndings =
     {

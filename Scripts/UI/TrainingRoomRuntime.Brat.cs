@@ -97,6 +97,21 @@ public partial class TrainingRoomRuntime
         return !string.IsNullOrEmpty(t) && GirlSayRich(t, allowReply);
     }
 
+    /// <summary>測試用：依目前心情、雌小鬼值和蓋被狀態，預覽「如果現在結束，全年齡會走哪個結局」。</summary>
+    public string EndingPreview()
+    {
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null) return "";
+        if (Mood <= 0f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局7 斷線的風箏";
+        if (BratValue >= 100f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局6 雌小鬼大小姐";
+        bool cover = DuvetState == 0;
+        bool d1 = pdm.CurrentNight >= 2 ? pdm.GetDialogueVar("day1_blanket") > 0 : cover;
+        bool d2 = pdm.CurrentNight >= 2 ? cover : false;
+        var r = StoryTreeData.ResolveAAEnding(d1, d2, Mood, BratValue);
+        string path = pdm.CurrentNight >= 2 ? $"{(d1 ? "蓋" : "不做")}→{(d2 ? "蓋" : "不做")}" : $"第1晚{(cover ? "蓋" : "不做")}";
+        return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0}／路徑 {path} → " + (pdm.CurrentNight >= 2 ? (r.ending == 0 ? "結局1／2" : $"結局{r.ending}") : "（第2晚才會判定）");
+    }
+
     /// <summary>測試用（F1 面板的按鈕）：心情值加減 delta，立刻存檔並檢查結局條件（心情歸 0 → BratEnd=1）。</summary>
     public void DebugAddMood(float delta)
     {

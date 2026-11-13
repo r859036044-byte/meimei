@@ -32,6 +32,7 @@ public partial class ExpressionTester : Control
     FaceExpressionController _faceController;
     IdleStateController      _idleController;
     TrainingRoomRuntime      _trr;
+    Label _endingPreviewLabel;   // 目前數值會走哪個全年齡結局（測試用）
 
     public void Configure(FaceExpressionController faceController, IdleStateController idleController, TrainingRoomRuntime trr)
     {
@@ -132,6 +133,7 @@ public partial class ExpressionTester : Control
         {
             RefreshCurrentExprLabel();
             RefreshStatusLabel();
+            if (_endingPreviewLabel != null && _trr != null) _endingPreviewLabel.Text = _trr.EndingPreview();
         }
         // 換嘴巴視窗貼著主 DEV 視窗的右邊，主視窗被拖動時要跟著一起移動。
         if (_mouthPickerOpen && _mouthPickerWindow != null && _window != null)
@@ -683,6 +685,10 @@ public partial class ExpressionTester : Control
         }
         StatRow("心情值",   d => _trr?.DebugAddMood(d));
         StatRow("雌小鬼值", d => _trr?.DebugAddBrat(d));
+        _endingPreviewLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _endingPreviewLabel.AddThemeFontSizeOverride("font_size", 12);
+        _endingPreviewLabel.AddThemeColorOverride("font_color", new Color("ffe08a"));
+        content.AddChild(_endingPreviewLabel);
 
         var hiddenDev = new VBoxContainer { Name = "HiddenDevSection", Visible = false };
         content.AddChild(hiddenDev);
