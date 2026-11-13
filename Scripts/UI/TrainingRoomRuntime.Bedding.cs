@@ -335,45 +335,9 @@ public partial class TrainingRoomRuntime
                 _kickDrag = false;
                 DuvetState = 0;
                 if (_duvet != null) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
-                OnBlanketCovered();   // 蓋被子：心情 +10、雌小鬼值 −10（每次進房間只算一次），並提示玩家（Bedding.cs 下方）
             }
             return true;
         }
         return false;
-    }
-
-    // ── 蓋被子的獎勵：讓玩家知道「蓋不蓋被子」會影響劇情和數值 ──
-    [ExportGroup("蓋被子")]
-    [Export] public float BlanketMoodUp   = 10f;   // 蓋被子：心情 +
-    [Export] public float BlanketBratDown = 10f;   // 蓋被子：雌小鬼值 −
-    bool _blanketBonusGiven;   // 這次進房間已經給過（來回蓋、踢不能一直刷）
-
-    void OnBlanketCovered()
-    {
-        if (_blanketBonusGiven) return;
-        _blanketBonusGiven = true;
-        DebugAddMood(+BlanketMoodUp);
-        DebugAddBrat(-BlanketBratDown);   // 這兩個會加減、存檔、檢查結局條件
-        ShowEmote(EmoteBubble.Kind.Heart);
-        ShowBlanketToast($"蓋好被子了…　心情 +{BlanketMoodUp:F0}　雌小鬼值 −{BlanketBratDown:F0}");
-    }
-
-    void ShowBlanketToast(string text)
-    {
-        var parent = UiRoot;
-        if (parent == null) return;
-        var lbl = new Label { Text = text, MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 3500, HorizontalAlignment = HorizontalAlignment.Center };
-        lbl.AddThemeFontSizeOverride("font_size", 26);
-        lbl.AddThemeColorOverride("font_color", new Color(1f, 0.92f, 0.96f));
-        lbl.AddThemeColorOverride("font_outline_color", new Color(0.55f, 0.2f, 0.35f));
-        lbl.AddThemeConstantOverride("outline_size", 8);
-        lbl.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
-        lbl.Position = new Vector2(-300f, 90f);
-        lbl.Size = new Vector2(600f, 40f);
-        parent.AddChild(lbl);
-        var tw = lbl.CreateTween();
-        tw.TweenInterval(2.5f);
-        tw.TweenProperty(lbl, "modulate:a", 0f, 0.8f);
-        tw.TweenCallback(Callable.From(() => { if (IsInstanceValid(lbl)) lbl.QueueFree(); }));
     }
 }
