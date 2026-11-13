@@ -97,6 +97,24 @@ public partial class TrainingRoomRuntime
         return !string.IsNullOrEmpty(t) && GirlSayRich(t, allowReply);
     }
 
+    /// <summary>測試用（F1 面板的按鈕）：心情值加減 delta，立刻存檔並檢查結局條件（心情歸 0 → BratEnd=1）。</summary>
+    public void DebugAddMood(float delta)
+    {
+        if (!_bratLoaded) BratLoad();
+        Mood = Mathf.Clamp(Mood + delta, 0f, 100f);
+        BratSave();
+        GD.Print($"[Brat] 測試：心情 {Mood}");
+    }
+
+    /// <summary>測試用（F1 面板的按鈕）：雌小鬼值加減 delta，立刻存檔並檢查結局條件（≥100 且心情 > 0 → mesugaki100）。</summary>
+    public void DebugAddBrat(float delta)
+    {
+        if (!_bratLoaded) BratLoad();
+        BratValue = Mathf.Clamp(BratValue + delta, 0f, 100f);
+        BratSave();
+        GD.Print($"[Brat] 測試：雌小鬼值 {BratValue}");
+    }
+
     bool BratR18 => PlayerDataManager.Instance?.R18ContentEnabled == true;
     bool BratInserted => _jijiPhase == 3 && _jijiStage >= 1;
 

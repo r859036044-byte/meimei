@@ -24,6 +24,7 @@ using System.Collections.Generic;
 /// </summary>
 public partial class ExpressionTester : Control
 {
+    [Export] public float DebugStatStep = 10f;   // 心情值／雌小鬼值測試按鈕每次加減多少
     // ════════════════════════════════════════════════════════════
     //  外部依賴（由 TrainingRoomRuntime.Expression.cs 於建立時直接注入）
     // ════════════════════════════════════════════════════════════
@@ -666,6 +667,23 @@ public partial class ExpressionTester : Control
         // ── 以下區塊使用者表示用不到（功能跟右側選單重複），收進隱藏容器不顯示。
         //    不直接刪掉程式，是因為其他刷新函式（目前表情、狀態、射精開關…）還會用到這些元件，
         //    留在隱藏容器裡就不會出現空參考錯誤。之後確定不要再整段刪。
+        // ── 測試用：心情值／雌小鬼值 ±（每次 ±DebugStatStep）──────────────
+        content.AddChild(new HSeparator());
+        void StatRow(string label, System.Action<float> change)
+        {
+            var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+            var lbl = new Label { Text = label, CustomMinimumSize = new Vector2(80f, 0f), HorizontalAlignment = HorizontalAlignment.Center };
+            lbl.AddThemeFontSizeOverride("font_size", 14);
+            row.AddChild(lbl);
+            var minus = MakeButton("－ " + DebugStatStep, () => change(-DebugStatStep), "2a2a44", "6060a0");
+            var plus  = MakeButton("＋ " + DebugStatStep, () => change(+DebugStatStep), "2a4a2a", "60a060");
+            minus.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; plus.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            row.AddChild(minus); row.AddChild(plus);
+            content.AddChild(row);
+        }
+        StatRow("心情值",   d => _trr?.DebugAddMood(d));
+        StatRow("雌小鬼值", d => _trr?.DebugAddBrat(d));
+
         var hiddenDev = new VBoxContainer { Name = "HiddenDevSection", Visible = false };
         content.AddChild(hiddenDev);
         hiddenDev.AddChild(new HSeparator());
