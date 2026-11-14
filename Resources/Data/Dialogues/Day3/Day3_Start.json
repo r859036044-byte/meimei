@@ -353,9 +353,14 @@
       "text": "實在太可愛了，我這樣的妹妹❤"
     },
     {
+      "hideCH": "1",
+      "bgName": "black"
+    },
+    {
       "endTitle": "Good End ?",
       "endSubtitle": "雌小鬼大小姐",
-      "endNo": 6
+      "endNo": 6,
+      "autoNext": 180
     },
     {
       "varEnd": true
@@ -684,10 +689,14 @@
       "text": "雜魚哥哥都要乖乖負起責任陪我到底喔❤！"
     },
     {
-      "fadeout black": "60, 1",
+      "hideCH": "1",
+      "bgName": "black"
+    },
+    {
       "endTitle": "Good End",
       "endSubtitle": "課後輔導的真相 —— 封鎖追求者與妹妹的專屬沙包",
-      "endNo": 3
+      "endNo": 3,
+      "autoNext": 180
     },
     {
       "varEnd": true
@@ -835,9 +844,14 @@
       "text": "這或許，就是對我那份半途而廢的溫柔，最殘酷的懲罰。"
     },
     {
+      "hideCH": "1",
+      "bgName": "black"
+    },
+    {
       "endTitle": "Normal End",
       "endSubtitle": "無聲的拒絕 —— 鎖上的心門與錯過的雨傘",
-      "endNo": 4
+      "endNo": 4,
+      "autoNext": 180
     },
     {
       "varEnd": true
@@ -1659,9 +1673,14 @@
       "text": "雖然沒有發生流血衝突，但看著他們兩人每天得意洋洋嘲弄我的笑容，我只能在心底承認——在這個家裡，我已經是個徹頭徹尾的敗犬了。"
     },
     {
+      "hideCH": "1",
+      "bgName": "black"
+    },
+    {
       "endTitle": "BAD END",
       "endSubtitle": "雜魚敗犬",
-      "endNo": 1
+      "endNo": 1,
+      "autoNext": 180
     },
     {
       "varEnd": true
@@ -1807,9 +1826,14 @@
       "text": "偶爾在街角遇見他們兩人相擁走過時，他們投來的只有看小丑般的鄙夷與嘲笑——我為了一時的衝動，親手把妹妹推向了深淵。"
     },
     {
+      "hideCH": "1",
+      "bgName": "black"
+    },
+    {
       "endTitle": "BAD END",
       "endSubtitle": "雜魚敗犬",
-      "endNo": 2
+      "endNo": 2,
+      "autoNext": 180
     },
     {
       "varEnd": true
