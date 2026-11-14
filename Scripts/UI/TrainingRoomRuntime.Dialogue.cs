@@ -216,23 +216,34 @@ public partial class TrainingRoomRuntime : Node
         if (night < 1 || night > 2) return;
         bool covered = DuvetState == 0;   // 0＝蓋著、1＝踢開（R18 照被子狀態）
         if (!pdm.R18ContentEnabled)
-        {   // 全年齡：蓋不蓋被子不再決定劇情路徑，由心情／雌小鬼值決定
+        {   // 全年齡：蓋不蓋被子完全不影響劇情，只看心情／雌小鬼值
             if (night == 1)
-            {   // 第 1 晚（決定隔天 Day2 劇情走蓋被或不蓋被）：心情大於 AADay2BlanketMood「而且」雌小鬼值低於 AADay2BlanketBratBelow → 蓋被子劇情；任何一個條件沒達到 → 不蓋被子劇情
+            {   // 第 1 晚：決定隔天 Day2 早上走哪一段劇情——心情大於 AADay2BlanketMood「而且」雌小鬼值低於 AADay2BlanketBratBelow 走第一段，任何一個條件沒達到走第二段
                 covered = Mood > AADay2BlanketMood && BratValue < AADay2BlanketBratBelow;
                 GD.Print($"[Troom] 全年齡第 1 晚：心情 {Mood:F0}（要 > {AADay2BlanketMood:F0}）、雌小鬼值 {BratValue:F0}（要 < {AADay2BlanketBratBelow:F0}）→ Day2 走{(covered ? "蓋被子" : "不蓋被子")}劇情");
             }
             else
-            {   // 第 2 晚：維持原本做法（心情／雌小鬼值最近理想點決定結局）
-                var path = StoryTreeData.AAEndingPath(StoryTreeData.PickAAEndingByStats(Mood, BratValue));
+            {   // 第 2 晚：結局只由「第 2 晚結束時的心情／雌小鬼值」決定（離哪個結局的理想點最近）。
+                // 劇本是看「第 1 晚＋第 2 晚」兩個變數的組合挑結局，所以這裡把兩個一起寫成這個結局要的組合，第 1 晚的結果不會再拖著結局走
+                // （Day2 早上的劇情已經播完了，覆蓋第 1 晚變數不影響劇情）。
+                int ending = StoryTreeData.PickAAEndingByStats(Mood, BratValue);
+                var path = StoryTreeData.AAEndingPath(ending);
+                WriteBlanketVars(pdm, 1, path.d1Cover);
                 covered = path.d2Cover;
+                GD.Print($"[Troom] 全年齡第 2 晚：心情 {Mood:F0}、雌小鬼值 {BratValue:F0} → 結局 {ending}（劇本變數：第1晚{(path.d1Cover ? "蓋" : "不蓋")}、第2晚{(path.d2Cover ? "蓋" : "不蓋")}）");
             }
         }
+        WriteBlanketVars(pdm, night, covered);
+    }
+
+    /// <summary>把「第 N 晚蓋／不蓋」寫進劇情變數：兩個變數互斥，設其中一個為 1、另一個歸 0，劇本的 varStart 條件就能判斷。</summary>
+    static void WriteBlanketVars(PlayerDataManager pdm, int night, bool covered)
+    {
         string yes = $"day{night}_" + (covered ? "blanket" : "noBlanket");
         string no  = $"day{night}_" + (covered ? "noBlanket" : "blanket");
         pdm.AddDialogueVar(yes, 1 - pdm.GetDialogueVar(yes));
         pdm.AddDialogueVar(no, -pdm.GetDialogueVar(no));
-        GD.Print($"[Troom] 被子狀態：{(covered ? "蓋被子" : "不蓋被子")} → {yes}=1、{no}=0");
+        GD.Print($"[Troom] 劇情變數：{yes}=1、{no}=0");
     }
 
     async Task IdleEndFlowAsync()
