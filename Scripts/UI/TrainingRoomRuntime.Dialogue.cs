@@ -205,6 +205,9 @@ public partial class TrainingRoomRuntime : Node
         TaskLogger.Run(TrainingEndFlowAsync(success), "TrainingRoom.TrainingEndFlowAsync");
     }
 
+    [Export(PropertyHint.Range, "0,100,1")] public float AADay2BlanketMood = 60f;        // 全年齡第 1 晚：心情要「大於」這個值，才有機會走 Day2 蓋被子劇情
+    [Export(PropertyHint.Range, "0,100,1")] public float AADay2BlanketBratBelow = 30f;   // 全年齡第 1 晚：雌小鬼值要「小於」這個值（兩個條件都達到才走蓋被子劇情，只要有一個沒達到就走不蓋被子劇情；R18 版不受影響，仍照實際被子狀態）
+
     /// <summary>離開 TrainingRoom 時，依被子狀態設定劇情變數：蓋著＝dayN_blanket、踢開＝dayN_noBlanket（N＝今晚是第幾晚，只記第 1、2 晚）。
     /// 兩個變數互斥：設其中一個為 1、另一個歸 0，劇本的 varStart 條件就能判斷。</summary>
     void RecordBlanketState(PlayerDataManager pdm)
@@ -214,8 +217,16 @@ public partial class TrainingRoomRuntime : Node
         bool covered = DuvetState == 0;   // 0＝蓋著、1＝踢開（R18 照被子狀態）
         if (!pdm.R18ContentEnabled)
         {   // 全年齡：蓋不蓋被子不再決定劇情路徑，由心情／雌小鬼值決定
-            var path = StoryTreeData.AAEndingPath(StoryTreeData.PickAAEndingByStats(Mood, BratValue));
-            covered = night == 1 ? path.d1Cover : path.d2Cover;
+            if (night == 1)
+            {   // 第 1 晚（決定隔天 Day2 劇情走蓋被或不蓋被）：心情大於 AADay2BlanketMood「而且」雌小鬼值低於 AADay2BlanketBratBelow → 蓋被子劇情；任何一個條件沒達到 → 不蓋被子劇情
+                covered = Mood > AADay2BlanketMood && BratValue < AADay2BlanketBratBelow;
+                GD.Print($"[Troom] 全年齡第 1 晚：心情 {Mood:F0}（要 > {AADay2BlanketMood:F0}）、雌小鬼值 {BratValue:F0}（要 < {AADay2BlanketBratBelow:F0}）→ Day2 走{(covered ? "蓋被子" : "不蓋被子")}劇情");
+            }
+            else
+            {   // 第 2 晚：維持原本做法（心情／雌小鬼值最近理想點決定結局）
+                var path = StoryTreeData.AAEndingPath(StoryTreeData.PickAAEndingByStats(Mood, BratValue));
+                covered = path.d2Cover;
+            }
         }
         string yes = $"day{night}_" + (covered ? "blanket" : "noBlanket");
         string no  = $"day{night}_" + (covered ? "noBlanket" : "blanket");
