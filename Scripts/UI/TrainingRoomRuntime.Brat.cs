@@ -28,7 +28,11 @@ public partial class TrainingRoomRuntime
     [Export] public float BratIgnoredUp = 6f;           // 雌小鬼話沒人理：雌小鬼值上升
     [Export] public float NormalPinchMoodDown = 12f;    // 正常話 + 捏：心情下降（× (0.4 + 0.6×幅度)）
     [Export] public float NormalPinchBratDown = 4f;     // 正常話 + 捏：雌小鬼值下降（× 幅度）
-    [Export] public float NormalIgnoredMoodUp = 3f;     // 正常話沒被捏：心情上升
+    [Export] public float NormalIgnoredMoodUp = 3f;     // （舊版，已不使用）正常話沒被捏：心情上升。備份：git 分支 backup-20261114-before-idle-drift
+    // 沒有任何互動、只是看著：心情會跌、雌小鬼值會長（被動變化不會單靠發呆就把心情扣到 0／雌小鬼值加到 100，結局 7／6 要玩家真的操作才會觸發）
+    [Export] public float IdleMoodDown = 3f;            // 莉奈說完話沒人理：心情下降（雌小鬼話、正常話都一樣）
+    [Export] public float NormalIgnoredBratUp = 2f;     // 正常話沒人理：雌小鬼值上升（雌小鬼話沒人理用 BratIgnoredUp）
+    [Export] public float IdleBratUp = 0f;              // 雌小鬼話沒人理：額外再加的雌小鬼值（BratIgnoredUp 之外）
     [Export] public float LessonBratDown = 35f;          // R18「教訓」：雌小鬼值下降
     [Export] public float LessonMoodBase = 18f;          // R18「教訓」：心情扣的基準（舒服度高會少扣：× (1.6 − 1.2×舒服度)）
     [Export] public float LessonDuration = 2.5f;         // 「教訓」快速頂到底持續秒數
@@ -206,8 +210,11 @@ public partial class TrainingRoomRuntime
             }
             else if (_bratWindow <= 0f)
             {   // 沒人理她
-                if (_bratLineType == 1) BratValue += BratIgnoredUp;
-                else { Mood += NormalIgnoredMoodUp; BratValue -= 1f; }
+                // 舊版（備份在 backup-20261114-before-idle-drift）：雌小鬼話沒人理 BratValue += BratIgnoredUp；正常話沒人理 Mood += NormalIgnoredMoodUp、BratValue -= 1
+                BratValue += (_bratLineType == 1) ? BratIgnoredUp + IdleBratUp : NormalIgnoredBratUp;
+                Mood -= IdleMoodDown;
+                BratValue = Mathf.Min(BratValue, 99f);   // 發呆不會單靠被動變化進結局 6（雌小鬼值 100）
+                Mood = Mathf.Max(Mood, 1f);              // 也不會進結局 7（心情 0）
                 BratResolve();
             }
             else BratLayoutChoices();
