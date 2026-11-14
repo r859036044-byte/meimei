@@ -61,11 +61,18 @@ public static class StoryTreeData
     {
         (5, 90f, 10f),   // 兄妹專屬散步：心情很高、雌小鬼很低
         (3, 55f, 70f),   // 課後輔導：心情中等、雌小鬼偏高
-        (4, 15f, 50f),   // 無聲的拒絕：心情很低、雌小鬼中等
-        (1,  7f, 90f),   // 雜魚敗犬／衝動的代價：心情超低、雌小鬼超高（1 或 2 由第 3 晚深夜的選擇決定）
+        (7, 15f, 50f),   // 斷線的風箏（已融合「無聲的拒絕」）：心情很低、雌小鬼中等。結局 4 不再觸發，這個區域改成走結局 7（離家出走）
+        (1,  7f, 90f),   // 雜魚敗犬：心情超低、雌小鬼超高（結局 2「衝動的代價」已拿掉，第 3 晚深夜不再有選擇，一律走結局 1）
     };
 
-    /// <summary>依心情、雌小鬼值，算出最接近的結局編號（5／3／4／1；1 代表結局 1 或 2）。</summary>
+    /// <summary>已經從遊戲拿掉、不會再觸發的結局（劇本內容還留著，只是不能觸發、圖鑒也不顯示）：
+    /// 2＝衝動的代價（併入結局 1 雜魚敗犬）、4＝無聲的拒絕（融合進結局 7 斷線的風箏）。想恢復就把它從這裡拿掉並還原觸發條件。</summary>
+    public static bool AAEndingRemoved(int n) => n == 2 || n == 4;
+
+    /// <summary>算出的結局編號 → 要不要走「離家出走」結局 7（斷線的風箏，Ending4 場景播 Day2_Start(bad end)）。</summary>
+    public static bool AAEndingIsBadEnd(int ending) => ending == 7;
+
+    /// <summary>依心情、雌小鬼值，算出最接近的結局編號（5／3／7／1；7＝斷線的風箏，已融合無聲的拒絕）。</summary>
     public static int PickAAEndingByStats(float mood, float brat)
     {
         int best = 1; float bestD = float.MaxValue;

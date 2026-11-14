@@ -1559,28 +1559,7 @@
       "chFace": "crylaugh"
     },
     {
-      "choice": [
-        "選項A（endure）",
-        "選項B（slap）"
-      ]
-    },
-    {
-      "optionStart": 0
-    },
-    {
       "addVar": "endure"
-    },
-    {
-      "optionEnd": true
-    },
-    {
-      "optionStart": 1
-    },
-    {
-      "addVar": "slap"
-    },
-    {
-      "optionEnd": true
     },
     {
       "varStart": "endure"

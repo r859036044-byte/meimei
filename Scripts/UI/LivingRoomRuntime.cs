@@ -187,6 +187,7 @@ public partial class LivingRoomRuntime : Node
             {
                 // 有摸過→播「魚夢早晨」，否則播「道歉早晨」
                 bool hadTouchMorning = TrainingRoomRuntime.HadBreastTouch;
+                NormalizeAAEndingVars();   // 全年齡：結局 4 已拿掉，先把會落到結局 4 的變數組合改掉
                 if (hadTouchMorning)
                     await PlayDialogueAsync("Day3/Day3_Morning_Touch");
                 else
@@ -460,6 +461,20 @@ public partial class LivingRoomRuntime : Node
     // ─────────────────────────────────────────────────────────────
     // 通用對話播放
     // ─────────────────────────────────────────────────────────────
+    /// <summary>全年齡：結局 4（無聲的拒絕）已拿掉。只有「略過第 2 晚調教室」這條邊角路徑才可能出現「第 1 晚蓋被＋第 2 晚不蓋」這組合（落到結局 4），
+    /// 這裡把它改成「兩晚都不蓋」（結局 1），保證不會觸發結局 4。正常有進調教室的路徑，第 2 晚結束時已經由數值把兩個變數一起寫好了，不受影響。</summary>
+    static void NormalizeAAEndingVars()
+    {
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null || pdm.R18ContentEnabled) return;
+        if (pdm.GetDialogueVar("day1_blanket") > 0 && pdm.GetDialogueVar("day2_noBlanket") > 0)
+        {
+            pdm.AddDialogueVar("day1_noBlanket", 1 - pdm.GetDialogueVar("day1_noBlanket"));
+            pdm.AddDialogueVar("day1_blanket", -pdm.GetDialogueVar("day1_blanket"));
+            GD.Print("[結局] 結局 4 已拿掉：第1晚蓋被＋第2晚不蓋 → 改走兩晚都不蓋（結局 1）");
+        }
+    }
+
     async Task PlayDialogueAsync(string dialogueName, bool startBlack = false)
     {
         string path = "res://Resources/Data/Dialogues/" + dialogueName + ".json";

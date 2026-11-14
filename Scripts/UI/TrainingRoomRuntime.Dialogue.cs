@@ -230,6 +230,11 @@ public partial class TrainingRoomRuntime : Node
                 var path = StoryTreeData.AAEndingPath(ending);
                 WriteBlanketVars(pdm, 1, path.d1Cover);
                 covered = path.d2Cover;
+                if (StoryTreeData.AAEndingIsBadEnd(ending))
+                {   // 結局 7（斷線的風箏，已融合無聲的拒絕）：離開調教室後直接進離家出走結局，跟「心情歸 0」走同一條路（BratEnd＝1 → Ending4 場景）
+                    BratSetVar(BratVarEnd, 1);
+                    GD.Print("[Troom] 全年齡第 2 晚：心情偏低 → 結局 7（斷線的風箏）");
+                }
                 GD.Print($"[Troom] 全年齡第 2 晚：心情 {Mood:F0}、雌小鬼值 {BratValue:F0} → 結局 {ending}（劇本變數：第1晚{(path.d1Cover ? "蓋" : "不蓋")}、第2晚{(path.d2Cover ? "蓋" : "不蓋")}）");
             }
         }

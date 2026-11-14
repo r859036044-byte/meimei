@@ -305,6 +305,7 @@ public partial class GalleryScreen : Control
             // 全年齡版：只有 5 個結局（與 R18 的 18 個分開記錄）
             for (int i = 1; i <= GalleryDataManager.AAEndingCount; i++)
             {
+                if (StoryTreeData.AAEndingRemoved(i)) continue;   // 結局 2、4 已拿掉，不顯示
                 bool unlocked = gdm?.IsAAEndingUnlocked(i) ?? false;
                 grid.AddChild(BuildEndingCard(i, unlocked, true));
             }
