@@ -354,7 +354,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "Good End ?",
@@ -690,7 +690,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "Good End",
@@ -845,7 +845,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "Normal End",
@@ -1405,7 +1405,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "True End",
@@ -1674,7 +1674,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "BAD END",
@@ -1827,7 +1827,7 @@
     },
     {
       "hideCH": "1",
-      "bgName": "black"
+      "fadeoutBlack": "60"
     },
     {
       "endTitle": "BAD END",
