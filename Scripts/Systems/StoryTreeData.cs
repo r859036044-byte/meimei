@@ -72,25 +72,15 @@ public static class StoryTreeData
     /// <summary>算出的結局編號 → 要不要走「離家出走」結局 7（斷線的風箏，Ending4 場景播 Day2_Start(bad end)）。</summary>
     public static bool AAEndingIsBadEnd(int ending) => ending == 7;
 
-    /// <summary>依心情、雌小鬼值決定結局（5／3／7／1）。兩段式：先看下面四個「保證區」，都沒中再退回「離理想點最近」，所以永遠有結局。
-    ///   結局 5：心情 ≥ 80 且 雌小鬼 ≤ 30
-    ///   結局 3：心情 40～79 且 雌小鬼 &gt; 40
-    ///   結局 7：心情 0～15 且 雌小鬼 &lt; 30
-    ///   結局 1：心情 16～39 且 雌小鬼 &gt; 50</summary>
+    /// <summary>依心情、雌小鬼值決定結局（結局 7＝心情 0、結局 6＝雌小鬼 100，由別處優先判定，不在這裡）：
+    ///   結局 1：心情 &lt; 30
+    ///   結局 5：心情 &gt; 80 且 雌小鬼 ≤ 30
+    ///   結局 3：其餘（心情 ≥ 30；心情 &gt; 80 但雌小鬼 &gt; 30 也算在這）</summary>
     public static int PickAAEndingByStats(float mood, float brat)
     {
-        if (mood >= 80f && brat <= 30f) return 5;
-        if (mood >= 40f && mood < 80f && brat > 40f) return 3;
-        if (mood < 16f && brat < 30f) return 7;
-        if (mood >= 16f && mood < 40f && brat > 50f) return 1;
-
-        int best = 1; float bestD = float.MaxValue;
-        foreach (var t in AAEndingTargets)
-        {
-            float dm = mood - t.mood, db = brat - t.brat, d = dm * dm + db * db;
-            if (d < bestD) { bestD = d; best = t.ending; }
-        }
-        return best;
+        if (mood < 30f) return 1;
+        if (mood > 80f && brat <= 30f) return 5;
+        return 3;
     }
 
     /// <summary>結局編號對應的劇本路徑（劇本裡 day1／day2 的 blanket／noBlanket 分段只是「分段標籤」，現在由數值推出來）。</summary>
