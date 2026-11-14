@@ -1354,6 +1354,19 @@ public partial class LivingRoomRuntime : Node
         _bgImage.Texture = newTex; _bgImage.Modulate = Colors.White; overlay.QueueFree();
     }
 
+    // 純色背景用：TextureRect 沒貼圖時什麼都不畫，會露出後面的灰色底，所以改貼一張 1×1 白圖再用 Modulate 上色（黑／白）
+    static ImageTexture _solidTex;
+    static Texture2D SolidTex()
+    {
+        if (_solidTex == null)
+        {
+            var img = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8);
+            img.Fill(Colors.White);
+            _solidTex = ImageTexture.CreateFromImage(img);
+        }
+        return _solidTex;
+    }
+
     async Task FadeBGColorAsync(Color targetColor, float duration = 0.6f)
     {
         Color startColor = _bgImage.Modulate; float t = 0f;
@@ -1363,7 +1376,7 @@ public partial class LivingRoomRuntime : Node
             _bgImage.Modulate = startColor.Lerp(targetColor, Mathf.Clamp(t / duration, 0, 1));
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
-        _bgImage.Texture = null; _bgImage.Modulate = targetColor;
+        _bgImage.Texture = SolidTex(); _bgImage.Modulate = targetColor;
     }
 
     async Task HandleBGAsync(string bgName)
@@ -1377,12 +1390,12 @@ public partial class LivingRoomRuntime : Node
         if (name.ToLower() == "black")
         {
             if (crossfade) await FadeBGColorAsync(Colors.Black);
-            else { _bgImage.Texture = null; _bgImage.Modulate = Colors.Black; }
+            else { _bgImage.Texture = SolidTex(); _bgImage.Modulate = Colors.Black; }
         }
         else if (name.ToLower() == "white")
         {
             if (crossfade) await FadeBGColorAsync(Colors.White);
-            else { _bgImage.Texture = null; _bgImage.Modulate = Colors.White; }
+            else { _bgImage.Texture = SolidTex(); _bgImage.Modulate = Colors.White; }
         }
         else
         {
