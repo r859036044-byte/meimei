@@ -325,6 +325,7 @@
       "chFace": "cixiaoguixiao"
     },
     {
+      "fadeout black": "60",
       "speaker": "男主",
       "text": "……我馬上去倒果汁。",
       "hideCH": "1"
@@ -399,11 +400,11 @@
     },
     {
       "speaker": "莉奈",
-      "text": "前天晚上那隻老鼠明明在門口看了一眼就膽小地逃跑了……"
+      "text": "前天晚上那隻老鼠有點膽小呢，一點都不大膽"
     },
     {
       "speaker": "莉奈",
-      "text": "結果昨晚卻偷偷摸摸地跑到人家床邊，笨手笨腳地幫人家蓋被子、摸頭陪了人家一整晚……呵呵❤。"
+      "text": "結果昨晚卻偷偷摸摸地跑到人家床邊，笨手笨腳地來到人家身邊，大膽的摸我的頭捏我的臉呢"
     },
     {
       "speaker": "男主",
@@ -416,7 +417,6 @@
       "chFace": "cixiaoguixiao"
     },
     {
-      "speaker": "男主",
       "text": "男主心虛冒汗"
     },
     {
@@ -475,7 +475,8 @@
       "chOutfit": "sleep",
       "chHair": "twin",
       "chSocks": "none",
-      "chFace": "biaoqing1"
+      "chFace": "biaoqing1",
+      "bgName": "bg_Kitchen, fade"
     },
     {
       "speaker": "莉奈",
@@ -499,10 +500,18 @@
     },
     {
       "speaker": "男主",
-      "text": "很少看到莉奈吃這麼快的，看起來很對胃口呢……"
+      "text": "很少看到莉奈吃這麼快的，看起來很對胃口呢……",
+      "hideCH": "1"
     },
     {
-      "text": "深夜時刻"
+      "fadeoutBlack": "45"
+    },
+    {
+      "text": "深夜時刻，莉奈房間",
+      "bgName": "bg_LinaiRoom(night)"
+    },
+    {
+      "fadein": "45"
     },
     {
       "speaker": "男主",
@@ -1405,9 +1414,9 @@
     {
       "speaker": "莉奈",
       "text": "喂，發什麼呆啊，雜魚。早餐還沒弄好嗎？想餓死我喔？",
-      "chOutfit": "sleep",
+      "chOutfit": "school",
       "chHair": "twin",
-      "chSocks": "none",
+      "chSocks": "black",
       "chFace": "shengqi1"
     },
     {
@@ -1443,6 +1452,7 @@
     },
     {
       "fadein": "60",
+      "bgName": "bg_Kitchen, fade",
       "text": "夜晚時分的廚房"
     },
     {
@@ -1480,6 +1490,7 @@
       "text": "我只是想了解妳現在的狀況，畢竟我們是一家人……"
     },
     {
+      "fadeout black": "60",
       "speaker": "莉奈",
       "text": "囉唆死了。我的事不用你管！我吃飽了。再見。",
       "chFace": "shengqi2",
