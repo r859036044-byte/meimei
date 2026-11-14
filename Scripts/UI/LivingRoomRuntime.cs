@@ -436,6 +436,16 @@ public partial class LivingRoomRuntime : Node
         _gotoAllAges = null;
         GD.Print($"[LivingRoom] 全年齡跳轉 → {target}");
 
+        if (target == "TrainingRoom")
+        {   // Day2 晚上（原本「蓋被子／不蓋被子」選擇的位置）：全年齡也進調教室做第 2 晚的互動（互動受 AllAgesLocked 限制），做完回客廳播隔天早上的結局
+            var pd2 = PlayerDataManager.Instance;
+            if (pd2 != null) { pd2.ResetTodayTracking(); pd2.CurrentNight = 2; }
+            TrainingRoomRuntime.PendingDay3First = true;   // 第 2 晚首次進場（跟 R18 進第 2 晚調教室同一個旗標）
+            await ScreenFadeAsync(true, 1f, Colors.Black);
+            await SceneLoader.GoToAsync(this, "res://Scenes/TrainingRoom.tscn");
+            return;
+        }
+
         if (FileAccess.FileExists($"res://Resources/Data/Dialogues/{target}.json"))
         {
             var pdm = PlayerDataManager.Instance;
@@ -1367,8 +1377,11 @@ public partial class LivingRoomRuntime : Node
         else
         {
             var tex = ResourceHelper.LoadTexAny("Backgrounds/" + name);
+            if (tex == null) GD.PrintErr($"[LivingRoom] 找不到背景圖：Backgrounds/{name}（背景沒有切換）");
             if (tex != null && _bgImage != null)
             {
+                if (crossfade && _screenBlack) crossfade = false;   // 畫面是黑的（例如一段劇情從黑屏開始）時看不到交叉淡入，直接換成新背景最保險，不會卡在舊背景
+                GD.Print($"[LivingRoom] 切換背景 → {name}{(crossfade ? "（淡入）" : "")}");
                 if (crossfade) await CrossfadeBGAsync(tex);
                 else { _bgImage.Texture = tex; _bgImage.Modulate = Colors.White; }
             }
