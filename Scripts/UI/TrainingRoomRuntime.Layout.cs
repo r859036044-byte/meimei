@@ -384,8 +384,8 @@ public partial class TrainingRoomRuntime
 
     // ── F1 才顯示的開發用 UI ───────────────────────────────────
     //  使用者要求：一般畫面只保留左下（手／雞雞按鈕、精力、精液），
-    //  高潮度(TopHUD)、狀態卡(StatsPanel)、右側選單(SidePanel) 都跟著 F1 面板一起開關。
-    static readonly string[] _f1OnlyPanelNames = { "TopHUD", "StatsPanel", "SidePanel" };
+    //  高潮度(TopHUD)、右側選單(SidePanel) 都跟著 F1 面板一起開關。
+    static readonly string[] _f1OnlyPanelNames = { "TopHUD", "SidePanel" };   // 狀態卡（StatsPanel）改成一般畫面常駐顯示，不再跟著 F1
     ExpressionTester _f1Tester;
     bool? _f1UiShown;
 

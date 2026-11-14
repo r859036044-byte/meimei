@@ -708,12 +708,24 @@ void fragment() {
 
         MkLabel(panel, "StatsTitle", "♡ " + I18n.T("狀態"), 16, CuteTitle, new Vector2(16, 8), new Vector2(120, 26));
 
+        // 全年齡（R18 設定關閉）：狀態卡只顯示「心情」和「雌小鬼」兩列，各部位舒服度隱藏、卡片縮短；R18 顯示全部
+        bool aa = PlayerDataManager.Instance?.R18ContentEnabled != true;
         (_moodLabel, _moodBar)                 = StatRow(panel, "心情",     38,  Mood,         100);
         (_comfortMouthLabel, _comfortMouthBar) = StatRow(panel, "嘴巴舒服", 70,  ComfortMouth, 100);
         (_comfortChestLabel, _comfortChestBar) = StatRow(panel, "胸部舒服", 102, ComfortChest, 100);
         (_comfortButtLabel, _comfortButtBar)   = StatRow(panel, "尻部舒服", 134, ComfortButt,  100);
         (_comfortHoleLabel, _comfortHoleBar)   = StatRow(panel, "小穴舒服", 166, ComfortHole,  200);
-        (_bratLabel, _bratBar)                 = StatRow(panel, "雌小鬼",   198, BratValue,    100);
+        (_bratLabel, _bratBar)                 = StatRow(panel, "雌小鬼",   aa ? 70 : 198, BratValue, 100);
+        if (aa)
+        {
+            foreach (var nm in new[] { "嘴巴舒服", "胸部舒服", "尻部舒服", "小穴舒服" })
+            {
+                var l = panel.GetNodeOrNull<Control>(nm + "L"); if (l != null) l.Visible = false;
+            }
+            foreach (var (lb, bar) in new[] { (_comfortMouthLabel, _comfortMouthBar), (_comfortChestLabel, _comfortChestBar), (_comfortButtLabel, _comfortButtBar), (_comfortHoleLabel, _comfortHoleBar) })
+            { if (lb != null) lb.Visible = false; if (bar != null) bar.Visible = false; }
+            panel.Size = new Vector2(300, 112);
+        }
     }
 
     (Label, ProgressBar) StatRow(Control parent, string label, float y, float val, float max)
