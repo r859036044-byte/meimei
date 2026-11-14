@@ -77,23 +77,26 @@ public partial class TrainingRoomRuntime
         ApplyAANight2Bias(pdm);
     }
 
-    [Export] public float AANight2MoodDelta = 10f;   // 全年齡第 2 晚進場：好劇情心情 +這個數、壞劇情心情 −這個數
-    [Export] public float AANight2BratDelta = 10f;   // 全年齡第 2 晚進場：好劇情雌小鬼值 −這個數、壞劇情雌小鬼值 +這個數
+    [Export] public float AANight2GoodMoodDelta = 20f;   // 全年齡第 2 晚進場：好劇情心情 +這個數（第 1 晚心情 >60 → 至少 81，不互動也是結局 5）
+    [Export] public float AANight2GoodBratDelta = 10f;   // 好劇情雌小鬼值 −這個數
+    [Export] public float AANight2BadMoodDelta  = 25f;   // 壞劇情心情 −這個數（起點 50 → 25，不互動就是結局 1）
+    [Export] public float AANight2BadBratDelta  = 10f;   // 壞劇情雌小鬼值 +這個數
 
-    /// <summary>全年齡第 2 晚進調教室時（只加減一次）：第 2 天早上走的是「好劇情」（day1_blanket，第 1 晚心情高、雌小鬼值低）→ 心情 +10、雌小鬼值 −10；
-    /// 走的是「壞劇情」（day1_noBlanket）→ 雌小鬼值 +10、心情 −10。R18 版不套用。</summary>
+    /// <summary>全年齡第 2 晚進調教室時（只加減一次）：第 2 天早上走的是「好劇情」（day1_blanket，第 1 晚心情高、雌小鬼值低）→ 心情 +20、雌小鬼值 −10；
+    /// 走的是「壞劇情」（day1_noBlanket）→ 雌小鬼值 +10、心情 −25。R18 版不套用。</summary>
     void ApplyAANight2Bias(PlayerDataManager pdm)
     {
         if (pdm == null || pdm.R18ContentEnabled || pdm.CurrentNight != 2) return;
         if (pdm.GetDialogueVar("aa_n2_bias") != 0) return;   // 這一輪已經加減過了
         bool good = pdm.GetDialogueVar("day1_blanket") > 0, bad = pdm.GetDialogueVar("day1_noBlanket") > 0;
         if (!good && !bad) return;
-        float sign = good ? 1f : -1f;
-        Mood       = Mathf.Clamp(Mood       + sign * AANight2MoodDelta, 0f, 100f);
-        BratValue  = Mathf.Clamp(BratValue  - sign * AANight2BratDelta, 0f, 100f);
+        float md = good ? AANight2GoodMoodDelta : -AANight2BadMoodDelta;
+        float bd = good ? -AANight2GoodBratDelta : AANight2BadBratDelta;
+        Mood       = Mathf.Clamp(Mood      + md, 0f, 100f);
+        BratValue  = Mathf.Clamp(BratValue + bd, 0f, 100f);
         BratSetVar("aa_n2_bias", 1);
         BratSave();
-        GD.Print($"[Brat] 全年齡第 2 晚進場：第 2 天早上是{(good ? "好" : "壞")}劇情 → 心情 {(good ? "+" : "-")}{AANight2MoodDelta:F0}、雌小鬼值 {(good ? "-" : "+")}{AANight2BratDelta:F0}（現在：心情 {Mood:F0}、雌小鬼值 {BratValue:F0}）");
+        GD.Print($"[Brat] 全年齡第 2 晚進場：第 2 天早上是{(good ? "好" : "壞")}劇情 → 心情 {md:+0;-0}、雌小鬼值 {bd:+0;-0}（現在：心情 {Mood:F0}、雌小鬼值 {BratValue:F0}）");
     }
 
     void BratSave()
