@@ -259,6 +259,7 @@ public partial class LivingRoomRuntime : Node
             return;
         }
         if (!_screenBlack) await ScreenFadeAsync(true, 1f, Colors.Black);
+        MainMenuRuntime.SkipIntroOnce = true;   // 結局播完回「標題畫面」，不要重播 LOGO 和開頭動畫
         GetTree().ChangeSceneToFile("res://Scenes/MainMenu.tscn");
     }
 
@@ -400,7 +401,7 @@ public partial class LivingRoomRuntime : Node
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
-    async Task FadeOutEndTitleAsync(float duration = 1.5f)
+    async Task FadeOutEndTitleAsync(float duration = 2.5f)   // 結局標題顯示完之後慢慢淡出的秒數
     {
         if (_endTitleContainer == null) return;
         var labels = new List<Label>();

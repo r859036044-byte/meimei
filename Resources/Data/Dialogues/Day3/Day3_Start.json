@@ -866,10 +866,17 @@
     },
     {
       "speaker": "莉奈",
-      "text": "謝什麼謝啊，囉唆死了。我吃飽了，我去上課了！……那，我出門了。"
+      "text": "謝什麼謝啊，囉唆死了。我吃飽了，我去上課了！……那，我出門了。",
+      "hideCH": "1"
+    },
+    {
+      "fadeoutBlack": "45"
     },
     {
       "text": "第三天夜晚——廚房與餐桌"
+    },
+    {
+      "fadein": "45"
     },
     {
       "speaker": "男主",
@@ -1094,10 +1101,18 @@
     {
       "speaker": "莉奈",
       "text": "只是……稍微沒那麼討厭了而已。",
-      "chFace": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi",
+      "hideCH": "1"
+    },
+    {
+      "fadeoutBlack": "45"
     },
     {
       "text": "第三天深夜——莉奈房間"
+    },
+    {
+      "fadein": "45",
+      "bgName": "bg_LinaiRoom(night)"
     },
     {
       "speaker": "男主",
@@ -1237,6 +1252,9 @@
       "hideCH": "1"
     },
     {
+      "fadeoutBlack": "45"
+    },
+    {
       "text": "深夜 —— 附近的小公園"
     },
     {
@@ -1253,16 +1271,11 @@
     },
     {
       "speaker": "莉奈（白毛狼裝）",
-      "text": "汪！❤主人，小狼犬出來散步就是要到處探險做記號的呀❤。",
-      "chOutfit": "shirt",
-      "chHair": "twin",
-      "chSocks": "white",
-      "chFace": "laugh1"
+      "text": "汪！❤主人，小狼犬出來散步就是要到處探險做記號的呀❤。"
     },
     {
       "speaker": "莉奈（白毛狼裝）",
-      "text": "小狼散步完了，主人不給點摸頭獎勵跟草莓蛋糕嗎？❤",
-      "chFace": "crylaugh"
+      "text": "小狼散步完了，主人不給點摸頭獎勵跟草莓蛋糕嗎？❤"
     },
     {
       "speaker": "男主",
@@ -1270,8 +1283,7 @@
     },
     {
       "speaker": "莉奈（白毛狼裝）",
-      "text": "也沒什麼，這就是普通妹妹cosplay陪哥哥散步啊",
-      "chFace": "laugh1"
+      "text": "也沒什麼，這就是普通妹妹cosplay陪哥哥散步啊"
     },
     {
       "speaker": "男主",
@@ -1279,8 +1291,7 @@
     },
     {
       "speaker": "莉奈（白毛狼裝）",
-      "text": "雜魚哥哥~❤竟然覺得興奮~❤真是變態呢~❤",
-      "chFace": "cixiaoguixiao"
+      "text": "雜魚哥哥~❤竟然覺得興奮~❤真是變態呢~❤"
     },
     {
       "text": "數日後 —— 社區大門"
@@ -1320,11 +1331,7 @@
       "text": "我覺得我們要收斂一點了！"
     },
     {
-      "text": "莉奈嘴角勾起一抹惡魔般的甜美微笑",
-      "chOutfit": "shirt",
-      "chHair": "twin",
-      "chSocks": "white",
-      "chFace": "laugh1"
+      "text": "莉奈嘴角勾起一抹惡魔般的甜美微笑"
     },
     {
       "speaker": "莉奈",
@@ -1340,13 +1347,17 @@
     },
     {
       "speaker": "莉奈",
-      "text": "好吧汪❤！知道了，雜魚主人❤。",
-      "chFace": "cixiaoguixiao"
+      "text": "好吧汪❤！知道了，雜魚主人❤。"
+    },
+    {
+      "hideCH": "1",
+      "bgName": "black"
     },
     {
       "endTitle": "True End",
       "endSubtitle": "夜遊的白毛狼 / 兄妹專屬的秘密散步",
-      "endNo": 5
+      "endNo": 5,
+      "autoNext": 180
     },
     {
       "varEnd": true
