@@ -28,9 +28,17 @@
     {
       "speaker": "莉奈",
       "text": "還湊合。這樣就挺好的，普通的雜魚早餐和普通雜魚哥哥過著普通的日子~。我吃飽了，出門了。",
+      "hideCH": "1"
     },
     {
-      "text": "夜晚時分的廚房"
+      "fadeoutBlack": "45"
+    },
+    {
+      "text": "夜晚時分的廚房",
+      "bgName": "bg_Kitchen"
+    },
+    {
+      "fadein": "45"
     },
     {
       "speaker": "男主",
@@ -55,7 +63,14 @@
       "text": "（她丟下碗筷直接回房。當晚我經過她房間轉動門把時——「喀……」轉不動。她把門鎖上了。）"
     },
     {
-      "text": "第四天清晨時刻"
+      "fadeoutBlack": "45"
+    },
+    {
+      "text": "第四天清晨時刻",
+      "bgName": "bg_LivingRoom"
+    },
+    {
+      "fadein": "45"
     },
     {
       "speaker": "男主",
@@ -72,7 +87,7 @@
     },
     {
       "speaker": "男主",
-      "text": "妳今天起得挺早的呢。",
+      "text": "妳今天起得挺早的呢。"
     },
     {
       "speaker": "莉奈",
@@ -121,7 +136,9 @@
       "speaker": "男主（內心）",
       "text": "嗯……一早上狀態就不對勁，心底裡好像在害怕什麼……"
     },
-    { "branchStart": "allAges" },
+    {
+      "branchStart": "allAges"
+    },
     {
       "text": "（手機鈴聲響起）"
     },
@@ -411,12 +428,20 @@
       "text": "我的下半生再也沒有見過莉奈。那間空蕩蕩的客房，成了我永遠無法逃避的罪證，而這份沒有盡頭的愧疚，將是我一輩子的懲罰。"
     },
     {
+      "fadeoutBlack": "60"
+    },
+    {
       "endTitle": "BAD END",
       "endSubtitle": "斷線的風箏",
-      "endNo": 7
+      "endNo": 7,
+      "autoNext": 180
     },
-    { "branchEnd": true },
-    { "branchStart": "r18" },
+    {
+      "branchEnd": true
+    },
+    {
+      "branchStart": "r18"
+    },
     {
       "speaker": "男主（內心）",
       "text": "果然還是因為做的太過分了嗎……"
@@ -673,6 +698,8 @@
       "endTitle": "BAD END",
       "endSubtitle": "斷線的風箏"
     },
-    { "branchEnd": true }
+    {
+      "branchEnd": true
+    }
   ]
 }
