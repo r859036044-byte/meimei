@@ -178,6 +178,15 @@ public partial class LivingRoomRuntime : Node
         if (PendingDay3)
         {
             PendingDay3 = false;
+            if (!pdm.R18ContentEnabled && night >= 2)
+            {   // 全年齡：第 2 晚調教室結束後，直接播隔天早上的全年齡結局（Day3_Start，由第 2 晚結束時的心情／雌小鬼值決定，變數已在離開調教室時寫好）。
+                // 第三天不能有 R18 的東西：不走「魚夢早晨」摸胸版（Day3_Morning_Touch）、不走第三天時機挑戰小遊戲、不走 R18 的結局判定（DetermineEndingAsync）
+                NormalizeAAEndingVars();
+                GD.Print("[LivingRoom] 全年齡：第 2 晚結束 → 直接播 Day3_Start（全年齡結局）");
+                await PlayDialogueAsync("Day3/Day3_Start");
+                await FinishAAEndingAsync();
+                return;
+            }
             if (TimingChallenge.Eligible(night, idleCount))
             {
                 pdm.CurrentNight = 3;
