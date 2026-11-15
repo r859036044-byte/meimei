@@ -28,6 +28,7 @@
       "text": "看著那個混混一臉輕浮地想去摟莉奈的肩膀，我心裡突然燒起一股無名火。那種垃圾，憑什麼碰我捧在手心裡的妹妹？",
       "chX": 0,
       "chScale": 0.9,
+      "hideCH": "1",
       "fadeoutBlack": "60, 1"
     },
     {
@@ -49,7 +50,8 @@
       "chOutfit": "school",
       "chHair": "twin",
       "chSocks": "black",
-      "chFace": "xingxingyan"
+      "chFace": "cixiaoguixiao",
+      "chScale2": 1
     },
     {
       "speaker": "男主",
@@ -139,7 +141,7 @@
       "chOutfit": "sleep",
       "chHair": "twin",
       "chSocks": "none",
-      "chFace": "shuijiao"
+      "chFace": "biaoqing1"
     },
     {
       "speaker": "男主",
@@ -148,7 +150,8 @@
     {
       "speaker": "莉奈",
       "text": "不用你說我也會去睡……吶，看在蛋糕的份上……晚安，雜魚哥哥。",
-      "chFace": "biaoqing1"
+      "chFace": "biaoqing1",
+      "hideCH": "1"
     },
     {
       "varEnd": true
@@ -224,7 +227,7 @@
     },
     {
       "speaker": "男主",
-      "text": "客廳的時鐘已經過了十一點。……沒鎖。這丫頭今天又特地留了一道門縫。"
+      "text": "……沒鎖。這丫頭今天又特地留了一道門縫。"
     },
     {
       "speaker": "男主",
@@ -241,7 +244,7 @@
       "text": "但是莉奈…"
     },
     {
-      "speaker": "莉奈",
+      "speaker": "男主",
       "text": "……沒鎖。這臭小鬼，今天居然又沒關門，習慣這麼差的嗎？"
     },
     {
