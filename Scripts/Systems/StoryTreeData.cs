@@ -96,12 +96,12 @@ public static class StoryTreeData
     public static readonly AAEnding[] AAEndings =
     {
         default, // [0] 不使用
-        new("雜魚敗犬",     "第1晚不做 → 第2晚不做 → 忍耐",   "day1_noBlanket", "day2_noBlanket", 0), // 結局1
+        new("雜魚敗犬",     "心情低於 30",   "day1_noBlanket", "day2_noBlanket", 0), // 結局1
         new("衝動的代價",       "第1晚不做 → 第2晚不做 → 教訓妹妹", "day1_noBlanket", "day2_noBlanket", 1), // 結局2
-        new("課後輔導~❤",   "第1晚不做 → 第2晚蓋被子",        "day1_noBlanket", "day2_blanket",   -1), // 結局3
+        new("課後輔導~❤",   "心情 30～80（心情高於 80 但雌小鬼值高於 30 也算）",        "day1_noBlanket", "day2_blanket",   -1), // 結局3
         new("無聲的拒絕",       "第1晚蓋被子 → 第2晚不做",        "day1_blanket",   "day2_noBlanket", -1), // 結局4
-        new("兄妹專屬散步~❤",     "第1晚蓋被子 → 第2晚蓋被子",      "day1_blanket",   "day2_blanket",   -1), // 結局5
-        new("雌小鬼大小姐",     "雌小鬼值滿 100（心情沒歸 0）→ 第3天清晨",  "mesugaki100",    "mesugaki100",    -1), // 結局6：重播時把 mesugaki100 設成 1，播 Day3_Start 開頭那段
+        new("兄妹專屬散步~❤",     "心情高於 80 且雌小鬼值 30 以下",      "day1_blanket",   "day2_blanket",   -1), // 結局5
+        new("雌小鬼大小姐",     "雌小鬼值滿 100（心情沒歸 0）",  "mesugaki100",    "mesugaki100",    -1), // 結局6：重播時把 mesugaki100 設成 1，播 Day3_Start 開頭那段
         new("斷線的風箏",       "心情歸 0 → 莉奈離家出走",        AAEndingBadEndVar, AAEndingBadEndVar, -1), // 結局7：播 Day2_Start(bad end)（重播時特別處理，見 LivingRoomRuntime.ReplayAAEndingAsync）
     };
 

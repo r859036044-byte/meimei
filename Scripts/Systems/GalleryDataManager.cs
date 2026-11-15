@@ -38,7 +38,7 @@ public partial class GalleryDataManager : Node
     /// <summary>
     /// 開發者工具「全解鎖模式」開關（僅供除錯測試用，不影響真實存檔）。
     /// </summary>
-    public bool DebugUnlockAllOverride { get; set; } = true;
+    public bool DebugUnlockAllOverride { get; set; } = false;   // 預設關：結局／CG／分支都要實際玩到才解鎖（舊版預設 true＝全部顯示已解鎖，備份 git 分支 backup-20261115-before-gallery-lock）
 
     public override void _Ready()
     {
@@ -74,6 +74,14 @@ public partial class GalleryDataManager : Node
     {
         if (n < 1 || n > AAEndingCount || _aaEndings[n]) return;
         _aaEndings[n] = true;
+        Save();
+    }
+
+    /// <summary>圖鑒右下角「一鍵解鎖」：把目前模式（全年齡／R18）的所有結局都記成已解鎖（會寫入存檔）。</summary>
+    public void UnlockAllEndingsOfCurrentMode()
+    {
+        if (AllAgesMode) { for (int i = 1; i <= AAEndingCount; i++) _aaEndings[i] = true; }
+        else { for (int i = 1; i <= 18; i++) _endings[i] = true; }
         Save();
     }
 

@@ -249,7 +249,19 @@ public partial class GalleryScreen : Control
         closeBtn.OffsetRight  = -580;
         UIStyle.ApplyButtonStyle(closeBtn);
         closeBtn.Pressed += Close;
+
+        // 右下角：一鍵解鎖（只在「結局」頁籤顯示；解鎖目前模式的全部結局，否則得一個一個實際玩到才會解鎖）
+        _unlockAllBtn = new Button { Name = "UnlockAllBtn", Text = "🔓 一鍵解鎖" };
+        card.AddChild(_unlockAllBtn);
+        _unlockAllBtn.AddThemeFontSizeOverride("font_size", 18);
+        _unlockAllBtn.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight);
+        _unlockAllBtn.OffsetLeft = -190; _unlockAllBtn.OffsetRight = -24;
+        _unlockAllBtn.OffsetTop = -48;   _unlockAllBtn.OffsetBottom = -10;
+        UIStyle.ApplyButtonStyle(_unlockAllBtn);
+        _unlockAllBtn.Pressed += () => { GalleryDataManager.Instance?.UnlockAllEndingsOfCurrentMode(); RefreshContent(); };
     }
+
+    Button _unlockAllBtn;
 
     // ─── 三個頁面（每次 Open 重建）──────────────────────────────
 
@@ -266,6 +278,7 @@ public partial class GalleryScreen : Control
     void SwitchTab(int idx)
     {
         _activeTab = idx;
+        if (_unlockAllBtn != null) _unlockAllBtn.Visible = (idx == 0);
         Control[] pages = { _endingPage, _cgPage, _branchPage, _treePage };
         for (int i = 0; i < pages.Length; i++)
         {
