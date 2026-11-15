@@ -182,6 +182,8 @@ public partial class TrainingRoomRuntime : Node
     // ── EndToday：判斷分支並轉場 ─────────────────────────────────
     bool _endingDay;
     bool _timingChallengeActive;
+    /// <summary>劇情播放中：troom 機制（心情／雌小鬼值結算、莉奈台詞）應檢查此旗標並暫停。</summary>
+    public bool StoryPlaying { get; private set; }
     public void EndToday()
     {
         if (_endingDay || _timingChallengeActive) return;
@@ -382,160 +384,161 @@ public partial class TrainingRoomRuntime : Node
         else GetTree().ChangeSceneToFile((PlayerDataManager.Instance?.IdleNightCount ?? 0) >= 2 ? "res://Scenes/Ending1.tscn" : "res://Scenes/Ending4.tscn");
     }
 
-    void SetDuvetCovered(bool covered)
-    {
-        int targetState = covered ? 0 : 1;
-        if (DuvetState == targetState) return;
-        DuvetState = targetState;
-        if (_duvet != null) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
-        if (!covered && _duvetKicked != null) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
-    }
-
-    async Task PlayNight1AllAgesEndingAsync(bool didInteract, bool isGoodRoute)
-    {
-        var lines = new List<(string spk, string txt, string action)>();
-
-        if (didInteract)
-        {
-            lines.Add(("男主", "足夠了吧……", ""));
-            lines.Add(("男主", "萬一莉奈醒來就完了", ""));
-        }
-
-        if (didInteract && isGoodRoute)
-        {
-            lines.Add(("", "男主幫莉奈蓋好了被子", "cover"));
-            lines.Add(("男主", "喂喂……才剛蓋上去怎麼又一腳踢開了？這睡相也太差了吧。", "uncover"));
-            lines.Add(("男主", "就算在自己家裡，這也太隨便了吧……", ""));
-            lines.Add(("", "…男主看著穿著睡衣的莉奈", ""));
-            lines.Add(("男主", "真可愛啊，我這個妹妹❤，真的和她一比我就是個雜魚哥哥呢", ""));
-            lines.Add(("男主", "不不不，我在想什麼呢！", ""));
-            lines.Add(("", "男主看著睡得很死的莉奈", ""));
-            lines.Add(("男主", "她現在睡得這麼死，剛怎麼碰她也沒什麼反應呢", ""));
-            lines.Add(("男主", "要不……我再捏捏臉……？", ""));
-            lines.Add(("", "男主摸了摸捏了捏莉奈的臉", ""));
-            lines.Add(("男主", "哇~", ""));
-            lines.Add(("男主", "臉還是那麼柔軟，果然妹妹的臉就是用來捏的啊❤", ""));
-            lines.Add(("莉奈", "嗯……呀……", ""));
-            lines.Add(("男主", "啊！糟糕……", ""));
-            lines.Add(("", "男主給莉奈蓋好被子就跑了出去", "coverAndLivingRoom"));
-            lines.Add(("男主", "呼……真危險，要是起來了一定罵我是變態雜魚的……", ""));
-            lines.Add(("男主", "……", ""));
-            lines.Add(("男主", "趁人睡覺捏臉，我看來真是變態雜魚……", ""));
-        }
-        else
-        {
-            lines.Add(("男主", "……算了，她既然自己要把被子踢開，我也懶得再多管閒事了。", ""));
-            lines.Add(("男主", "要是把她吵醒，肯定又要被她罵雜魚。還是直接回房間睡覺吧。", ""));
-        }
-
-        var container = new Control { Name = "Night1EndingDialogue", MouseFilter = Control.MouseFilterEnum.Stop };
-        container.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        UiRoot.AddChild(container);
-
-        TextureRect livingRoomBg = null;
-        var bgTex = ResourceHelper.LoadTexAny("Backgrounds/bg_LivingRoom");
-        if (bgTex != null)
-        {
-            livingRoomBg = new TextureRect
-            {
-                Texture = bgTex,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
-                Visible = false,
-                MouseFilter = Control.MouseFilterEnum.Ignore
-            };
-            livingRoomBg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            container.AddChild(livingRoomBg);
-        }
-
-        var boxHeight = 220f;
-        var box = new Panel { Name = "DialogueBox" };
-        box.AnchorLeft = 0; box.AnchorRight = 1; box.AnchorTop = 1; box.AnchorBottom = 1;
-        box.OffsetTop = -boxHeight; box.OffsetBottom = 0;
-        box.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.88f) });
-        container.AddChild(box);
-
-        var nameBar = new Panel { Name = "NameBar" };
-        nameBar.Position = new Vector2(50, -boxHeight - 44); nameBar.Size = new Vector2(260, 40);
-        nameBar.AnchorTop = 1; nameBar.AnchorBottom = 1;
-        nameBar.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.65f, 0.12f, 0.25f, 0.95f) });
-        container.AddChild(nameBar);
-        var spkLbl = new Label { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        spkLbl.AddThemeFontSizeOverride("font_size", 22);
-        spkLbl.AddThemeColorOverride("font_color", Colors.White);
-        spkLbl.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        nameBar.AddChild(spkLbl);
-
-        var contentLbl = new RichTextLabel { BbcodeEnabled = false };
-        contentLbl.Position = new Vector2(60, 20); contentLbl.Size = new Vector2(0, boxHeight - 40);
-        contentLbl.AnchorRight = 1; contentLbl.OffsetRight = -60;
-        contentLbl.AddThemeFontSizeOverride("normal_font_size", 24);
-        contentLbl.AddThemeColorOverride("default_color", new Color(0.98f, 0.96f, 1f));
-        box.AddChild(contentLbl);
-
-        var hint = new Label { Text = "▼ 點擊繼續", HorizontalAlignment = HorizontalAlignment.Right };
-        hint.AnchorLeft = 1; hint.AnchorRight = 1; hint.AnchorTop = 1; hint.AnchorBottom = 1;
-        hint.OffsetLeft = -200; hint.OffsetTop = -30; hint.OffsetRight = -20; hint.OffsetBottom = -6;
-        hint.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.4f));
-        box.AddChild(hint);
-
-        bool skipTyping = false, typing = false, waiting = false;
-        if (_menuReader != null) _menuReader.AlwaysShowMenu = false;
-        var reader = NovelReader.Install(container, box, contentLbl, null,
-            () => typing, () => waiting, () => false,
-            () => skipTyping = true, () => waiting = false);
-        reader.SetSpeakerBadge(nameBar, spkLbl);
-
-        foreach (var (spk, txt, action) in lines)
-        {
-            if (action == "cover")
-            {
-                SetDuvetCovered(true);
-            }
-            else if (action == "uncover")
-            {
-                SetDuvetCovered(false);
-            }
-            else if (action == "coverAndLivingRoom")
-            {
-                SetDuvetCovered(true);
-            }
-
-            spkLbl.Text = spk;
-            nameBar.Visible = !string.IsNullOrEmpty(spk);
-            reader.BeginLine(spk, txt);
-            contentLbl.Text = "";
-            skipTyping = false;
-            typing = true;
-            for (int i = 0; i < txt.Length; i++)
-            {
-                while (reader.Paused) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-                if (skipTyping) { contentLbl.Text = txt; break; }
-                contentLbl.Text += txt[i];
-                await ToSignal(GetTree().CreateTimer(0.025f), SceneTreeTimer.SignalName.Timeout);
-            }
-            typing = false;
-
-            if (action == "coverAndLivingRoom")
-            {
-                await ToSignal(GetTree().CreateTimer(1.0f), SceneTreeTimer.SignalName.Timeout);
-                if (livingRoomBg != null && IsInstanceValid(livingRoomBg))
-                    livingRoomBg.Visible = true;
-            }
-
-            waiting = true;
-            while (waiting) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        }
-
-        reader.Stop();
-        box.Visible = false;
-        nameBar.Visible = false;
-        // 保持 livingRoomBg 顯示（若有切換），在客廳背景下慢慢黑屏，不再露出 Troom 畫面
-        await FadeToBlackAsync();
-        container.QueueFree();
-        if (_menuReader != null && IsInstanceValid(_menuReader)) _menuReader.AlwaysShowMenu = true;
-    }
-
+    void SetDuvetCovered(bool covered)
+    {
+        int targetState = covered ? 0 : 1;
+        if (DuvetState == targetState) return;
+        DuvetState = targetState;
+        if (_duvet != null) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
+        if (!covered && _duvetKicked != null) { _duvetKicked.Drag = Vector2.Zero; _duvetKicked.DragSnap = true; }
+    }
+
+    async Task PlayNight1AllAgesEndingAsync(bool didInteract, bool isGoodRoute)
+    {
+        StoryPlaying = true;   // 劇情期間凍結 troom 機制，結束後不再恢復（隨即轉場）
+        var lines = new List<(string spk, string txt, string action)>();
+
+        if (didInteract)
+        {
+            lines.Add(("男主", "足夠了吧……", ""));
+            lines.Add(("男主", "萬一莉奈醒來就完了", ""));
+        }
+
+        if (didInteract && isGoodRoute)
+        {
+            lines.Add(("", "男主幫莉奈蓋好了被子", "cover"));
+            lines.Add(("男主", "喂喂……才剛蓋上去怎麼又一腳踢開了？這睡相也太差了吧。", "uncover"));
+            lines.Add(("男主", "就算在自己家裡，這也太隨便了吧……", ""));
+            lines.Add(("", "…男主看著穿著睡衣的莉奈", ""));
+            lines.Add(("男主", "真可愛啊，我這個妹妹❤，真的和她一比我就是個雜魚哥哥呢", ""));
+            lines.Add(("男主", "不不不，我在想什麼呢！", ""));
+            lines.Add(("", "男主看著睡得很死的莉奈", ""));
+            lines.Add(("男主", "她現在睡得這麼死，剛怎麼碰她也沒什麼反應呢", ""));
+            lines.Add(("男主", "要不……我再捏捏臉……？", ""));
+            lines.Add(("", "男主摸了摸捏了捏莉奈的臉", ""));
+            lines.Add(("男主", "哇~", ""));
+            lines.Add(("男主", "臉還是那麼柔軟，果然妹妹的臉就是用來捏的啊❤", ""));
+            lines.Add(("莉奈", "嗯……呀……", ""));
+            lines.Add(("男主", "啊！糟糕……", ""));
+            lines.Add(("", "男主給莉奈蓋好被子就跑了出去", "coverAndLivingRoom"));
+            lines.Add(("男主", "呼……真危險，要是起來了一定罵我是變態雜魚的……", ""));
+            lines.Add(("男主", "……", ""));
+            lines.Add(("男主", "趁人睡覺捏臉，我看來真是變態雜魚……", ""));
+        }
+        else
+        {
+            lines.Add(("男主", "……算了，她既然自己要把被子踢開，我也懶得再多管閒事了。", ""));
+            lines.Add(("男主", "要是把她吵醒，肯定又要被她罵雜魚。還是直接回房間睡覺吧。", ""));
+        }
+
+        var container = new Control { Name = "Night1EndingDialogue", MouseFilter = Control.MouseFilterEnum.Stop };
+        container.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        UiRoot.AddChild(container);
+
+        TextureRect livingRoomBg = null;
+        var bgTex = ResourceHelper.LoadTexAny("Backgrounds/bg_LivingRoom");
+        if (bgTex != null)
+        {
+            livingRoomBg = new TextureRect
+            {
+                Texture = bgTex,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+                Visible = false,
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            };
+            livingRoomBg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            container.AddChild(livingRoomBg);
+        }
+
+        var boxHeight = 220f;
+        var box = new Panel { Name = "DialogueBox" };
+        box.AnchorLeft = 0; box.AnchorRight = 1; box.AnchorTop = 1; box.AnchorBottom = 1;
+        box.OffsetTop = -boxHeight; box.OffsetBottom = 0;
+        box.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.88f) });
+        container.AddChild(box);
+
+        var nameBar = new Panel { Name = "NameBar" };
+        nameBar.Position = new Vector2(50, -boxHeight - 44); nameBar.Size = new Vector2(260, 40);
+        nameBar.AnchorTop = 1; nameBar.AnchorBottom = 1;
+        nameBar.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.65f, 0.12f, 0.25f, 0.95f) });
+        container.AddChild(nameBar);
+        var spkLbl = new Label { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        spkLbl.AddThemeFontSizeOverride("font_size", 22);
+        spkLbl.AddThemeColorOverride("font_color", Colors.White);
+        spkLbl.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        nameBar.AddChild(spkLbl);
+
+        var contentLbl = new RichTextLabel { BbcodeEnabled = false };
+        contentLbl.Position = new Vector2(60, 20); contentLbl.Size = new Vector2(0, boxHeight - 40);
+        contentLbl.AnchorRight = 1; contentLbl.OffsetRight = -60;
+        contentLbl.AddThemeFontSizeOverride("normal_font_size", 24);
+        contentLbl.AddThemeColorOverride("default_color", new Color(0.98f, 0.96f, 1f));
+        box.AddChild(contentLbl);
+
+        var hint = new Label { Text = "▼ 點擊繼續", HorizontalAlignment = HorizontalAlignment.Right };
+        hint.AnchorLeft = 1; hint.AnchorRight = 1; hint.AnchorTop = 1; hint.AnchorBottom = 1;
+        hint.OffsetLeft = -200; hint.OffsetTop = -30; hint.OffsetRight = -20; hint.OffsetBottom = -6;
+        hint.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.4f));
+        box.AddChild(hint);
+
+        bool skipTyping = false, typing = false, waiting = false;
+        if (_menuReader != null) _menuReader.AlwaysShowMenu = false;
+        var reader = NovelReader.Install(container, box, contentLbl, null,
+            () => typing, () => waiting, () => false,
+            () => skipTyping = true, () => waiting = false);
+        reader.SetSpeakerBadge(nameBar, spkLbl);
+
+        foreach (var (spk, txt, action) in lines)
+        {
+            if (action == "cover")
+            {
+                SetDuvetCovered(true);
+            }
+            else if (action == "uncover")
+            {
+                SetDuvetCovered(false);
+            }
+            else if (action == "coverAndLivingRoom")
+            {
+                SetDuvetCovered(true);
+            }
+
+            spkLbl.Text = spk;
+            nameBar.Visible = !string.IsNullOrEmpty(spk);
+            reader.BeginLine(spk, txt);
+            contentLbl.Text = "";
+            skipTyping = false;
+            typing = true;
+            for (int i = 0; i < txt.Length; i++)
+            {
+                while (reader.Paused) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                if (skipTyping) { contentLbl.Text = txt; break; }
+                contentLbl.Text += txt[i];
+                await ToSignal(GetTree().CreateTimer(0.025f), SceneTreeTimer.SignalName.Timeout);
+            }
+            typing = false;
+
+            if (action == "coverAndLivingRoom")
+            {
+                await ToSignal(GetTree().CreateTimer(1.0f), SceneTreeTimer.SignalName.Timeout);
+                if (livingRoomBg != null && IsInstanceValid(livingRoomBg))
+                    livingRoomBg.Visible = true;
+            }
+
+            waiting = true;
+            while (waiting) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        reader.Stop();
+        box.Visible = false;
+        nameBar.Visible = false;
+        // 保持 livingRoomBg 顯示（若有切換），在客廳背景下慢慢黑屏，不再露出 Troom 畫面
+        await FadeToBlackAsync();
+        container.QueueFree();
+        if (_menuReader != null && IsInstanceValid(_menuReader)) _menuReader.AlwaysShowMenu = true;
+    }
+
     // ── 淡場 ─────────────────────────────────────────────────────
     async Task FadeToBlackAsync()
     {
