@@ -22,6 +22,8 @@ public partial class TrainingRoomRuntime : Node
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) return;
 
+        StoryPlaying = false;   // 進入 troom（含第二晚）一律解除劇情凍結，機制／音效恢復
+
         if (PendingDay2First)
         {
             PendingDay2First = false;
