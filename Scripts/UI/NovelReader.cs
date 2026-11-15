@@ -623,6 +623,12 @@ public partial class NovelReader : Node
         CloseMenu();
         if (btn == null || !IsInstanceValid(btn))
         {
+            // 這個場景沒有自己的存讀檔按鈕（例如調教室）：改用通用存讀檔入口
+            if (GalleryReplaySession.Active == null)
+            {
+                if (what == "保存") { SaveLoadHost.OpenSave(GetTree()); return; }
+                if (what == "讀檔") { SaveLoadHost.OpenLoad(GetTree()); return; }
+            }
             GD.PushWarning($"[NovelReader] 這個場景沒有接上「{what}」功能");
             return;
         }

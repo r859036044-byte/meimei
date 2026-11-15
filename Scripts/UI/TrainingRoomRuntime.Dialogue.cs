@@ -24,6 +24,12 @@ public partial class TrainingRoomRuntime : Node
 
         StoryPlaying = false;   // 進入 troom（含第二晚）一律解除劇情凍結，機制／音效恢復
 
+        if (SaveLoadHost.PendingDuvetState >= 0)
+        {   // 讀檔回來：還原存檔當時的被子狀態（0＝蓋著、1＝踢開）
+            DuvetState = SaveLoadHost.PendingDuvetState;
+            SaveLoadHost.PendingDuvetState = -1;
+        }
+
         if (PendingDay2First)
         {
             PendingDay2First = false;

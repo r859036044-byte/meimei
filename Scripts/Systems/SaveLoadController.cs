@@ -51,6 +51,12 @@ public partial class SaveLoadController : Node
 
         // 劇情變數（day1_blanket / day2_blanket…）。舊存檔沒有這欄 = null，讀檔時不動
         public System.Collections.Generic.Dictionary<string, int> dialogueVars { get; set; }
+
+        // 其他進度（夜晚、今日行為旗標、調教室被子狀態…）。舊存檔沒有這欄 = null
+        public System.Collections.Generic.Dictionary<string, int> extra { get; set; }
+
+        // 序章逐行存檔：已選過的選項（以逗號分隔，依出現順序）。讀檔時用來快轉重播到 lineIndex
+        public string choices { get; set; }
     }
 
     // ═══════════════════════════════════════════════════════════

@@ -22,7 +22,18 @@ public partial class MainMenuRuntime : Control
     }
 
     // 快進時動畫（立繪移動、淡入淡出）同步加速
-    float FF(float seconds) => (_reader?.FastNow ?? false) ? seconds / NovelReader.SkipSpeedMult : seconds;
+    float FF(float seconds) => Replaying ? 0f : (_reader?.FastNow ?? false) ? seconds / NovelReader.SkipSpeedMult : seconds;
+
+    // ── 序章逐行存讀檔 ──────────────────────────────────────────
+    // 存檔記「目前第幾行 + 已選過的選項」；讀檔時從第 0 行快轉重播到那一行（不等待、不播音效、選項自動套用），
+    // 到了存檔的那一行才恢復正常播放，所以背景／CG／立繪／BGM／劇情變數都會和存檔當時一致。
+    public static SaveLoadController.SaveData PendingResume;   // 讀檔後由 _Ready 消費
+    int _replayTo = -1;                         // >= 0：正在快轉重播，到這一行停止
+    bool Replaying => _replayTo >= 0;
+    readonly Queue<int> _replayChoices = new();
+    readonly List<int> _choiceHistory = new();
+    int _prologueIdx;                           // 序章目前播到的行
+    bool _prologueRunning;                      // 序章播放中（存檔時用來判斷要不要記行數）
 
     void BeginReadingLine(string text)
     {
@@ -486,6 +497,8 @@ public partial class MainMenuRuntime : Control
         // 新的一輪：清掉上一輪留下的劇情變數（day1_blanket / day2_blanket…），
         // 否則重玩時兩個選項的變數都 > 0，兩段互斥的劇情會一起播出來
         PlayerDataManager.Instance?.ClearDialogueVar();
+        _choiceHistory.Clear();
+        _prologueRunning = true;
 
         bool isR18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
         int activeChoice = -1; // 最近一次選擇框的結果（0 起算）
@@ -495,6 +508,8 @@ public partial class MainMenuRuntime : Control
         for (int _i = 0; _i < data.lines.Length; _i++)
         {
             var line = data.lines[_i];
+            _prologueIdx = _i;
+            if (_replayTo >= 0 && _i >= _replayTo) _replayTo = -1;   // 快轉結束，從這一行開始正常播放
 
             // { "stopAndGoto": "場景名" }：劇情播到這裡就停，直接前往指定場景；後面的文本保留在檔案裡但暫時不播
             if (!string.IsNullOrEmpty(line.stopAndGoto)) { stopGotoScene = line.stopAndGoto; break; }
@@ -540,6 +555,12 @@ public partial class MainMenuRuntime : Control
             // { "choice": ["蓋被子","不蓋被子"] } → 顯示選擇框並等待玩家選擇
             if (line.choice != null && line.choice.Length > 0)
             {
+                if (Replaying)
+                {   // 讀檔快轉：直接套用當時的選擇
+                    activeChoice = _replayChoices.Count > 0 ? _replayChoices.Dequeue() : 0;
+                    _choiceHistory.Add(activeChoice);
+                    continue;
+                }
                 _reader?.Stop(); // 選擇點需要玩家手動選擇
                 // 選擇框出現時，對話框保持顯示上一句台詞
                 SetDialogueUIVisible(true);
@@ -550,6 +571,7 @@ public partial class MainMenuRuntime : Control
                 var choicePanel = BuildButtonOnlyChoice(_dialoguePanel, line.choice);
                 await WaitUntil(() => _choiceResult >= 0, ct);
                 activeChoice = _choiceResult;
+                _choiceHistory.Add(activeChoice);
                 Kill(choicePanel);
                 continue;
             }
@@ -722,10 +744,18 @@ public partial class MainMenuRuntime : Control
                     if (hasBgY) float.TryParse(line.bgY.Trim(), out bgPY);
                     Vector2 targetPos = new Vector2(bgPX, bgPY);
 
+                    if (Replaying)
+                    {   // 快轉：直接到終點，不跑搖擺動畫
+                        SetScale(_bgImage, targetScale); SetScale(_bgImage2, targetScale);
+                        DlgSetStretchOffset(_bgImage, targetPos.X, targetPos.Y);
+                        DlgSetStretchOffset(_bgImage2, targetPos.X, targetPos.Y);
+                    }
+                    else {
                     // 停掉舊的再啟動新的（背景執行，不擋對話）
                     if (_bgAnimCts != null) { _bgAnimCts.Cancel(); _bgAnimCts = null; }
                     _bgAnimCts = new CancellationTokenSource();
                     _ = BgApproachAnim(targetScale, targetPos, animDur, swayLevel, _bgAnimCts.Token);
+                    }
                 }
                 else if (animStr == "stop")
                 {
@@ -748,12 +778,12 @@ public partial class MainMenuRuntime : Control
                 }
             }
             // 語音：台詞一開始就播，不等鏡頭／淡入動畫跑完
-            if (!string.IsNullOrEmpty(line.text))
+            if (!string.IsNullOrEmpty(line.text) && !Replaying)
             {
                 EnsureReader();
                 _reader.PreplayVoice((line.speaker ?? "").Trim(), line.text);
             }
-            if (!string.IsNullOrEmpty(line.se))
+            if (!string.IsNullOrEmpty(line.se) && !Replaying)
             {
                 string seName = line.se;
                 float seDelay = 0f;
@@ -773,7 +803,7 @@ public partial class MainMenuRuntime : Control
                     { _seSource.Stream = clip; _seSource.Play(); }
                 }
             }
-            if (!string.IsNullOrEmpty(line.me))
+            if (!string.IsNullOrEmpty(line.me) && !Replaying)
             {
                 var clip = LoadAudio("Audio/me/" + line.me.Trim());
                 if (clip != null)
@@ -1342,6 +1372,9 @@ public partial class MainMenuRuntime : Control
                 await HandleHideCH(line.hideCH, ct);
         }
 
+        _prologueRunning = false;
+        _replayTo = -1;
+
         // 劇情結束 → 決定跳轉目標（gotoIfAllAges / gotoIfR18 優先，否則預設 TrainingRoom）
         string nextScene = "TrainingRoom";
         foreach (var l in data.lines)
@@ -1437,6 +1470,7 @@ public partial class MainMenuRuntime : Control
 
     async Task TypeLine(string text, CancellationToken ct = default)
     {
+        if (Replaying) return;   // 讀檔快轉：不顯示打字
         BeginReadingLine(text);
         if (_contentText == null) return;
         _contentText.Text = text ?? "";
@@ -1585,6 +1619,7 @@ public partial class MainMenuRuntime : Control
     // 自動播放計時器
     async Task AutoAdvanceTimer(CancellationToken ct = default)
     {
+        if (Replaying) return;
         float delay = _autoPlaySpeed == 1 ? 2f
                     : _autoPlaySpeed == 2 ? 1f
                     : _autoPlaySpeed == 3 ? 0.5f
@@ -1671,6 +1706,7 @@ public partial class MainMenuRuntime : Control
     // autoNext 計時（時間到自動跳下一行）
     async Task AutoNextTimer(float seconds, CancellationToken ct = default)
     {
+        if (Replaying) return;
         if (_reader != null && await _reader.WaitScriptDelay(seconds, ct))
             _waitingClick = false;
     }
