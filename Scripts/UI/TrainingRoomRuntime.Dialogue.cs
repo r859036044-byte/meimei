@@ -397,6 +397,7 @@ public partial class TrainingRoomRuntime : Node
 
     async Task PlayNight1AllAgesEndingAsync(bool didInteract, bool isGoodRoute)
     {
+        if (PlayerDataManager.Instance?.R18ContentEnabled ?? false) return;   // R18：完全不執行（含靜音／凍結）
         StoryPlaying = true;   // 劇情期間凍結 troom 機制，結束後不再恢復（隨即轉場）
         _voiceSeq.Clear();
         if (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer)) _trVoicePlayer.Stop();   // 立刻停掉正在播的莉奈語音
