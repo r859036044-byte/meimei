@@ -975,8 +975,10 @@ public partial class MainMenuRuntime : Control
 		SaveLoadController.OnApplyLoadData = (sd) =>
 		{
 			GD.Print($"[SaveLoad] 讀取存檔：場景={sd.sceneName} 時間={sd.saveTime}");
-			if (!string.IsNullOrEmpty(sd.sceneName))
-				GetTree().ChangeSceneToFile($"res://Scenes/{sd.sceneName}.tscn");
+			if (string.IsNullOrEmpty(sd.sceneName)) return;
+			// 讀檔不重播 LOGO／開場動畫：直接進標題畫面
+			if (sd.sceneName == "MainMenu") SkipIntroOnce = true;
+			GetTree().ChangeSceneToFile($"res://Scenes/{sd.sceneName}.tscn");
 		};
 	}
 

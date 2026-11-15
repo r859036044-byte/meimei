@@ -117,7 +117,19 @@ public partial class SaveLoadController : Node
     private Label _confirmTitle, _confirmBody;
     private Action _confirmAction;
 
-    private string SaveDir => Path.Combine(OS.GetUserDataDir(), "Saves");
+    private static string SaveDirStatic => Path.Combine(OS.GetUserDataDir(), "Saves");
+    private string SaveDir => SaveDirStatic;
+
+    /// <summary>是否至少有一個存檔（主選單「繼續遊戲」按鈕用）。</summary>
+    public static bool HasAnySave()
+    {
+        try
+        {
+            if (!Directory.Exists(SaveDirStatic)) return false;
+            return Directory.GetFiles(SaveDirStatic, "save_*.json").Length > 0;
+        }
+        catch { return false; }
+    }
 
     class SlotUI
     {
