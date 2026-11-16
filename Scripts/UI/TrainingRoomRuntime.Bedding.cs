@@ -203,6 +203,7 @@ public partial class TrainingRoomRuntime
     /// 抓滿就切成「踢到左下角」；放手只回彈 DuvetFoldRecover（預設 20%），其餘維持，再抓可以接著拉。</summary>
     bool CoveredInput(InputEvent e)
     {
+        if (AllAgesLocked) { DuvetState = 0; if (_duvetDrag) _duvetDrag = false; return false; }   // 全年齡：被子不能被拉開
         if (_duvet == null || !IsInstanceValid(_duvet) || DuvetState != 0 || !_duvet.Visible) { if (_duvetDrag) _duvetDrag = false; return false; }
         float sizeY = Mathf.Max(_duvet.Size.Y, 1f);
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)

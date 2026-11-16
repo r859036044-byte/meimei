@@ -18,7 +18,7 @@ public partial class TrainingRoomRuntime : Node
         // 第一天（R18、全年齡都一樣）進房間時被子是踢開的（不蓋被子）；第二天起全年齡一樣踢開、R18 蓋著。
         // （要在建被子之前設，淡入才會直接到位）
         bool firstDay_ = (DaySystem.Instance?.CurrentDay ?? 1) <= 1;
-        DuvetState = (AllAgesLocked || firstDay_) ? 1 : 0;
+        DuvetState = AllAgesLocked ? 0 : (firstDay_ ? 1 : 0);   // 全年齡：被子一律蓋著（不會被掀開）；R18：第一天踢開、第二天起蓋著
         BuildDuvetLayer();
         BuildTopHUD();
         BuildStatsPanel();

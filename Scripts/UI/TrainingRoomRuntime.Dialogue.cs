@@ -26,7 +26,7 @@ public partial class TrainingRoomRuntime : Node
 
         if (SaveLoadHost.PendingDuvetState >= 0)
         {   // 讀檔回來：還原存檔當時的被子狀態（0＝蓋著、1＝踢開）
-            DuvetState = SaveLoadHost.PendingDuvetState;
+            DuvetState = AllAgesLocked ? 0 : SaveLoadHost.PendingDuvetState;
             SaveLoadHost.PendingDuvetState = -1;
         }
 
@@ -394,7 +394,7 @@ public partial class TrainingRoomRuntime : Node
 
     void SetDuvetCovered(bool covered)
     {
-        int targetState = covered ? 0 : 1;
+        int targetState = (covered || AllAgesLocked) ? 0 : 1;   // 全年齡：被子永遠蓋著（劇情裡的「踢開」也不會真的掀開）
         if (DuvetState == targetState) return;
         DuvetState = targetState;
         if (_duvet != null) { _duvet.FoldSnap = true; _duvet.FoldTarget = 0f; }
