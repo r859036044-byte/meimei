@@ -130,7 +130,7 @@ public partial class TrainingRoomRuntime
     Rect2 TutorialLayerRect(string layer, Rect2 localRect)
     {
         if (!Layers.TryGetValue(layer, out var c) || c == null || !c.IsVisibleInTree()) return new Rect2();
-        var xf = c.GetGlobalTransformWithCanvas();
+        var xf = (_canvas != null ? _canvas.Transform : Transform2D.Identity) * c.GetGlobalTransform();   // 跟摸頭判定同一套座標（ScreenToWorld 的反向）
         Vector2 a = xf * localRect.Position, b = xf * localRect.End, cc = xf * new Vector2(localRect.Position.X, localRect.End.Y), d = xf * new Vector2(localRect.End.X, localRect.Position.Y);
         float x0 = Mathf.Min(Mathf.Min(a.X, b.X), Mathf.Min(cc.X, d.X)), x1 = Mathf.Max(Mathf.Max(a.X, b.X), Mathf.Max(cc.X, d.X));
         float y0 = Mathf.Min(Mathf.Min(a.Y, b.Y), Mathf.Min(cc.Y, d.Y)), y1 = Mathf.Max(Mathf.Max(a.Y, b.Y), Mathf.Max(cc.Y, d.Y));

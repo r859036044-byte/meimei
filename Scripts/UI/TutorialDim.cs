@@ -4,20 +4,25 @@ using Godot;
 public partial class TutorialDim : ColorRect
 {
     const string Code = @"shader_type canvas_item;
-uniform vec4 hole = vec4(0.0);      // 亮區中心 x,y（像素）與半徑 rx,ry
-uniform float shape = 0.0;          // 0 沒有亮區、1 圓／橢圓、2 方形
+uniform vec4 hole = vec4(0.0, 0.0, 1.0, 1.0);
+uniform float shape = 0.0;
 uniform vec2 size_px = vec2(1920.0, 1080.0);
 void fragment() {
     vec2 p = UV * size_px;
-    vec4 dark = vec4(0.0, 0.0, 0.0, 0.7);
-    if (shape < 0.5) { COLOR = dark; return; }
-    float d;
+    float base = 0.7;
+    float d = 1000.0;
     vec2 q = p - hole.xy;
-    if (shape < 1.5) { d = (length(q / max(hole.zw, vec2(1.0))) - 1.0) * min(hole.z, hole.w); }
-    else { vec2 e = abs(q) - hole.zw; d = max(e.x, e.y); }
+    if (shape > 0.5 && shape < 1.5) {
+        vec2 rr = max(hole.zw, vec2(1.0));
+        d = (length(q / rr) - 1.0) * min(rr.x, rr.y);
+    } else if (shape >= 1.5) {
+        vec2 e = abs(q) - hole.zw;
+        d = max(e.x, e.y);
+    }
     float a = smoothstep(0.0, 3.0, d);
-    float ring = (1.0 - smoothstep(0.0, 3.0, abs(d - 2.0))) * (0.65 + 0.35 * sin(TIME * 5.0));
-    COLOR = mix(vec4(dark.rgb, dark.a * a), vec4(1.0, 0.82, 0.9, 1.0), ring);
+    float ring = (1.0 - smoothstep(0.0, 3.0, abs(d - 2.0)));
+    vec3 col = mix(vec3(0.0), vec3(1.0, 0.82, 0.9), ring);
+    COLOR = vec4(col, max(base * a, ring));
 }";
 
     int _shape; Vector2 _c, _r; bool _through;
@@ -25,7 +30,7 @@ void fragment() {
 
     public TutorialDim()
     {
-        Color = Colors.White;
+        Color = new Color(0f, 0f, 0f, 0.7f);   // shader 萬一沒編譯成功時的備援：純暗幕，不會變白
         MouseFilter = MouseFilterEnum.Stop;
         _mat = new ShaderMaterial { Shader = new Shader { Code = Code } };
         Material = _mat;
