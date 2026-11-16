@@ -7,6 +7,7 @@ public partial class SceneBgm : Node
     public const string Morning = "amacha_yuruyakanaasayake";
     public const string Gentle = "amacha_kasumisou";
     public const string Night = "amacha_seishishitauchu";
+    public const string MiniGame = "amacha_picopicodisco";
 
     public static void Install(Node scene, string track, AudioStreamPlayer player = null)
     {
@@ -21,19 +22,45 @@ public partial class SceneBgm : Node
         player.Bus = MusicBus;
         // 僅補入沒有配樂的播放器，不覆寫已指定曲目。
         if (player.Stream != null) return;
-        string path = "res://Resources/Audio/bgm/" + track + ".mp3";
-        if (!ResourceLoader.Exists(path))
+        var stream = LoadLoopingStream(track);
+        if (stream == null)
         {
-            GD.PushWarning("找不到場景配樂：" + path);
+            GD.PushWarning("找不到場景配樂：" + track);
             return;
         }
-        var source = ResourceLoader.Load<AudioStreamMP3>(path);
-        if (source == null) return;
-        var stream = (AudioStreamMP3)source.Duplicate();
-        stream.Loop = true;
         player.Stream = stream;
         player.VolumeDb = 0f;
         player.Play();
+    }
+
+    /// <summary>載入 BGM 並確保開啟循環播放（支援 .mp3 / .ogg / .wav）。</summary>
+    public static AudioStream LoadLoopingStream(string trackOrRelPath)
+    {
+        if (string.IsNullOrEmpty(trackOrRelPath)) return null;
+        string trimmed = trackOrRelPath.Trim();
+        string basePath = trimmed.StartsWith("res://") ? trimmed
+            : trimmed.StartsWith("Audio/") ? "res://Resources/" + trimmed
+            : "res://Resources/Audio/bgm/" + trimmed;
+        string[] exts = { "", ".mp3", ".ogg", ".wav" };
+        foreach (string ext in exts)
+        {
+            string full = basePath + ext;
+            if (!ResourceLoader.Exists(full)) continue;
+            var source = ResourceLoader.Load<AudioStream>(full);
+            if (source == null) continue;
+            var copy = source.Duplicate() as AudioStream ?? source;
+            EnableLoop(copy);
+            return copy;
+        }
+        return null;
+    }
+
+    /// <summary>為音訊串流開啟循環播放。</summary>
+    public static void EnableLoop(AudioStream stream)
+    {
+        if (stream is AudioStreamOggVorbis ogg) ogg.Loop = true;
+        else if (stream is AudioStreamMP3 mp3) mp3.Loop = true;
+        else if (stream is AudioStreamWav wav) wav.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
     }
 
     public override void _Ready()

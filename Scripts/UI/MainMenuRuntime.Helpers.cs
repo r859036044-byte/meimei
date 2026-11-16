@@ -112,8 +112,14 @@ public partial class MainMenuRuntime : Control
         return null;
     }
 
-    /// <summary>載入音訊資源（.ogg / .wav / .mp3）</summary>
-    public static AudioStream LoadBgm(string relPath) => LoadAudio(relPath);
+    /// <summary>載入 BGM 音訊資源（自動開啟循環播放）</summary>
+    public static AudioStream LoadBgm(string relPath)
+    {
+        var s = SceneBgm.LoadLoopingStream(relPath);
+        if (s != null) return s;
+        GD.PushWarning($"[MainMenu] 找不到 BGM 資源：{relPath}");
+        return null;
+    }
 
     public static AudioStream LoadAudio(string relPath)
     {

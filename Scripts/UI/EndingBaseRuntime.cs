@@ -1357,7 +1357,7 @@ public abstract partial class EndingBaseRuntime : Node
                 _ = FadeOutAudioAsync(_bgmPlayer, 0.8f);
             else
             {
-                var stream = ResourceLoader.Load<AudioStream>("res://Resources/Audio/bgm/" + line.bgm.Trim() + ".ogg");
+                var stream = SceneBgm.LoadLoopingStream(line.bgm);
                 if (stream != null) { _bgmPlayer.Stream = stream; _bgmPlayer.Play(); }
             }
         }

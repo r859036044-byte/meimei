@@ -90,13 +90,13 @@ public partial class ApartmentRuntime : Node
             _cgOffset[i] = Vector2.Zero;
         }
 
+        _bgmPlayer = new AudioStreamPlayer(); AddChild(_bgmPlayer);
+        _sePlayer  = new AudioStreamPlayer(); AddChild(_sePlayer);
+        _mePlayer  = new AudioStreamPlayer(); AddChild(_mePlayer);
+        SceneBgm.Install(this, SceneBgm.Morning, _bgmPlayer);
+
         if (!HasDialoguePlayed("Day2_Start"))
         {
-            _bgmPlayer = new AudioStreamPlayer(); AddChild(_bgmPlayer);
-            _sePlayer  = new AudioStreamPlayer(); AddChild(_sePlayer);
-            _mePlayer  = new AudioStreamPlayer(); AddChild(_mePlayer);
-            SceneBgm.Install(this, SceneBgm.Morning, _bgmPlayer);
-
             // Apply volume from SettingsManager (stub — replace when ported)
             // var sm = SettingsManager.Instance;
             // if (sm != null) { _bgmPlayer.VolumeDb = Mathf.LinearToDb(sm.MusicVolume); ... }
@@ -161,7 +161,7 @@ public partial class ApartmentRuntime : Node
                     _ = FadeOutAudioAsync(_bgmPlayer, 0.8f);
                 else
                 {
-                    var stream = ResourceLoader.Load<AudioStream>("res://Resources/Audio/bgm/" + bgmName + ".ogg");
+                    var stream = SceneBgm.LoadLoopingStream(bgmName);
                     if (stream != null) { _bgmPlayer.Stream = stream; _bgmPlayer.Play(); }
                 }
             }

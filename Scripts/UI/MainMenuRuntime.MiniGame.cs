@@ -50,6 +50,8 @@ public partial class MainMenuRuntime : Control
         _miniGameRunning = true;
         SetProcessInput(false);                 // 避免主選單 _Input 吃到小遊戲的點擊
         _mainPanel.Visible = false;
+        bool wasBgmPlaying = _bgmSource != null && IsInstanceValid(_bgmSource) && _bgmSource.Playing;
+        if (wasBgmPlaying) _bgmSource.StreamPaused = true;
         try
         {
             var r = await MiniGameNight3.Play(this);
@@ -60,6 +62,8 @@ public partial class MainMenuRuntime : Control
         catch (TaskCanceledException) { }
         finally
         {
+            if (wasBgmPlaying && _bgmSource != null && IsInstanceValid(_bgmSource))
+                _bgmSource.StreamPaused = false;
             _mainPanel.Visible = true;
             SetProcessInput(true);
             _miniGameRunning = false;

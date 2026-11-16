@@ -95,6 +95,7 @@ public partial class MiniGameNight3 : CanvasLayer
             };
         }
         BuildUI();
+        SceneBgm.Install(this, SceneBgm.MiniGame);
         TaskLogger.Run(RunAsync(), "MiniGameNight3");
     }
 
