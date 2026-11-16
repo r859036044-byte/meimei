@@ -115,6 +115,15 @@ public partial class MainMenuRuntime : Control
         await FadeBG(tex, duration, ct);
     }
 
+    /// <summary>CG 名稱是「linai knock N」（N=1~5）就解鎖圖鑒對應的敲門 CG（id：linai_knock_N）。</summary>
+    static void UnlockKnockCg(string cgName)
+    {
+        if (string.IsNullOrEmpty(cgName)) return;
+        var m = System.Text.RegularExpressions.Regex.Match(cgName.Trim(), @"^linai[ _]knock[ _]([1-5])$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (m.Success) GalleryDataManager.Instance?.UnlockCG("linai_knock_" + m.Groups[1].Value);
+    }
+
     // ═══════════════════════════════════════════════════════════
     //  CG 圖層淡入淡出
     // ═══════════════════════════════════════════════════════════
@@ -159,6 +168,7 @@ public partial class MainMenuRuntime : Control
             img.Texture = tex;
             img.Visible = true;
             img.Name    = "CG_Layer_" + layer;
+            UnlockKnockCg(actualName);   // 序章敲門 CG：顯示到就解鎖圖鑒
 
             // 確保 CG 永遠在對話框之下：放在對話框底板前面
             if (_dialogueBox != null && IsInstanceValid(_dialogueBox))

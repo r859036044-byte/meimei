@@ -5,3 +5,4 @@ cp Backups/TrainingRoomRuntime.Voice.cs.bak Scripts/UI/TrainingRoomRuntime.Voice
 cp Backups/SaveLoadController.cs.bak Scripts/Systems/SaveLoadController.cs && echo "SaveLoadController.cs 已恢復"
 cp Backups/TrainingRoomRuntime.Help.cs.bak Scripts/UI/TrainingRoomRuntime.Help.cs && echo "Help.cs 已恢復"
 cp Backups/TrainingRoomRuntime.Brat.cs.bak Scripts/UI/TrainingRoomRuntime.Brat.cs && cp Backups/SaveLoadHost.cs.bak Scripts/Systems/SaveLoadHost.cs && echo "Brat.cs／SaveLoadHost.cs 已恢復"
+cp Backups/GalleryScreen.cs.bak Scripts/UI/GalleryScreen.cs && cp Backups/MainMenuRuntime.Fade.cs.bak Scripts/UI/MainMenuRuntime.Fade.cs && echo "Gallery／Fade 已恢復"

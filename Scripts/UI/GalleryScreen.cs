@@ -435,84 +435,196 @@ public partial class GalleryScreen : Control
         scroll.AddChild(grid);
         grid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
+        // 敲門的 5 張 CG 合成一張卡片：點進去看大圖，左右切換、滾輪縮放
         var gdm = GalleryDataManager.Instance;
-
-        foreach (var (id, label) in CgDefs)
-        {
-            bool unlocked = gdm?.IsCGUnlocked(id) ?? false;
-            grid.AddChild(BuildCGCard(id, label, unlocked));
-        }
+        var unlockedIds = new System.Collections.Generic.List<string>();
+        foreach (var (id, _) in CgDefs)
+            if (gdm?.IsCGUnlocked(id) ?? false) unlockedIds.Add(id);
+        grid.AddChild(BuildKnockCGCard(unlockedIds));
 
         return scroll;
     }
 
-    Control BuildCGCard(string id, string label, bool unlocked)
+    static Texture2D LoadCgTexture(string id)
+    {
+        var texPath = $"res://Resources/CG/{id.Replace('_', ' ')}.png";
+        return ResourceLoader.Exists(texPath) ? ResourceLoader.Load<Texture2D>(texPath) : null;
+    }
+
+    /// <summary>「敲門」CG 卡片：至少解鎖一張就能點開；沒有任何解鎖時顯示 ？。</summary>
+    Control BuildKnockCGCard(System.Collections.Generic.List<string> unlockedIds)
     {
         var panel = new Panel { CustomMinimumSize = new Vector2(290, 200) };
-
-        if (unlocked)
-        {
-            panel.AddThemeStyleboxOverride("panel", UnlockedCardSty());
-
-            // 嘗試載入 CG 圖片
-            var texPath = $"res://Resources/CG/{id.Replace('_', ' ')}.png";
-            var tex = ResourceLoader.Exists(texPath)
-                ? ResourceLoader.Load<Texture2D>(texPath)
-                : null;
-
-            if (tex != null)
-            {
-                var img = new TextureRect
-                {
-                    Texture     = tex,
-                    ExpandMode  = TextureRect.ExpandModeEnum.IgnoreSize,
-                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                };
-                panel.AddChild(img);
-                img.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-                img.OffsetBottom = -30;
-
-                var lbl = new Label
-                {
-                    Text                = label,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                };
-                lbl.AddThemeFontSizeOverride("font_size", 16);
-                lbl.AddThemeColorOverride("font_color", new Color("79475f"));
-                panel.AddChild(lbl);
-                lbl.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
-                lbl.OffsetTop = -28; lbl.OffsetBottom = 0;
-            }
-            else
-            {
-                var lbl = new Label
-                {
-                    Text                = label,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment   = VerticalAlignment.Center,
-                };
-                lbl.AddThemeFontSizeOverride("font_size", 20);
-                lbl.AddThemeColorOverride("font_color", new Color("79475f"));
-                panel.AddChild(lbl);
-                lbl.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            }
-        }
-        else
+        if (unlockedIds.Count == 0)
         {
             panel.AddThemeStyleboxOverride("panel", LockedCardSty());
-            var qMark = new Label
-            {
-                Text                = "？",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment   = VerticalAlignment.Center,
-            };
+            var qMark = new Label { Text = "？", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             qMark.AddThemeFontSizeOverride("font_size", 52);
             qMark.AddThemeColorOverride("font_color", new Color("bd98aa"));
             panel.AddChild(qMark);
             qMark.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            return panel;
         }
 
+        panel.AddThemeStyleboxOverride("panel", UnlockedCardSty());
+        var tex = LoadCgTexture(unlockedIds[0]);
+        if (tex != null)
+        {
+            var img = new TextureRect { Texture = tex, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore };
+            panel.AddChild(img);
+            img.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            img.OffsetBottom = -30;
+        }
+        var lbl = new Label { Text = $"敲門　{unlockedIds.Count} / {CgDefs.Length}", HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+        lbl.AddThemeFontSizeOverride("font_size", 16);
+        lbl.AddThemeColorOverride("font_color", new Color("79475f"));
+        panel.AddChild(lbl);
+        lbl.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
+        lbl.OffsetTop = -28; lbl.OffsetBottom = 0;
+
+        panel.MouseFilter = MouseFilterEnum.Stop;
+        panel.MouseDefaultCursorShape = CursorShape.PointingHand;
+        var ids = unlockedIds.ToArray();
+        panel.GuiInput += ev =>
+        {
+            if (ev is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+            {
+                panel.AcceptEvent();
+                OpenCgViewer(ids);
+            }
+        };
         return panel;
+    }
+
+    // ── CG 大圖檢視：◀ ▶（或方向鍵）換圖、滾輪縮放、按住左鍵拖曳、Esc／✕ 關閉 ──
+    Control _cgViewer, _cgStage;
+    TextureRect _cgViewImg;
+    Label _cgViewLbl;
+    string[] _cgViewIds;
+    int _cgViewIdx;
+    float _cgZoom = 1f;
+    Vector2 _cgPan = Vector2.Zero;
+    bool _cgDragging;
+
+    void OpenCgViewer(string[] ids)
+    {
+        CloseCgViewer();
+        if (ids == null || ids.Length == 0) return;
+        _cgViewIds = ids; _cgViewIdx = 0;
+
+        _cgViewer = new Control { Name = "CGViewer", MouseFilter = MouseFilterEnum.Stop };
+        AddChild(_cgViewer);
+        _cgViewer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        var bg = new ColorRect { Color = new Color(0.06f, 0.03f, 0.05f, 0.96f), MouseFilter = MouseFilterEnum.Ignore };
+        _cgViewer.AddChild(bg);
+        bg.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        _cgStage = new Control { ClipContents = true, MouseFilter = MouseFilterEnum.Pass };
+        _cgViewer.AddChild(_cgStage);
+        _cgStage.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _cgStage.OffsetTop = 70; _cgStage.OffsetBottom = -20;
+        _cgStage.Resized += ApplyCgTransform;
+        _cgStage.GuiInput += OnCgStageInput;
+
+        _cgViewImg = new TextureRect { ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore };
+        _cgStage.AddChild(_cgViewImg);
+
+        // 標題列：◀　敲門 1 / 5　▶　　✕
+        var bar = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        bar.AddThemeConstantOverride("separation", 20);
+        _cgViewer.AddChild(bar);
+        bar.SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide);
+        bar.OffsetTop = 12; bar.OffsetBottom = 62;
+        var prev = UIStyle.CreateStyledButton("◀", 26); prev.CustomMinimumSize = new Vector2(80, 48);
+        var next = UIStyle.CreateStyledButton("▶", 26); next.CustomMinimumSize = new Vector2(80, 48);
+        prev.Pressed += () => CgViewStep(-1);
+        next.Pressed += () => CgViewStep(1);
+        _cgViewLbl = new Label { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(260, 0) };
+        _cgViewLbl.AddThemeFontSizeOverride("font_size", 24);
+        _cgViewLbl.AddThemeColorOverride("font_color", new Color("ffe6f2"));
+        var hint = new Label { Text = "滾輪縮放　拖曳移動　←→ 換圖", VerticalAlignment = VerticalAlignment.Center };
+        hint.AddThemeFontSizeOverride("font_size", 16);
+        hint.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.55f));
+        var close = UIStyle.CreateStyledButton("✕", 24); close.CustomMinimumSize = new Vector2(64, 48);
+        close.Pressed += CloseCgViewer;
+        bar.AddChild(prev); bar.AddChild(_cgViewLbl); bar.AddChild(next); bar.AddChild(hint); bar.AddChild(close);
+
+        ShowCgViewPage(0);
+    }
+
+    void CloseCgViewer()
+    {
+        if (_cgViewer != null && IsInstanceValid(_cgViewer)) _cgViewer.QueueFree();
+        _cgViewer = _cgStage = null; _cgViewImg = null; _cgDragging = false;
+    }
+
+    void CgViewStep(int d)
+    {
+        if (_cgViewIds == null || _cgViewIds.Length == 0) return;
+        ShowCgViewPage((_cgViewIdx + d + _cgViewIds.Length) % _cgViewIds.Length);
+    }
+
+    void ShowCgViewPage(int idx)
+    {
+        _cgViewIdx = idx;
+        _cgViewImg.Texture = LoadCgTexture(_cgViewIds[idx]);
+        _cgZoom = 1f; _cgPan = Vector2.Zero;   // 換圖時重設縮放與位置
+        _cgViewLbl.Text = $"敲門　{idx + 1} / {_cgViewIds.Length}";
+        ApplyCgTransform();
+    }
+
+    void ApplyCgTransform()
+    {
+        if (_cgViewImg == null || _cgStage == null) return;
+        var sz = _cgStage.Size;
+        _cgViewImg.Size = sz;
+        _cgViewImg.PivotOffset = sz / 2f;
+        _cgViewImg.Scale = new Vector2(_cgZoom, _cgZoom);
+        // 放大後限制拖曳範圍，不要把圖拖出畫面太遠；縮回 1 倍就回到置中
+        var lim = sz * (_cgZoom - 1f) / 2f;
+        _cgPan = new Vector2(Mathf.Clamp(_cgPan.X, -lim.X, lim.X), Mathf.Clamp(_cgPan.Y, -lim.Y, lim.Y));
+        _cgViewImg.Position = _cgPan;
+    }
+
+    void OnCgStageInput(InputEvent ev)
+    {
+        if (ev is InputEventMouseButton mb)
+        {
+            if (mb.ButtonIndex == MouseButton.WheelUp || mb.ButtonIndex == MouseButton.WheelDown)
+            {
+                float z0 = _cgZoom;
+                float z1 = Mathf.Clamp(z0 * (mb.ButtonIndex == MouseButton.WheelUp ? 1.15f : 1f / 1.15f), 1f, 6f);
+                if (!Mathf.IsEqualApprox(z0, z1))
+                {   // 以滑鼠位置為中心縮放（滑鼠指的那個點維持不動）
+                    var c = _cgStage.Size / 2f;
+                    var m = mb.Position;
+                    _cgPan = m - c - z1 * (m - c - _cgPan) / z0;
+                    _cgZoom = z1;
+                    ApplyCgTransform();
+                }
+                _cgStage.AcceptEvent();
+            }
+            else if (mb.ButtonIndex == MouseButton.Left) { _cgDragging = mb.Pressed; _cgStage.AcceptEvent(); }
+        }
+        else if (ev is InputEventMouseMotion mm && _cgDragging && _cgZoom > 1f)
+        {
+            _cgPan += mm.Relative;
+            ApplyCgTransform();
+            _cgStage.AcceptEvent();
+        }
+    }
+
+    public override void _Input(InputEvent e)
+    {
+        if (_cgViewer == null || !IsInstanceValid(_cgViewer)) return;
+        if (e is InputEventKey { Pressed: true, Echo: false } k)
+        {
+            if (k.Keycode == Key.Left) { CgViewStep(-1); GetViewport().SetInputAsHandled(); }
+            else if (k.Keycode == Key.Right) { CgViewStep(1); GetViewport().SetInputAsHandled(); }
+            else if (k.Keycode == Key.Escape) { CloseCgViewer(); GetViewport().SetInputAsHandled(); }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -582,13 +694,7 @@ public partial class GalleryScreen : Control
             nameLbl.AddThemeColorOverride("font_color", new Color("79475f"));
             hb.AddChild(nameLbl);
 
-            var replayBtn = new Button { Text = "▶ 重播" };
-            replayBtn.AddThemeFontSizeOverride("font_size", 18);
-            replayBtn.CustomMinimumSize = new Vector2(120, 40);
-            UIStyle.ApplyButtonStyle(replayBtn);
-            // TODO: 串接分支重播邏輯
-            replayBtn.Pressed += () => GD.Print($"[Gallery] 重播分支: {id}");
-            hb.AddChild(replayBtn);
+            // 分支劇情暫不提供重播（只有結局可以重播），所以這裡只顯示已解鎖的分支名稱
         }
         else
         {
