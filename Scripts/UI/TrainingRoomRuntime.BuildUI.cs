@@ -892,7 +892,7 @@ void fragment() {
             var btnLeave = MkIconBtn(leave, "BtnLeave", I18n.T("離開房間（結束今天）"), new Color(1.00f, 0.70f, 0.70f), new Vector2(Pad, Pad));
             btnLeave.Text = "🚪";
             btnLeave.AddThemeFontSizeOverride("font_size", 30);
-            btnLeave.Pressed += () => EndToday();
+            btnLeave.Pressed += () => LeaveByPlayer();
         }
 
         // 精力：獨立的直條面板（使用者要求不要跟按鈕條合在一起），放在按鈕條右側，由下往上填
@@ -1051,7 +1051,7 @@ void fragment() {
         // 流程
         MkSection(side, "SecFlow", I18n.T("流程"), W, ref y);
         var end = MkButtonSimple(side, "BtnEnd", I18n.T("結束今晚"), new Color(0.30f, 0.10f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 48));
-        end.Pressed += () => EndToday();
+        end.Pressed += () => LeaveByPlayer();
         y += 54;
         var back = MkButtonSimple(side, "BtnBack", I18n.T("← 返回"), new Color(0.12f, 0.06f, 0.14f), new Vector2(Pad, y), new Vector2(bw, 40));
         back.Pressed += () => _ = FadeAndLoadAsync("Apartment");

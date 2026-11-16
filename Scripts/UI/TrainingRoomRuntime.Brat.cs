@@ -47,6 +47,13 @@ public partial class TrainingRoomRuntime
     [Export] public string[] BratPinchReplyLines = { "痛痛痛～！", "嗚…", "放手啦～！" };                     // 被捏時的反應（占位）
     [Export] public string[] BratPinchNormalReplyLines = { "…你幹嘛？", "好痛…", "……" };                    // 正常話被捏時的反應（占位）
 
+    [ExportGroup("雌小鬼互動（全年齡：縱容／捏臉）")]
+    [Export] public float AAHeadPatBratUp = 8f;          // 雌小鬼話時摸頭：雌小鬼值上升
+    [Export] public float AAHeadPatMoodUp = 4f;          // 雌小鬼話時摸頭：心情上升
+    [Export] public float AAIgnoredBratUp = 6f;          // 雌小鬼話沒人理：雌小鬼值上升
+    [Export] public float AAIgnoredMoodUp = 3f;          // 雌小鬼話沒人理：心情上升
+    [Export] public float AANormalIgnoredMoodUp = 2f;    // 正常話沒人理：心情上升（雌小鬼值上升用 NormalIgnoredBratUp）
+    [Export] public float AABratPinchMoodDown = 3f;      // 雌小鬼話被捏：心情下降（× 幅度；正常話被捏扣更多，見 NormalPinchMoodDown）
     const string BratVarBrat = "Brat", BratVarMood = "Mood", BratVarEnd = "BratEnd", BratVarInit = "BratInit";
 
     bool  _bratLoaded;
@@ -195,6 +202,7 @@ public partial class TrainingRoomRuntime
             {
                 float p = Mathf.Lerp(BratChanceBase, BratChanceAt100, Mathf.Clamp(BratValue / 100f, 0f, 1f));
                 _bratLineType = GD.Randf() < p ? 1 : 2;
+                AATalkCounted();   // 全年齡：計入「莉奈主動說話次數」（AATalkLimit.cs）
                 bool hasChoices = r18 && BratInserted;   // 插入中（在做的時候）：莉奈每說一句，男主都有選項（名稱每次不同）
                 // 依狀態（什麼都沒做／衣服脫了／觸摸中／插入中…）挑台詞（GirlTalk.cs）；台詞自己帶「=>男主回應」的話，這裡就會播
                 bool painNoChoice = !hasChoices && CurrentGirlTalkState() == GirlTalkState.Pain;   // 痛：男主沒有選擇，就不會自己答應「我慢一點」
@@ -212,16 +220,25 @@ public partial class TrainingRoomRuntime
             _bratWindow -= dt;
             // 摸頭安撫（只有雌小鬼話才算「過關」）
             if (_reactFlags.head) _headSootheT += dt; else _headSootheT = Mathf.Max(0f, _headSootheT - dt);
-            if (_bratLineType == 1 && _headSootheT >= HeadSootheNeedSec)
+            if (_bratLineType == 1 && _headSootheT >= HeadSootheNeedSec && !PatOverLimit)
             {
-                BratValue -= HeadSootheBratDown; Mood += HeadSootheMoodUp;
+                if (r18) { BratValue -= HeadSootheBratDown; Mood += HeadSootheMoodUp; }
+                else { BratValue += AAHeadPatBratUp; Mood += AAHeadPatMoodUp; }   // 全年齡：摸頭＝縱容，雌小鬼值↑、心情↑
                 BratSay(BratSootheLines); BratResolve();
             }
             else if (_bratWindow <= 0f)
             {   // 沒人理她
                 // 舊版（備份在 backup-20261114-before-idle-drift）：雌小鬼話沒人理 BratValue += BratIgnoredUp；正常話沒人理 Mood += NormalIgnoredMoodUp、BratValue -= 1
-                BratValue += (_bratLineType == 1) ? BratIgnoredUp + IdleBratUp : NormalIgnoredBratUp;
-                Mood -= IdleMoodDown;
+                if (r18)
+                {
+                    BratValue += (_bratLineType == 1) ? BratIgnoredUp + IdleBratUp : NormalIgnoredBratUp;
+                    Mood -= IdleMoodDown;
+                }
+                else
+                {   // 全年齡：沒人理＝縱容，雌小鬼值↑、心情也跟著↑（不再有「完全不互動就扣心情」）
+                    if (_bratLineType == 1) { BratValue += AAIgnoredBratUp; Mood += AAIgnoredMoodUp; }
+                    else { BratValue += NormalIgnoredBratUp; Mood += AANormalIgnoredMoodUp; }
+                }
                 BratValue = Mathf.Min(BratValue, 99f);   // 發呆不會單靠被動變化進結局 6（雌小鬼值 100）
                 Mood = Mathf.Max(Mood, 1f);              // 也不會進結局 7（心情 0）
                 BratResolve();
@@ -237,6 +254,7 @@ public partial class TrainingRoomRuntime
         _bratLineType = 0; _bratWindow = 0f; _bratTimer = -1f; _headSootheT = 0f;
         BratHideChoices();
         BratSave();
+        AACheckTalkLimit();   // 全年齡：說滿 AAMaxTalks 次就收工
     }
 
     // ── R18 選項：做在男主的對話框裡（PlayerChoice.cs）──
@@ -310,6 +328,7 @@ public partial class TrainingRoomRuntime
         if (_bratLineType == 1)
         {
             BratValue -= BratPinchDown * strength;
+            if (!BratR18) Mood -= AABratPinchMoodDown * strength;   // 全年齡：捏臉一律掉心情，雌小鬼話時掉少一點
             _inPinchBratReply = true;   // 這句的語音要用被捏（雌小鬼）專屬音檔，見 Voice.cs PinchBratVoiceMap
             BratSay(BratPinchReplyLines);
             _inPinchBratReply = false;
