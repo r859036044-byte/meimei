@@ -38,7 +38,8 @@ public partial class TrainingRoomRuntime : Node
 		_camOffset = CamDefaultOffset();   // 預設鏡頭：置中後視角再往上移
 		SetupHeadPat();   // 摸頭（HeadPat.cs）
 		SetupMenuReader();
-		SetupHelpButton();   // 右上角「?」操作說明（Help.cs）   // 常駐右上角「☰ 選單」鈕（跟其他頁面一樣）
+		SetupHelpButton();   // 右上角「?」操作說明（Help.cs）
+		SetupPauseButton();   // 右上角「⏸」暫停（Pause.cs）   // 常駐右上角「☰ 選單」鈕（跟其他頁面一樣）
 		SetupLayoutEditor();   // 版面編輯器（F2，只動背景和 UI，不碰人物；見 Layout.cs）
 		TaskLogger.Run(FadeInAsync(), "TrainingRoom.FadeInAsync");
 		ApplyHandCursor();
@@ -82,6 +83,7 @@ public partial class TrainingRoomRuntime : Node
 
 	public override void _ExitTree()
 	{
+		RestorePauseOnExit();   // 暫停中離開場景：先還原暫停（Pause.cs）
 		// 離開調教房（切換場景／這個節點被移除）時，把游標改回系統預設，
 		// 不要讓手形游標殘留到其他場景（例如小說對話畫面）。
 		Input.SetCustomMouseCursor(null);
