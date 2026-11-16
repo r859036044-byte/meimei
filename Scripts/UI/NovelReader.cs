@@ -822,6 +822,15 @@ public partial class NovelReader : Node
         speedRow.AddChild(speedBtn);
         vb.AddChild(speedRow);
 
+        // 新手教學：開新遊戲時是否播放（預設開）
+        var tutCheck = new CheckBox { Text = "開新遊戲時顯示新手教學", FocusMode = Control.FocusModeEnum.None };
+        tutCheck.AddThemeFontSizeOverride("font_size", 20);
+        foreach (var cn in new[] { "font_color", "font_pressed_color", "font_hover_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color" })
+            tutCheck.AddThemeColorOverride(cn, new Color("79475f"));
+        tutCheck.ButtonPressed = sm?.TutorialEnabled ?? true;
+        tutCheck.Toggled += on => { SettingsManager.Instance?.SetTutorialEnabled(on); SettingsManager.Instance?.Save(); };
+        vb.AddChild(tutCheck);
+
         // 全年齡模式：打勾即時生效並存檔
         var ageCheck = new CheckBox { Text = "使用全年齡模式（取消勾選為 R18 版）", FocusMode = Control.FocusModeEnum.None };
         ageCheck.AddThemeFontSizeOverride("font_size", 20);

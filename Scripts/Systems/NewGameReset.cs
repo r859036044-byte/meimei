@@ -24,6 +24,7 @@ public static class NewGameReset
         TrainingRoomRuntime.PendingDay3First    = false;
         TrainingRoomRuntime.PendingNight3       = false;
         TrainingRoomRuntime.PendingMiniGameOnly = false;
+        TrainingRoomRuntime.TutorialPending     = SettingsManager.Instance?.TutorialEnabled ?? true;   // 新手教學（設定可關）
         TrainingRoomRuntime.HadBreastTouch      = false;
         TrainingRoomRuntime.BreastComfortRoute  = true;
 

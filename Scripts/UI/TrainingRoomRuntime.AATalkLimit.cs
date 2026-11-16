@@ -40,7 +40,7 @@ public partial class TrainingRoomRuntime
     /// <summary>玩家自己按離開／結束今晚。</summary>
     void LeaveByPlayer()
     {
-        if (_endingDay || _aaAutoLeaving || _timingChallengeActive) return;
+        if (_endingDay || _aaAutoLeaving || _timingChallengeActive || _tutActive) return;
         if (!BratR18 && BratEnabled && _aaTalkCount > 0 && _aaTalkCount < AAMaxTalks && TissueAllowLeave())
         {
             float loss = AAEarlyLeaveMoodDown * (1f - (float)_aaTalkCount / AAMaxTalks);

@@ -71,7 +71,7 @@ public partial class TrainingRoomRuntime
 
     void UpdatePatTalk(float dt)
     {
-        if (!PatTalkEnabled || !_patOn)
+        if (!PatTalkEnabled || !_patOn || _tutActive)
         {
             if (_patTalkT >= 0f && !_playerChoiceActive) HideBubble(_bubblePlayer);   // 女主氣泡留給點擊反應用（Play.cs），自己會自動收
             _patTalkT = -1f; _patTalkStep = 0;

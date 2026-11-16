@@ -27,6 +27,9 @@ public partial class SettingsManager : Node
     public int   TextSpeed     { get; private set; } = 1;
     /// <summary>調教房互動物件（手、舌頭）的不透明度 0.2~1。</summary>
     public float InteractAlpha { get; private set; } = 0.85f;
+    /// <summary>開新遊戲後第一次進調教室，是否播放新手教學（預設開）。</summary>
+    public bool  TutorialEnabled { get; private set; } = true;
+    public void SetTutorialEnabled(bool on) => TutorialEnabled = on;
     public int ResolutionIndex { get; private set; } = 3;
     public static readonly Vector2I[] Resolutions = { new(960, 540), new(1280, 720), new(1366, 768), new(1600, 900), new(1920, 1080), new(2560, 1440), new(3840, 2160) };
     public static readonly string[] ResolutionLabels = { "960 × 540", "1280 × 720", "1366 × 768", "1600 × 900", "1920 × 1080", "2560 × 1440", "3840 × 2160" };
@@ -193,6 +196,7 @@ public partial class SettingsManager : Node
         cfg.SetValue(SectionUI,   "textspeed",  TextSpeed);
         cfg.SetValue(SectionUI,   "resolution", ResolutionIndex);
         cfg.SetValue(SectionUI,   "interact_alpha", InteractAlpha);
+        cfg.SetValue(SectionUI,   "tutorial_enabled", TutorialEnabled);
         // 全年齡 / R18 設定
         bool r18 = PlayerDataManager.Instance?.R18ContentEnabled ?? DemoMode.Enabled;
         cfg.SetValue(SectionGame, "r18",        r18);
@@ -220,6 +224,7 @@ public partial class SettingsManager : Node
         IsFullscreen  = (bool)cfg.GetValue(SectionUI, "fullscreen", false);
         TextSpeed     = (int)cfg.GetValue(SectionUI, "textspeed",  1);
         SetInteractAlpha((float)cfg.GetValue(SectionUI, "interact_alpha", 0.85f));
+        TutorialEnabled = (bool)cfg.GetValue(SectionUI, "tutorial_enabled", true);
 
         SetResolution((int)cfg.GetValue(SectionUI, "resolution", 3));
         SetLanguage(LanguageIndex);

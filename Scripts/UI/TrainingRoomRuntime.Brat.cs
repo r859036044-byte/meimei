@@ -177,6 +177,8 @@ public partial class TrainingRoomRuntime
         if (_bratBar != null) { _bratBar.Value = BratValue; if (_bratLabel != null) _bratLabel.Text = $"{Mathf.RoundToInt(BratValue)}"; }
         if (!BratEnabled) { BratHideChoices(); return; }
         if (!_bratLoaded) BratLoad();
+        if (_tutWaiting) { _tutWaitT += dt; if (_tutWaitT > 1.5f && !StoryPlaying && !_endingDay) TutorialStart(); }
+        if (_tutActive) { TutorialProcess(dt); return; }   // 新手教學：不動任何真實數值
         bool r18 = BratR18;
 
         // 摸頭一律會慢慢回心情（全年齡、R18 都一樣，不管莉奈有沒有在說話）
@@ -325,6 +327,7 @@ public partial class TrainingRoomRuntime
         strength = Mathf.Clamp(strength, 0f, 1f);
         // 扭臉：往捏的反方向轉開
         _pinchActive = true; _pinchVel += new Vector2(-_pinchSide * BratTwistImpulse * strength, 0f);
+        if (_tutActive) { TutorialPinched(); return; }   // 教學中：只扭臉，不算數值
         if (_bratLineType == 1)
         {
             BratValue -= BratPinchDown * strength;

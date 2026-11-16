@@ -39,6 +39,7 @@ public partial class TrainingRoomRuntime : Node
 		SetupHeadPat();   // 摸頭（HeadPat.cs）
 		SetupMenuReader();
 		SetupHelpButton();   // 右上角「?」操作說明（Help.cs）
+		SetupTutorial();   // 新手教學（Tutorial.cs）
 		SetupPauseButton();   // 右上角「⏸」暫停（Pause.cs）   // 常駐右上角「☰ 選單」鈕（跟其他頁面一樣）
 		SetupLayoutEditor();   // 版面編輯器（F2，只動背景和 UI，不碰人物；見 Layout.cs）
 		TaskLogger.Run(FadeInAsync(), "TrainingRoom.FadeInAsync");
