@@ -28,7 +28,7 @@ public partial class SpineChar : Control
     public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // 換回舊髮型：改回 "res://Resources/Spine/linai/"
     public const string DefaultName = "linai";
     /// <summary>前髮／劉海骨骼的晃動幅度倍率（1＝原動畫、0＝完全不晃）。</summary>
-    public static float BangSwayScale = 1f;
+    public static float BangSwayScale = 0.5f;
     public static float BangRightDownPerDeg = 0f;   // 右邊前髮往內擺時往下壓（像素／度，0＝不動）
     public static float BangFringeUpPerDeg = 0f;    // 劉海（中間那束）往內擺時往上抬（像素／度）
     public static float BangLeftUpPerDeg = 0f;      // 左邊前髮往內擺時往上抬（像素／度，0＝不動）
