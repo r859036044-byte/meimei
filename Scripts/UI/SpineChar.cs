@@ -28,7 +28,7 @@ public partial class SpineChar : Control
     public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // 換回舊髮型：改回 "res://Resources/Spine/linai/"
     public const string DefaultName = "linai";
     /// <summary>前髮／劉海骨骼的晃動幅度倍率（1＝原動畫、0＝完全不晃）。</summary>
-    public static float BangSwayScale = 0.3f;
+    public static float BangSwayScale = 1f;
 
     // ══════════════ 資料結構 ══════════════
     private class Bone
