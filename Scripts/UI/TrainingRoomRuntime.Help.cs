@@ -43,39 +43,17 @@ public partial class TrainingRoomRuntime
         if (_helpPanel != null) _helpPanel.Visible = show;
     }
 
-    // ── 操作說明：3 頁 ──────────────────────────────────────────
-    //   第 1 頁：按鈕的功能　第 2 頁：按住向上／向下調整速度　第 3 頁：射精
+    // ── 操作說明：目前只有 1 頁（滑鼠＋心情值／雌小鬼值說明）──────────
     // 圖示種類："L"/"R"＝手按鈕圖、"emoji:🍆"＝圓形按鈕、"tex:cursor"／"tex:dress"＝滑鼠／衣服按鈕的圖、
     //          "jiji"＝雞雞造型按鈕、"key:文字"＝按鍵、"bar:色碼"＝直條。要改字直接改下面。
     static (string title, (string icon, string title, string desc)[] rows)[] HelpPages() => new[]
     {
-        ("第 1 頁　按鈕的功能", new[]
+        ("", new[]
         {
-            ("tex:cursor", "滑鼠",         "預設的操作方式。選了其他工具時，點這顆回到滑鼠。"),
-            ("tex:dress",  "衣服模式",     "只拖衣服／被子，忽略身上的綠點。再點一次取消。"),
-            ("L",          "左手",         "指定要用左手（紅圈＝已選），再點一次取消。"),
-            ("R",          "右手",         "指定要用右手（紅圈＝已選），再點一次取消。"),
-            ("emoji:👅",   "舌頭",         "嘴巴直接點就會用舌頭；選取後，點胸部、乳頭或下方也會改用舌頭。再點一次取消。"),
-            ("jiji",       "雞雞",         "男主說「硬了」之後才會出現。點一下叫出雞雞，再點一下收起；叫出後，裡面的溫度計會顯示男主的精力。"),
-            ("emoji:忍耐",   "忍耐",         "在雞雞按鈕旁邊，一樣硬了才出現。精力快滿時按，可以忍回去。"),
-            ("emoji:🚪",   "離開房間",     "結束今天。"),
-            ("key:☰",      "選單",         "保存／讀檔／設定。"),
-            ("key:F12",    "截圖",         "按 F12 把目前畫面存成圖片；Shift＋F12 存成不含介面的版本；Ctrl＋F12 開啟存放截圖的資料夾。"),
-        }),
-        ("第 2 頁　調整速度", new[]
-        {
-            ("key:左鍵",   "點擊物件",     "點角色身上的部位開始互動；在正在互動的部位上按右鍵取消。"),
-            ("key:↑",      "按住向上",     "互動中按住左鍵往上拖＝加速。"),
-            ("key:↓",      "按住向下",     "互動中按住左鍵往下拖＝減速。"),
-            ("key:滾輪",   "縮放鏡頭",     "滾輪放大／縮小，按住中鍵或右鍵拖曳移動畫面。"),
-        }),
-        ("第 3 頁　射精", new[]
-        {
-            ("jiji",       "溫度計",       "雞雞按鈕中間的溫度計，白色會隨男主的精力慢慢升高，滿格＝精力 100。"),
-            ("emoji:💦",   "滿了會怎樣",   "滿格時雞雞按鈕會放大並震動，同時男主說「不行了，要射了」。不處理的話，不動約 5 秒、抽插時約 3 秒就會射出來。"),
-            ("emoji:💬",   "兩個選項",     "「慢下來」：降低抽插速度、爭取一點時間。「射進去」：直接射精。"),
-            ("emoji:忍耐",   "忍耐",         "滿了的時候可以按忍耐忍回去。但抽插太快會忍不住，這時只會漏出一部分（約 30～50%）。"),
-            ("bar:ffffff", "精液量",       "總量約 300%，一次滿量射掉 100%。用完就會軟，要等回復一些才能再硬。"),
+            ("tex:cursor", "滑鼠",
+                "在莉奈說出友好話語時摸頭，可增加心情值\n" +
+                "在莉奈罵人時捏莉奈的臉，可減少雌小鬼值\n" +
+                "如果在不恰當時機摸頭或捏臉，會助長雌小鬼值，降低心情值"),
         }),
     };
 
@@ -141,8 +119,10 @@ public partial class TrainingRoomRuntime
         var pages = HelpPages();
         _helpPage = Mathf.Clamp(page, 0, pages.Length - 1);
         var (pageTitle, rows) = pages[_helpPage];
-        _helpTitleLbl.Text = "操作說明　" + pageTitle;
+        _helpTitleLbl.Text = string.IsNullOrEmpty(pageTitle) ? "操作說明" : "操作說明　" + pageTitle;
         _helpPageLbl.Text = $"{_helpPage + 1} / {pages.Length}";
+        bool multi = pages.Length > 1;   // 只有一頁時不顯示換頁列
+        _helpPrev.Visible = _helpNext.Visible = _helpPageLbl.Visible = multi;
         _helpPrev.Disabled = _helpPage == 0;
         _helpNext.Disabled = _helpPage == pages.Length - 1;
 
