@@ -10,3 +10,4 @@ cp Backups/MainMenuRuntime.Intro.cs.bak Scripts/UI/MainMenuRuntime.Intro.cs && e
 cp Backups/N009.json.bak Resources/Data/Dialogues/Day2/N009.json && echo "N009 已恢復"
 cp Backups/TrainingRoomRuntime.PatTalk.cs.bak Scripts/UI/TrainingRoomRuntime.PatTalk.cs && echo "PatTalk 已恢復"
 cp Backups/TrainingRoomRuntime.Arousal.cs.bak Scripts/UI/TrainingRoomRuntime.Arousal.cs && cp Backups/TrainingRoomRuntime.Effects.cs.bak Scripts/UI/TrainingRoomRuntime.Effects.cs && cp Backups/TrainingRoomRuntime.Interaction.cs.bak Scripts/UI/TrainingRoomRuntime.Interaction.cs && echo "高潮改動 已恢復"
+for f in Brat PatTalk Brow Arousal; do cp Backups/TrainingRoomRuntime.$f.cs.bak3 Scripts/UI/TrainingRoomRuntime.$f.cs; done; rm -f Scripts/UI/TrainingRoomRuntime.PatAnnoy.cs; echo "摸頭不耐煩 已恢復"

@@ -173,7 +173,8 @@ public partial class TrainingRoomRuntime
         bool r18 = BratR18;
 
         // 摸頭一律會慢慢回心情（全年齡、R18 都一樣，不管莉奈有沒有在說話）
-        if (_reactFlags.head) { Mood += HeadSootheMoodPerSec * dt; if (Mood > 100f) Mood = 100f; _bratDirty = true; }
+        PatAnnoyProcess(dt);   // 全年齡摸頭規則（PatAnnoy.cs）
+        if (_reactFlags.head && !PatOverLimit) { Mood += HeadSootheMoodPerSec * dt; if (Mood > 100f) Mood = 100f; _bratDirty = true; }
         if (_bratDirty && _bratLineType == 0) { _bratDirty = false; BratSave(); }
 
         // 「教訓」：雞雞快速頂到底

@@ -89,10 +89,12 @@ public partial class TrainingRoomRuntime
         }
         else if (_patTalkStep == 1 && _patTalkT >= PatTalkGap)
         {
-            var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlLines;
+            var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlPoolNonSex();
             string gLine_ = Pick(gPool);
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, gLine_, false);
-            if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
+            bool friendly_ = PatGirlLinesFriendly != null && System.Array.IndexOf(PatGirlLinesFriendly, gLine_) >= 0;
+            if (friendly_) { PlayNormalLineVoice(); Mood = Mathf.Min(100f, Mood + PatFriendlyLineMoodUp); _bratDirty = true; }   // 友好台詞：正常音效＋多加心情
+            else if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
             _patTalkStep = 2; _patTalkT = 0f;
         }
         else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat * TalkTouchedMul())

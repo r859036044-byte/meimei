@@ -32,6 +32,9 @@ public partial class TrainingRoomRuntime
     {
         if (FaceController == null || !FaceController.IsReady) return;
 
+        // 摸頭摸太久、莉奈不耐煩：眉毛固定成皺眉（PatAnnoy.cs），放手後才交還給下面的邏輯
+        if (_patAnnoyed) { FaceController.SetBrowPose(-1f, false); _browLingerT = BrowLingerSec; return; }
+
         // 高潮（或吐舌頭）狀態：眉毛固定成 4 號（煩惱、皺眉），不跟著上面的舒服程度跑；結束後交還給下面的邏輯
         if (EyesNoMirrorNow())
         {
