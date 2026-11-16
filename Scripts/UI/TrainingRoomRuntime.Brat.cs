@@ -177,7 +177,7 @@ public partial class TrainingRoomRuntime
         if (_bratBar != null) { _bratBar.Value = BratValue; if (_bratLabel != null) _bratLabel.Text = $"{Mathf.RoundToInt(BratValue)}"; }
         if (!BratEnabled) { BratHideChoices(); return; }
         if (!_bratLoaded) BratLoad();
-        if (_tutWaiting) { _tutWaitT += dt; if (_tutWaitT > 1.5f && !StoryPlaying && !_endingDay) TutorialStart(); }
+        if (_tutWaiting && Time.GetTicksMsec() - (ulong)_tutT0 > 500 && !StoryPlaying && !_endingDay) TutorialStart();   // 用實際時間算：場景載入卡頓不會拖慢教學出現
         if (_tutActive) { TutorialProcess(dt); return; }   // 新手教學：不動任何真實數值
         bool r18 = BratR18;
 

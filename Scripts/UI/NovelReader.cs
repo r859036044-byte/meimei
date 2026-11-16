@@ -758,6 +758,11 @@ public partial class NovelReader : Node
     // ═══════════════════════════════════════════════════════════
     //  設定視窗（各場景共用，直接讀寫 SettingsManager）
     // ═══════════════════════════════════════════════════════════
+    /// <summary>新手教學用：設定視窗裡「教學開關」勾選框（給聚焦用）。</summary>
+    public Control TutorialCheck { get; private set; }
+    public void OpenSettingsForTutorial() { if (_menuPopup != null) _menuPopup.Visible = false; OpenSettings(); }
+    public void CloseSettingsForTutorial() { if (_settingsPopup != null) _settingsPopup.Visible = false; }
+
     void OpenSettings()
     {
         if (_settingsPopup == null) BuildSettingsPopup();
@@ -828,6 +833,7 @@ public partial class NovelReader : Node
         foreach (var cn in new[] { "font_color", "font_pressed_color", "font_hover_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color" })
             tutCheck.AddThemeColorOverride(cn, new Color("79475f"));
         tutCheck.ButtonPressed = sm?.TutorialEnabled ?? true;
+        TutorialCheck = tutCheck;
         tutCheck.Toggled += on => { SettingsManager.Instance?.SetTutorialEnabled(on); SettingsManager.Instance?.Save(); };
         vb.AddChild(tutCheck);
 
@@ -839,6 +845,13 @@ public partial class NovelReader : Node
         ageCheck.ButtonPressed = !(PlayerDataManager.Instance?.R18ContentEnabled ?? false);
         ageCheck.Toggled += on =>
         {
+            var trRoom = TrainingRoomRuntime.Current;
+            if (trRoom != null)
+            {   // 在調教室切換全年齡／R18：要重新開始這一天，先問玩家確定（確定了才真的切）
+                ageCheck.SetPressedNoSignal(!on);
+                trRoom.RequestAgeSwitch(toR18: on ? false : true);
+                return;
+            }
             PlayerDataManager.Instance?.SetR18(!on);
             SettingsManager.Instance?.Save();
         };

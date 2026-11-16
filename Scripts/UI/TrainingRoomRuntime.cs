@@ -24,6 +24,7 @@ public partial class TrainingRoomRuntime : Node
 {
 	public override void _Ready()
 	{
+		Current = this;
 		NovelReader.ResetPlayback();
 		SceneBgm.Install(this, SceneBgm.Night); // 進入自由操作場景時停止自動／快進。
 		Name = "TrainingRoomRuntime";
@@ -31,8 +32,10 @@ public partial class TrainingRoomRuntime : Node
 		_canvas = new CanvasLayer { Layer = 10 };
 		AddChild(_canvas);
 
+		var swLoad_ = System.Diagnostics.Stopwatch.StartNew();
 		ConsumePendingFlags();
 		Build();
+		GD.Print($"[TRLoad] Build 完成 {swLoad_.ElapsedMilliseconds} ms");
 		SetupCharShade();   // 人物包進光影 CanvasGroup（Layout.cs）
 		SetupCameraLayers();   // HUD/選單搬到不縮放的 UI 層（見 Camera.cs）
 		_camOffset = CamDefaultOffset();   // 預設鏡頭：置中後視角再往上移
@@ -42,6 +45,7 @@ public partial class TrainingRoomRuntime : Node
 		SetupTutorial();   // 新手教學（Tutorial.cs）
 		SetupPauseButton();   // 右上角「⏸」暫停（Pause.cs）   // 常駐右上角「☰ 選單」鈕（跟其他頁面一樣）
 		SetupLayoutEditor();   // 版面編輯器（F2，只動背景和 UI，不碰人物；見 Layout.cs）
+		GD.Print($"[TRLoad] _Ready 全部完成 {swLoad_.ElapsedMilliseconds} ms");
 		TaskLogger.Run(FadeInAsync(), "TrainingRoom.FadeInAsync");
 		ApplyHandCursor();
 
@@ -84,6 +88,7 @@ public partial class TrainingRoomRuntime : Node
 
 	public override void _ExitTree()
 	{
+		if (Current == this) Current = null;
 		RestorePauseOnExit();   // 暫停中離開場景：先還原暫停（Pause.cs）
 		// 離開調教房（切換場景／這個節點被移除）時，把游標改回系統預設，
 		// 不要讓手形游標殘留到其他場景（例如小說對話畫面）。

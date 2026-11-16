@@ -22,6 +22,7 @@ public partial class TrainingRoomRuntime : Node
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) return;
 
+        SnapshotDayStart();   // 記下進房間時的狀態（AgeSwitch.cs：切換版本時重新開始這一天用）
         StoryPlaying = false;   // 進入 troom（含第二晚）一律解除劇情凍結，機制／音效恢復
 
         if (SaveLoadHost.PendingDuvetState >= 0)

@@ -314,6 +314,7 @@ public partial class MainMenuRuntime : Control
 
     public override void _Ready()
     {
+        TrainingRoomRuntime.WarmUp();   // 標題／LOGO 一開始就背景預讀調教室資源（Preload.cs）
         // 本節點作為全螢幕畫布根
         // Unity 的 Canvas + CanvasScaler 由 project.godot 的
         // stretch/mode=canvas_items + aspect=keep 取代，不需程式設定

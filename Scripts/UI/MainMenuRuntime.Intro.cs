@@ -70,9 +70,7 @@ public partial class MainMenuRuntime : Control
     async Task LogoIntro(CancellationToken ct = default)
     {
         // Logo 出現的這段本來就要等：先在背景把調教室的貼圖／場景預載，之後進調教室的黑屏就短很多
-        foreach (var relPath in TrainingRoomRuntime.GetPreloadSpritePaths())
-            ResourceHelper.PreloadTexAny(relPath);
-        ResourceLoader.LoadThreadedRequest("res://Scenes/TrainingRoom.tscn");
+        TrainingRoomRuntime.WarmUp();
         if (DemoMode.Enabled)
         {   // 試玩版：LOGO 這段等待時間多預讀一點（標題用到的圖、音樂），進標題畫面就不卡
             LoadTex("CG/random_title_image/random title image (2)");
