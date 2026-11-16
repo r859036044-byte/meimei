@@ -23,9 +23,25 @@ public partial class MainMenuRuntime : Control
         b.OffsetRight  = MiniGameEntryMargin.X + MiniGameEntrySize.X;
         b.OffsetBottom = -MiniGameEntryMargin.Y;
         b.OffsetTop    = -MiniGameEntryMargin.Y - MiniGameEntrySize.Y;
-        b.Visible = MiniGameEntryVisible;
         b.Pressed += () => TaskLogger.Run(StartMiniGameFromMenu(), "MainMenu.MiniGame");
         _btnMiniGame = b;
+
+        // 全年齡開啟 → 小遊戲按鈕隱藏；全年齡關閉（R18）→ 顯示。設定裡切換時即時更新
+        RefreshMiniGameEntry();
+        var pdm = PlayerDataManager.Instance;
+        if (pdm != null)
+        {
+            System.Action<bool> onToggled = _ => RefreshMiniGameEntry();
+            pdm.OnR18Toggled += onToggled;
+            b.TreeExiting += () => pdm.OnR18Toggled -= onToggled;
+        }
+    }
+
+    void RefreshMiniGameEntry()
+    {
+        if (_btnMiniGame == null || !IsInstanceValid(_btnMiniGame)) return;
+        bool allAges = !(PlayerDataManager.Instance?.R18ContentEnabled ?? false);
+        _btnMiniGame.Visible = MiniGameEntryVisible && !allAges;
     }
 
     async Task StartMiniGameFromMenu()
@@ -34,6 +50,8 @@ public partial class MainMenuRuntime : Control
         _miniGameRunning = true;
         SetProcessInput(false);                 // 避免主選單 _Input 吃到小遊戲的點擊
         _mainPanel.Visible = false;
+        bool wasBgmPlaying = _bgmSource != null && IsInstanceValid(_bgmSource) && _bgmSource.Playing;
+        if (wasBgmPlaying) _bgmSource.StreamPaused = true;
         try
         {
             var r = await MiniGameNight3.Play(this);
@@ -44,6 +62,8 @@ public partial class MainMenuRuntime : Control
         catch (TaskCanceledException) { }
         finally
         {
+            if (wasBgmPlaying && _bgmSource != null && IsInstanceValid(_bgmSource))
+                _bgmSource.StreamPaused = false;
             _mainPanel.Visible = true;
             SetProcessInput(true);
             _miniGameRunning = false;

@@ -20,18 +20,18 @@ public partial class TrainingRoomRuntime
     [Export] public bool BratEnabled = true;
     [Export(PropertyHint.Range, "0,100,1")] public float BratInitial = 30f;           // 第一次進來的雌小鬼值
     public float BratValue = 30f;                                                      // 目前雌小鬼值（0~100）
-    [Export] public Vector2 BratLineInterval = new Vector2(9f, 15f);                   // 隔多久說一句（秒，隨機）
+    [Export] public Vector2 BratLineInterval = new Vector2(6f, 10f);                     // 隔多久說一句（秒，隨機）
     [Export] public float BratWindowSec = 5f;                                          // 說完話後多久內捏才算回應
-    [Export(PropertyHint.Range, "0,1,0.01")] public float BratChanceBase = 0.3f;       // 雌小鬼值 0 時說雌小鬼話的機率
+    [Export(PropertyHint.Range, "0,1,0.01")] public float BratChanceBase = 0.45f;      // 雌小鬼值 0 時說雌小鬼話的機率
     [Export(PropertyHint.Range, "0,1,0.01")] public float BratChanceAt100 = 0.8f;      // 雌小鬼值 100 時說雌小鬼話的機率
     [Export] public float BratPinchDown = 14f;          // 雌小鬼話 + 捏：雌小鬼值下降（× 捏的幅度 0~1）
-    [Export] public float BratIgnoredUp = 6f;           // 雌小鬼話沒人理：雌小鬼值上升
+    [Export] public float BratIgnoredUp = 12f;          // 雌小鬼話沒人理：雌小鬼值上升
     [Export] public float NormalPinchMoodDown = 12f;    // 正常話 + 捏：心情下降（× (0.4 + 0.6×幅度)）
     [Export] public float NormalPinchBratDown = 4f;     // 正常話 + 捏：雌小鬼值下降（× 幅度）
     [Export] public float NormalIgnoredMoodUp = 3f;     // （舊版，已不使用）正常話沒被捏：心情上升。備份：git 分支 backup-20261114-before-idle-drift
     // 沒有任何互動、只是看著：心情會跌、雌小鬼值會長（被動變化不會單靠發呆就把心情扣到 0／雌小鬼值加到 100，結局 7／6 要玩家真的操作才會觸發）
     [Export] public float IdleMoodDown = 3f;            // 莉奈說完話沒人理：心情下降（雌小鬼話、正常話都一樣）
-    [Export] public float NormalIgnoredBratUp = 2f;     // 正常話沒人理：雌小鬼值上升（雌小鬼話沒人理用 BratIgnoredUp）
+    [Export] public float NormalIgnoredBratUp = 5f;     // 正常話沒人理：雌小鬼值上升（雌小鬼話沒人理用 BratIgnoredUp）
     [Export] public float IdleBratUp = 0f;              // 雌小鬼話沒人理：額外再加的雌小鬼值（BratIgnoredUp 之外）
     [Export] public float LessonBratDown = 35f;          // R18「教訓」：雌小鬼值下降
     [Export] public float LessonMoodBase = 18f;          // R18「教訓」：心情扣的基準（舒服度高會少扣：× (1.6 − 1.2×舒服度)）
@@ -103,6 +103,14 @@ public partial class TrainingRoomRuntime
         GD.Print($"[Brat] 全年齡第 2 晚進場：第 2 天早上是{(good ? "好" : "壞")}劇情 → 心情 {md:+0;-0}、雌小鬼值 {bd:+0;-0}（現在：心情 {Mood:F0}、雌小鬼值 {BratValue:F0}）");
     }
 
+    /// <summary>存檔前呼叫（SaveLoadHost）：把房間內目前的心情／雌小鬼值立刻寫進劇情變數，存檔才不會漏掉當晚進度。</summary>
+    public void BratFlush()
+    {
+        if (!_bratLoaded) return;
+        BratSave();
+        _bratDirty = false;
+    }
+
     void BratSave()
     {
         BratValue = Mathf.Clamp(BratValue, 0f, 100f);
@@ -164,8 +172,9 @@ public partial class TrainingRoomRuntime
         if (!_bratLoaded) BratLoad();
         bool r18 = BratR18;
 
-        // R18 做的時候摸頭：慢慢回心情
-        if (r18 && BratInserted && _reactFlags.head) { Mood += HeadSootheMoodPerSec * dt; if (Mood > 100f) Mood = 100f; _bratDirty = true; }
+        // 摸頭一律會慢慢回心情（全年齡、R18 都一樣，不管莉奈有沒有在說話）
+        PatAnnoyProcess(dt);   // 全年齡摸頭規則（PatAnnoy.cs）
+        if (_reactFlags.head && !PatOverLimit) { Mood += HeadSootheMoodPerSec * dt; if (Mood > 100f) Mood = 100f; _bratDirty = true; }
         if (_bratDirty && _bratLineType == 0) { _bratDirty = false; BratSave(); }
 
         // 「教訓」：雞雞快速頂到底

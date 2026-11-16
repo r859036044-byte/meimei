@@ -112,8 +112,14 @@ public partial class MainMenuRuntime : Control
         return null;
     }
 
-    /// <summary>載入音訊資源（.ogg / .wav / .mp3）</summary>
-    public static AudioStream LoadBgm(string relPath) => LoadAudio(relPath);
+    /// <summary>載入 BGM 音訊資源（自動開啟循環播放）</summary>
+    public static AudioStream LoadBgm(string relPath)
+    {
+        var s = SceneBgm.LoadLoopingStream(relPath);
+        if (s != null) return s;
+        GD.PushWarning($"[MainMenu] 找不到 BGM 資源：{relPath}");
+        return null;
+    }
 
     public static AudioStream LoadAudio(string relPath)
     {
@@ -423,6 +429,7 @@ public partial class MainMenuRuntime : Control
     /// <summary>對應 yield return new WaitForSeconds(s)</summary>
     public async Task Wait(float seconds, CancellationToken ct = default)
     {
+        if (Replaying) return;   // 讀檔快轉：不等待
         if (seconds <= 0f) { await NextFrame(ct); return; }
         await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
         ct.ThrowIfCancellationRequested();
@@ -431,6 +438,7 @@ public partial class MainMenuRuntime : Control
     /// <summary>對應 yield return null（等一幀）</summary>
     public async Task NextFrame(CancellationToken ct = default)
     {
+        if (Replaying) return;
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         ct.ThrowIfCancellationRequested();
     }
@@ -438,6 +446,7 @@ public partial class MainMenuRuntime : Control
     /// <summary>對應 yield return new WaitUntil(() => cond())</summary>
     public async Task WaitUntil(Func<bool> cond, CancellationToken ct = default)
     {
+        if (Replaying) return;   // 讀檔快轉：點擊／選項／動畫都視為已完成
         while (!cond())
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -455,6 +464,7 @@ public partial class MainMenuRuntime : Control
     /// </summary>
     public async Task Lerp(float duration, Action<float> onStep, CancellationToken ct = default)
     {
+        if (Replaying) { onStep(1f); return; }
         if (duration <= 0f) { onStep(1f); return; }
 
         float t = 0f;

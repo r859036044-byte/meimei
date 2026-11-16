@@ -431,6 +431,7 @@ public partial class MainMenuRuntime : Control
                 // 在白屏下建立 CG 圖層，設定在底部
                 var cgLayer = MakeIntroTexLayer(_mainPanel, "CG_Intro",
                     LoadTex($"CG/{Scene4CGName}"), preserveAspect: true);
+                UnlockKnockCg(Scene4CGName);   // 敲門 CG（圖鑒）：播到就解鎖
                 SetStretchOffset(cgLayer, Scene4CGStart);
                 SetScale(cgLayer, Scene4CGScale);
                 cgLayer.Modulate = Colors.White;
@@ -518,7 +519,7 @@ public partial class MainMenuRuntime : Control
                         }
                         // 瞬間切換圖片
                         var s5Tex = LoadTex($"CG/{s5CGs[i]}");
-                        if (s5Tex != null) cgLayer.Texture = s5Tex;
+                        if (s5Tex != null) { cgLayer.Texture = s5Tex; UnlockKnockCg(s5CGs[i]); }
                         // 等待節奏間隔
                         await Wait(Scene5Interval, ct);
                     }

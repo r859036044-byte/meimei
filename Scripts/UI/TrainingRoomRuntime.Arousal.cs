@@ -77,6 +77,7 @@ public partial class TrainingRoomRuntime
     {
         if (delta > 0f && ClimaxGainLocked) return;   // 被鎖住：不會再增加
         ClimaxLevel = Mathf.Clamp(ClimaxLevel + delta, 0f, 100f);
+        if (!BratR18) { ClimaxLevel = Mathf.Min(ClimaxLevel, 99f); return; }   // 全年齡：被摸不會高潮（高潮值頂多 99）
         if (ClimaxLevel >= 100f && !_spasmsRunning) TriggerClimax();
     }
 
@@ -132,7 +133,7 @@ public partial class TrainingRoomRuntime
         float rate = UpdatePlayValues(dt, breastHands);   // 濕度／各部位高潮值／穴高潮值（Play.cs）
 
         ArousalRateNow = rate;
-        if (rate != 0f && !_spasmsRunning) AddClimax(rate * dt);
+        if (rate != 0f && !_spasmsRunning && (BratR18 || rate < 0f || anyTouch)) AddClimax(rate * dt);   // 全年齡：沒有碰觸時不會自己漲高潮值（發呆不會到 100%）
     }
 
     /// <summary>手部動畫的速度倍率（等級越高手動得越快，對照 Unity levelMult）。</summary>

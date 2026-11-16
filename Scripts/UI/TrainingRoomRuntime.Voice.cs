@@ -245,6 +245,12 @@ public partial class TrainingRoomRuntime
     {
         if (string.IsNullOrEmpty(relativePath)) return;
         if (IsDemoBlockedVoice(relativePath)) return;   // 試玩版不播的語音
+        if (StoryPlaying)
+        {   // 劇情播放中：不播任何莉奈語音／音效，並清掉依序佇列與正在播的聲音
+            _voiceSeq.Clear(); _seqCurrent = false;
+            if (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer) && _trVoicePlayer.Playing) _trVoicePlayer.Stop();
+            return;
+        }
         if (!_seqAdvancing) { _voiceSeq.Clear(); _seqCurrent = false; }   // 別的語音插進來就取消依序佇列
         InitTrVoice();
 

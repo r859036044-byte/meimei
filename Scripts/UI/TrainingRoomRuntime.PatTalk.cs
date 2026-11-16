@@ -89,10 +89,12 @@ public partial class TrainingRoomRuntime
         }
         else if (_patTalkStep == 1 && _patTalkT >= PatTalkGap)
         {
-            var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlLines;
+            var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlPoolNonSex();
             string gLine_ = Pick(gPool);
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, gLine_, false);
-            if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
+            bool friendly_ = PatGirlLinesFriendly != null && System.Array.IndexOf(PatGirlLinesFriendly, gLine_) >= 0;
+            if (friendly_) { PlayNormalLineVoice(); Mood = Mathf.Min(100f, Mood + PatFriendlyLineMoodUp); _bratDirty = true; }   // 友好台詞：正常音效＋多加心情
+            else if (!TryPlayPatTalkVoice(gLine_)) PlayPartTouchVoice("head");   // 指定音檔的 5 句見 Voice.cs PatTalkVoiceMap
             _patTalkStep = 2; _patTalkT = 0f;
         }
         else if (_patTalkStep == 2 && _patTalkT >= PatTalkRepeat * TalkTouchedMul())
@@ -208,8 +210,9 @@ public partial class TrainingRoomRuntime
         if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊
         if (bubble == null || !IsInstanceValid(bubble)) (bubble, lbl) = BuildBubble(isPlayer);
         text = I18n.T(text);
-        // 確保所有愛心字元都附帶 Emoji 表現型變體選擇器（VS16 / \uFE0F），避免在 Windows CJK 字型下被著色為黑色文字字形
-        text = text.Replace("❤\uFE0F", "❤").Replace("❤", "❤\uFE0F");
+        // 所有愛心統一成同一種：♥（黑桃式實心，會變黑）、♡（空心）、💗 都換成 ❤，並一律附帶 Emoji 表現型變體選擇器（VS16 / \uFE0F），
+        // 避免在 Windows CJK 字型下有的愛心被著色為黑色文字字形、有的是彩色
+        text = text.Replace("\uFE0F", "").Replace("♥", "❤").Replace("♡", "❤").Replace("💗", "❤").Replace("❤", "❤\uFE0F");
         lbl.Text = text;
         bubble.ResetSize();
         bubble.SetMeta("hide_t", PatTalkShowTime);

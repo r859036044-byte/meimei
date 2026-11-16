@@ -25,7 +25,7 @@ using System.Text.Json;
 /// </summary>
 public partial class SpineChar : Control
 {
-    public const string DefaultDir  = "res://Resources/Spine/linai/";
+    public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // 換回舊髮型：改回 "res://Resources/Spine/linai/"
     public const string DefaultName = "linai";
 
     // ══════════════ 資料結構 ══════════════

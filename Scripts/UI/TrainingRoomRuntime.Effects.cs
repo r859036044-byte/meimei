@@ -413,6 +413,7 @@ public partial class TrainingRoomRuntime : Node
     // ── 高潮觸發：顯示高潮水層 + 啟動痙攣 ───────────────────────────
     public void TriggerClimax()
     {
+        if (!BratR18) return;   // 全年齡：不會高潮（不論從哪裡呼叫）
         OnClimaxReached();   // 記錄「已高潮過」＋高潮值回到 ClimaxAfterLevel（見 Arousal.cs）
         OnClimaxSweat();     // 高潮一次出很多汗（InsertEjac.cs）
         FaceController?.SetExpression("高潮");

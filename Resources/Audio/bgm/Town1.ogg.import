@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/Town1.ogg-d9c5ecf953a9d88526a82751749d1120.og
 
 [params]
 
-loop=false
+loop=true
 loop_offset=0
 bpm=0
 beat_count=0

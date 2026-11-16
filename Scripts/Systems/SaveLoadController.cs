@@ -1,11 +1,12 @@
 using Godot;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 /// <summary>
 /// 存讀檔控制器
-/// 程式化生成 UI，風格與 SettingsController 一致（羊皮紙棕色 + 菱格紋）
-/// 在 Godot 中使用 Control 節點樹建構 UI
+/// 程式化生成 UI，風格與遊戲內其他視窗一致（奶白底 + 玫瑰粉細框，按鈕用 UIStyle）。
+/// 功能：保存／讀檔分頁、覆蓋／刪除／讀檔確認、損毀存檔提示、縮圖、儲存時自動截圖。
 /// </summary>
 public partial class SaveLoadController : Node
 {
@@ -50,57 +51,47 @@ public partial class SaveLoadController : Node
 
         // 劇情變數（day1_blanket / day2_blanket…）。舊存檔沒有這欄 = null，讀檔時不動
         public System.Collections.Generic.Dictionary<string, int> dialogueVars { get; set; }
+
+        // 其他進度（夜晚、今日行為旗標、調教室被子狀態…）。舊存檔沒有這欄 = null
+        public System.Collections.Generic.Dictionary<string, int> extra { get; set; }
+
+        // 序章逐行存檔：已選過的選項（以逗號分隔，依出現順序）。讀檔時用來快轉重播到 lineIndex
+        public string choices { get; set; }
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  面板尺寸設定
+    //  面板設定
     // ═══════════════════════════════════════════════════════════
     public float PanelWidth       = 1100f;
-    public float PanelHeight      = 720f;
-    public float BorderWidth      = 4f;
-    public float TitleBarHeight   = 55f;
+    public float PanelHeight      = 760f;
     public int   TitleFontSize    = 34;
     public int   TabFontSize      = 24;
-    public float TabHeight        = 42f;
-    public float TabWidth         = 140f;
-    public float TabGap           = 6f;
-    public float TabTopMargin     = 15f;
-    public int   SlotCount        = 3;
-    public float SlotHeight       = 130f;
-    public float SlotSpacing      = 12f;
-    public float SlotPadding      = 30f;
-    public float ThumbnailWidth   = 200f;
-    public float ThumbnailHeight  = 112f;
-    public float DeleteButtonSize = 32f;
+    public int   SlotCount        = 6;
+    public float SlotHeight       = 124f;
+    public float ThumbnailWidth   = 192f;
+    public float ThumbnailHeight  = 108f;
     public int   SlotNameFontSize = 24;
     public int   SlotTimeFontSize = 20;
     public int   EmptySlotFontSize = 22;
 
     // ═══════════════════════════════════════════════════════════
-    //  顏色主題
+    //  顏色主題（與 NovelReader / UIStyle 同一套玫瑰粉）
     // ═══════════════════════════════════════════════════════════
-    public Color OverlayColor         = new Color(0f, 0f, 0f, 0.55f);
-    public Color BorderColor          = new Color(0.22f, 0.13f, 0.07f, 1f);
-    public Color PanelBgColor         = new Color(0.91f, 0.86f, 0.77f, 1f);
-    public Color TitleBarColor        = new Color(0.30f, 0.18f, 0.10f, 1f);
-    public Color TitleTextColor       = new Color(0.95f, 0.90f, 0.80f, 1f);
-    public Color CloseButtonBgColor   = new Color(0.55f, 0.20f, 0.15f, 1f);
-    public Color CloseButtonTextColor = Colors.White;
-    public Color TabActiveColor       = new Color(0.91f, 0.86f, 0.77f, 1f);
-    public Color TabInactiveColor     = new Color(0.55f, 0.40f, 0.25f, 1f);
-    public Color TabActiveTextColor   = new Color(0.25f, 0.15f, 0.08f, 1f);
-    public Color TabInactiveTextColor = new Color(0.90f, 0.85f, 0.75f, 1f);
-    public Color SlotBgColor          = new Color(0.85f, 0.79f, 0.68f, 1f);
-    public Color SlotTextColor        = new Color(0.25f, 0.15f, 0.08f, 1f);
-    public Color SlotTimeColor        = new Color(0.45f, 0.35f, 0.22f, 1f);
-    public Color EmptySlotTextColor   = new Color(0.55f, 0.45f, 0.35f, 1f);
-    public Color DeleteButtonColor    = new Color(0.70f, 0.18f, 0.15f, 1f);
+    static readonly Color OverlayColor   = new Color(0.14f, 0.07f, 0.12f, 0.72f);
+    static readonly Color PaperColor     = new Color("fff9fd");
+    static readonly Color BorderColor    = new Color("e8b5ce");
+    static readonly Color TitleColor     = new Color("79475f");
+    static readonly Color TextColor      = new Color("654657");
+    static readonly Color SubTextColor   = new Color("a8758e");
+    static readonly Color AccentColor    = new Color("b0577f");
+    static readonly Color SlotFillColor  = new Color("fff0f6");
+    static readonly Color SlotHoverColor = new Color("ffe3ee");
 
     // ═══════════════════════════════════════════════════════════
     //  動畫
     // ═══════════════════════════════════════════════════════════
-    public float PopInDuration  = 0.3f;
-    public float PopOutDuration = 0.2f;
+    public float PopInDuration  = 0.25f;
+    public float PopOutDuration = 0.18f;
 
     // ═══════════════════════════════════════════════════════════
     //  靜態回調
@@ -115,28 +106,44 @@ public partial class SaveLoadController : Node
     // ═══════════════════════════════════════════════════════════
     private bool _isBuilt = false;
     private bool _isOpen  = false;
+    private bool _busy    = false;   // 截圖／動畫期間擋掉重複點擊
     private Mode _currentMode = Mode.Save;
     private CanvasLayer _canvasLayer;
     private Control _rootPanel;
+    private Control _card;
     private Action _onCloseCallback;
 
-    // UI 引用
-    private ColorRect _saveTabBg, _loadTabBg;
-    private Label _saveTabLabel, _loadTabLabel;
+    private Button _saveTabBtn, _loadTabBtn;
+    private Label _hintLabel;
     private SlotUI[] _slots;
     private Image _pendingScreenshot;
 
-    // 存檔路徑
-    private string SaveDir => Path.Combine(OS.GetUserDataDir(), "Saves");
+    // 確認視窗
+    private Control _confirmLayer;
+    private Label _confirmTitle, _confirmBody;
+    private Action _confirmAction;
 
-    struct SlotUI
+    private static string SaveDirStatic => Path.Combine(OS.GetUserDataDir(), "Saves");
+    private string SaveDir => SaveDirStatic;
+
+    /// <summary>是否至少有一個存檔（主選單「繼續遊戲」按鈕用）。</summary>
+    public static bool HasAnySave()
     {
-        public Control root;
+        try
+        {
+            if (!Directory.Exists(SaveDirStatic)) return false;
+            return Directory.GetFiles(SaveDirStatic, "save_*.json").Length > 0;
+        }
+        catch { return false; }
+    }
+
+    class SlotUI
+    {
+        public PanelContainer root;
         public TextureRect thumbnail;
-        public Label nameLabel;
-        public Label timeLabel;
-        public Label emptyLabel;
-        public Control deleteBtn;
+        public Label nameLabel, timeLabel, emptyLabel;
+        public Button deleteBtn;
+        public StyleBoxFlat normalStyle, hoverStyle;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -149,6 +156,7 @@ public partial class SaveLoadController : Node
         _onCloseCallback = onClose;
         _currentMode = mode;
         if (!_isBuilt) BuildUI();
+        HideConfirm();
         RefreshAllSlots();
         UpdateTabVisuals();
         _rootPanel.Visible = true;
@@ -159,12 +167,8 @@ public partial class SaveLoadController : Node
     /// <summary>截取螢幕後開啟存檔面板</summary>
     public async void CaptureAndOpen(Action onClose = null)
     {
-        // 等待一幀確保畫面渲染完成
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-
-        // 截取螢幕
         _pendingScreenshot = GetViewport().GetTexture().GetImage();
-
         Open(Mode.Save, onClose);
     }
 
@@ -172,22 +176,48 @@ public partial class SaveLoadController : Node
     {
         if (!_isOpen) return;
         _isOpen = false;
+        HideConfirm();
         AnimatePopOut();
     }
 
     public bool IsOpen() => _isOpen;
 
     // ═══════════════════════════════════════════════════════════
-    //  輸入處理 — ESC 關閉
+    //  輸入處理 — ESC：先關確認視窗，再關面板
     // ═══════════════════════════════════════════════════════════
     public override void _Input(InputEvent @event)
     {
         if (!_isOpen) return;
-        if (@event is InputEventKey key && key.Keycode == Key.Escape && key.Pressed)
+        if (@event is InputEventKey key && key.Keycode == Key.Escape && key.Pressed && !key.Echo)
         {
-            Close();
+            if (_confirmLayer != null && _confirmLayer.Visible) HideConfirm();
+            else Close();
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  樣式輔助
+    // ═══════════════════════════════════════════════════════════
+    static StyleBoxFlat Paper(Color? fill = null, int radius = 20, int border = 2)
+    {
+        return new StyleBoxFlat
+        {
+            BgColor = fill ?? PaperColor, BorderColor = BorderColor,
+            BorderWidthTop = border + 1, BorderWidthBottom = border, BorderWidthLeft = border, BorderWidthRight = border,
+            CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius,
+            CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius,
+            ShadowColor = new Color(0.30f, 0.13f, 0.23f, 0.18f), ShadowSize = 6, AntiAliasing = true
+        };
+    }
+
+    static Label MakeLabel(string text, int size, Color color, HorizontalAlignment align = HorizontalAlignment.Left)
+    {
+        var l = new Label { Text = text, HorizontalAlignment = align, VerticalAlignment = VerticalAlignment.Center };
+        l.AddThemeFontSizeOverride("font_size", size);
+        l.AddThemeColorOverride("font_color", color);
+        l.MouseFilter = Control.MouseFilterEnum.Ignore;
+        return l;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -197,204 +227,226 @@ public partial class SaveLoadController : Node
     {
         _isBuilt = true;
 
-        // --- CanvasLayer（高排序值確保在最上層）---
-        _canvasLayer = new CanvasLayer();
-        _canvasLayer.Layer = 140;
+        _canvasLayer = new CanvasLayer { Layer = 140 };
         AddChild(_canvasLayer);
 
-        // --- 根面板（全螢幕）---
-        _rootPanel = new Control();
-        _rootPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _rootPanel = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
         _canvasLayer.AddChild(_rootPanel);
+        _rootPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
-        // --- 半透明遮罩 ---
-        var overlay = new ColorRect();
-        overlay.Color = OverlayColor;
-        overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        // 點擊遮罩不做任何事（阻擋背景互動）
-        overlay.MouseFilter = Control.MouseFilterEnum.Stop;
+        var overlay = new ColorRect { Color = OverlayColor, MouseFilter = Control.MouseFilterEnum.Stop };
         _rootPanel.AddChild(overlay);
+        overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
-        // --- 外框 ---
-        var border = new ColorRect();
-        border.Color = BorderColor;
-        border.CustomMinimumSize = new Vector2(PanelWidth + BorderWidth * 2, PanelHeight + BorderWidth * 2);
-        border.Size = border.CustomMinimumSize;
-        border.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
-        border.Position = new Vector2(
-            (1920f - border.Size.X) / 2f,
-            (1080f - border.Size.Y) / 2f
-        );
-        _rootPanel.AddChild(border);
+        var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _rootPanel.AddChild(center);
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
-        // --- 面板底色 ---
-        var panelBg = new ColorRect();
-        panelBg.Color = PanelBgColor;
-        panelBg.Size = new Vector2(PanelWidth, PanelHeight);
-        panelBg.Position = new Vector2(BorderWidth, BorderWidth);
-        border.AddChild(panelBg);
+        _card = new PanelContainer { CustomMinimumSize = new Vector2(PanelWidth, PanelHeight), MouseFilter = Control.MouseFilterEnum.Stop };
+        var cardStyle = Paper(radius: 28);
+        cardStyle.ContentMarginLeft = cardStyle.ContentMarginRight = 36;
+        cardStyle.ContentMarginTop = 24; cardStyle.ContentMarginBottom = 24;
+        _card.AddThemeStyleboxOverride("panel", cardStyle);
+        center.AddChild(_card);
+
+        var vb = new VBoxContainer();
+        vb.AddThemeConstantOverride("separation", 14);
+        _card.AddChild(vb);
 
         // --- 標題列 ---
-        var titleBar = new ColorRect();
-        titleBar.Color = TitleBarColor;
-        titleBar.Size = new Vector2(PanelWidth, TitleBarHeight);
-        titleBar.Position = Vector2.Zero;
-        panelBg.AddChild(titleBar);
+        var titleRow = new HBoxContainer();
+        vb.AddChild(titleRow);
+        var spacer = new Control { CustomMinimumSize = new Vector2(48, 0) };
+        titleRow.AddChild(spacer);
+        var title = MakeLabel("✿  保存 / 讀檔  ✿", TitleFontSize, TitleColor, HorizontalAlignment.Center);
+        title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        titleRow.AddChild(title);
+        var closeBtn = UIStyle.CreateStyledButton("✕", 24);
+        closeBtn.CustomMinimumSize = new Vector2(48, 44);
+        closeBtn.Pressed += Close;
+        titleRow.AddChild(closeBtn);
 
-        var titleLabel = new Label();
-        titleLabel.Text = "保存 / 讀檔";
-        titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        titleLabel.VerticalAlignment = VerticalAlignment.Center;
-        titleLabel.Size = new Vector2(PanelWidth, TitleBarHeight);
-        titleLabel.AddThemeFontSizeOverride("font_size", TitleFontSize);
-        titleLabel.AddThemeColorOverride("font_color", TitleTextColor);
-        titleBar.AddChild(titleLabel);
+        // --- 分頁（用 UIStyle 按鈕，選中的以粗體＋強調色標示）---
+        var tabRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        tabRow.AddThemeConstantOverride("separation", 16);
+        vb.AddChild(tabRow);
+        _saveTabBtn = UIStyle.CreateStyledButton("💾  保存", TabFontSize);
+        _saveTabBtn.CustomMinimumSize = new Vector2(180, 48);
+        _saveTabBtn.Pressed += () => SwitchMode(Mode.Save);
+        tabRow.AddChild(_saveTabBtn);
+        _loadTabBtn = UIStyle.CreateStyledButton("📂  讀檔", TabFontSize);
+        _loadTabBtn.CustomMinimumSize = new Vector2(180, 48);
+        _loadTabBtn.Pressed += () => SwitchMode(Mode.Load);
+        tabRow.AddChild(_loadTabBtn);
 
-        // 關閉按鈕
-        var closeBtn = new Button();
-        closeBtn.Text = "✕";
-        closeBtn.Size = new Vector2(44, 44);
-        closeBtn.Position = new Vector2(PanelWidth - 54, (TitleBarHeight - 44) / 2f);
-        closeBtn.AddThemeFontSizeOverride("font_size", 28);
-        closeBtn.Pressed += () => Close();
-        titleBar.AddChild(closeBtn);
+        _hintLabel = MakeLabel("", 20, SubTextColor, HorizontalAlignment.Center);
+        vb.AddChild(_hintLabel);
 
-        // --- 標籤頁 ---
-        float tabY = TitleBarHeight + TabTopMargin;
-        float tabTotalWidth = TabWidth * 2 + TabGap;
-        float tabStartX = (PanelWidth - tabTotalWidth) / 2f;
-
-        // 保存標籤
-        _saveTabBg = new ColorRect();
-        _saveTabBg.Color = TabActiveColor;
-        _saveTabBg.Size = new Vector2(TabWidth, TabHeight);
-        _saveTabBg.Position = new Vector2(tabStartX, tabY);
-        panelBg.AddChild(_saveTabBg);
-
-        _saveTabLabel = new Label();
-        _saveTabLabel.Text = "保存";
-        _saveTabLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _saveTabLabel.VerticalAlignment = VerticalAlignment.Center;
-        _saveTabLabel.Size = new Vector2(TabWidth, TabHeight);
-        _saveTabLabel.AddThemeFontSizeOverride("font_size", TabFontSize);
-        _saveTabLabel.AddThemeColorOverride("font_color", TabActiveTextColor);
-        _saveTabBg.AddChild(_saveTabLabel);
-
-        // 保存標籤點擊
-        var saveTabBtn = new Button();
-        saveTabBtn.Flat = true;
-        saveTabBtn.Size = new Vector2(TabWidth, TabHeight);
-        saveTabBtn.Pressed += () => SwitchMode(Mode.Save);
-        _saveTabBg.AddChild(saveTabBtn);
-
-        // 讀檔標籤
-        _loadTabBg = new ColorRect();
-        _loadTabBg.Color = TabInactiveColor;
-        _loadTabBg.Size = new Vector2(TabWidth, TabHeight);
-        _loadTabBg.Position = new Vector2(tabStartX + TabWidth + TabGap, tabY);
-        panelBg.AddChild(_loadTabBg);
-
-        _loadTabLabel = new Label();
-        _loadTabLabel.Text = "讀檔";
-        _loadTabLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _loadTabLabel.VerticalAlignment = VerticalAlignment.Center;
-        _loadTabLabel.Size = new Vector2(TabWidth, TabHeight);
-        _loadTabLabel.AddThemeFontSizeOverride("font_size", TabFontSize);
-        _loadTabLabel.AddThemeColorOverride("font_color", TabInactiveTextColor);
-        _loadTabBg.AddChild(_loadTabLabel);
-
-        var loadTabBtn = new Button();
-        loadTabBtn.Flat = true;
-        loadTabBtn.Size = new Vector2(TabWidth, TabHeight);
-        loadTabBtn.Pressed += () => SwitchMode(Mode.Load);
-        _loadTabBg.AddChild(loadTabBtn);
-
-        // --- 存檔槽 ---
-        _slots = new SlotUI[SlotCount];
-        float slotAreaTop = tabY + TabHeight + SlotSpacing;
-        float slotW = PanelWidth - SlotPadding * 2;
-
-        for (int i = 0; i < SlotCount; i++)
+        // --- 存檔槽（可捲動）---
+        var scroll = new ScrollContainer
         {
-            float slotY = slotAreaTop + i * (SlotHeight + SlotSpacing);
-            _slots[i] = CreateSlot(panelBg, i, slotW, slotY);
-        }
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+        };
+        vb.AddChild(scroll);
+        var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        list.AddThemeConstantOverride("separation", 12);
+        scroll.AddChild(list);
 
+        _slots = new SlotUI[SlotCount];
+        for (int i = 0; i < SlotCount; i++)
+            _slots[i] = CreateSlot(list, i);
+
+        BuildConfirm();
         _rootPanel.Visible = false;
     }
 
-    SlotUI CreateSlot(Control parent, int index, float width, float yPos)
+    SlotUI CreateSlot(Control parent, int index)
     {
         var slot = new SlotUI();
+        slot.normalStyle = Paper(SlotFillColor, 18, 2);
+        slot.normalStyle.ShadowSize = 2;
+        slot.hoverStyle = Paper(SlotHoverColor, 18, 2);
+        slot.hoverStyle.BorderColor = new Color("cf809f");
+        slot.hoverStyle.ShadowSize = 2;
 
-        // 底色
-        var slotBg = new ColorRect();
-        slotBg.Color = SlotBgColor;
-        slotBg.Size = new Vector2(width, SlotHeight);
-        slotBg.Position = new Vector2(SlotPadding, yPos);
-        parent.AddChild(slotBg);
-        slot.root = slotBg;
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(0, SlotHeight),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Stop
+        };
+        slot.normalStyle.ContentMarginLeft = slot.normalStyle.ContentMarginRight = 14;
+        slot.normalStyle.ContentMarginTop = slot.normalStyle.ContentMarginBottom = 8;
+        slot.hoverStyle.ContentMarginLeft = slot.hoverStyle.ContentMarginRight = 14;
+        slot.hoverStyle.ContentMarginTop = slot.hoverStyle.ContentMarginBottom = 8;
+        panel.AddThemeStyleboxOverride("panel", slot.normalStyle);
+        parent.AddChild(panel);
+        slot.root = panel;
 
-        // 整個槽位可點擊
         int idx = index;
-        var slotBtn = new Button();
-        slotBtn.Flat = true;
-        slotBtn.Size = new Vector2(width, SlotHeight);
-        slotBtn.Pressed += () => OnSlotClicked(idx);
-        slotBg.AddChild(slotBtn);
+        panel.MouseEntered += () => panel.AddThemeStyleboxOverride("panel", slot.hoverStyle);
+        panel.MouseExited  += () => panel.AddThemeStyleboxOverride("panel", slot.normalStyle);
+        panel.GuiInput += ev =>
+        {
+            if (ev is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+            {
+                OnSlotClicked(idx);
+                panel.AcceptEvent();
+            }
+        };
 
-        // 縮略圖
-        float thumbX = 15f;
-        var thumbRect = new TextureRect();
-        thumbRect.Size = new Vector2(ThumbnailWidth, ThumbnailHeight);
-        thumbRect.Position = new Vector2(thumbX, (SlotHeight - ThumbnailHeight) / 2f);
-        thumbRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
-        slotBg.AddChild(thumbRect);
-        slot.thumbnail = thumbRect;
+        var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        row.AddThemeConstantOverride("separation", 20);
+        panel.AddChild(row);
 
-        // 存檔名稱
-        float textX = thumbX + ThumbnailWidth + 20f;
-        var nameLabel = new Label();
-        nameLabel.Text = $"存檔 {index + 1}";
-        nameLabel.Size = new Vector2(width - ThumbnailWidth - 80f, 30f);
-        nameLabel.Position = new Vector2(textX, SlotHeight / 2f - 25f);
-        nameLabel.AddThemeFontSizeOverride("font_size", SlotNameFontSize);
-        nameLabel.AddThemeColorOverride("font_color", SlotTextColor);
-        slotBg.AddChild(nameLabel);
-        slot.nameLabel = nameLabel;
+        // 縮圖（粉框）
+        var thumbFrame = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(ThumbnailWidth + 8, ThumbnailHeight + 8),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        var thumbStyle = new StyleBoxFlat
+        {
+            BgColor = new Color("f6dce7"), BorderColor = BorderColor,
+            BorderWidthTop = 2, BorderWidthBottom = 2, BorderWidthLeft = 2, BorderWidthRight = 2,
+            CornerRadiusTopLeft = 10, CornerRadiusTopRight = 10, CornerRadiusBottomLeft = 10, CornerRadiusBottomRight = 10,
+            ContentMarginLeft = 2, ContentMarginRight = 2, ContentMarginTop = 2, ContentMarginBottom = 2,
+            AntiAliasing = true
+        };
+        thumbFrame.AddThemeStyleboxOverride("panel", thumbStyle);
+        row.AddChild(thumbFrame);
+        var thumb = new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        thumbFrame.AddChild(thumb);
+        slot.thumbnail = thumb;
 
-        // 時間戳
-        var timeLabel = new Label();
-        timeLabel.Text = "";
-        timeLabel.Size = new Vector2(width - ThumbnailWidth - 80f, 26f);
-        timeLabel.Position = new Vector2(textX, SlotHeight / 2f + 5f);
-        timeLabel.AddThemeFontSizeOverride("font_size", SlotTimeFontSize);
-        timeLabel.AddThemeColorOverride("font_color", SlotTimeColor);
-        slotBg.AddChild(timeLabel);
-        slot.timeLabel = timeLabel;
+        // 文字區
+        var textBox = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        row.AddChild(textBox);
+        slot.nameLabel = MakeLabel($"存檔 {index + 1}", SlotNameFontSize, AccentColor);
+        textBox.AddChild(slot.nameLabel);
+        slot.timeLabel = MakeLabel("", SlotTimeFontSize, SubTextColor);
+        textBox.AddChild(slot.timeLabel);
+        slot.emptyLabel = MakeLabel($"— 空　存檔 {index + 1} —", EmptySlotFontSize, SubTextColor);
+        textBox.AddChild(slot.emptyLabel);
 
-        // 空槽位提示
-        var emptyLabel = new Label();
-        emptyLabel.Text = "— 空 —";
-        emptyLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        emptyLabel.VerticalAlignment = VerticalAlignment.Center;
-        emptyLabel.Size = new Vector2(width, SlotHeight);
-        emptyLabel.AddThemeFontSizeOverride("font_size", EmptySlotFontSize);
-        emptyLabel.AddThemeColorOverride("font_color", EmptySlotTextColor);
-        slotBg.AddChild(emptyLabel);
-        slot.emptyLabel = emptyLabel;
-
-        // 刪除按鈕
-        var delBtn = new Button();
-        delBtn.Text = "✕";
-        delBtn.Size = new Vector2(DeleteButtonSize, DeleteButtonSize);
-        delBtn.Position = new Vector2(width - 15f - DeleteButtonSize, 15f);
-        delBtn.AddThemeFontSizeOverride("font_size", 18);
-        delBtn.Pressed += () => DeleteSlot(idx);
-        slotBg.AddChild(delBtn);
-        slot.deleteBtn = delBtn;
+        // 刪除
+        var delBox = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
+        row.AddChild(delBox);
+        slot.deleteBtn = UIStyle.CreateStyledButton("🗑 刪除", 18);
+        slot.deleteBtn.CustomMinimumSize = new Vector2(104, 40);
+        slot.deleteBtn.Pressed += () => AskDelete(idx);
+        delBox.AddChild(slot.deleteBtn);
 
         return slot;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  確認視窗
+    // ═══════════════════════════════════════════════════════════
+    void BuildConfirm()
+    {
+        _confirmLayer = new Control { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false };
+        _rootPanel.AddChild(_confirmLayer);
+        _confirmLayer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        var dim = new ColorRect { Color = new Color(0.14f, 0.07f, 0.12f, 0.55f), MouseFilter = Control.MouseFilterEnum.Stop };
+        _confirmLayer.AddChild(dim);
+        dim.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _confirmLayer.AddChild(center);
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+
+        var card = new PanelContainer { CustomMinimumSize = new Vector2(520, 0), MouseFilter = Control.MouseFilterEnum.Stop };
+        var sty = Paper(radius: 24);
+        sty.ContentMarginLeft = sty.ContentMarginRight = 40;
+        sty.ContentMarginTop = sty.ContentMarginBottom = 30;
+        card.AddThemeStyleboxOverride("panel", sty);
+        center.AddChild(card);
+
+        var vb = new VBoxContainer();
+        vb.AddThemeConstantOverride("separation", 18);
+        card.AddChild(vb);
+        _confirmTitle = MakeLabel("", 28, TitleColor, HorizontalAlignment.Center);
+        vb.AddChild(_confirmTitle);
+        _confirmBody = MakeLabel("", 22, TextColor, HorizontalAlignment.Center);
+        _confirmBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        vb.AddChild(_confirmBody);
+
+        var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        btnRow.AddThemeConstantOverride("separation", 24);
+        vb.AddChild(btnRow);
+        var ok = UIStyle.CreateStyledButton("確定", 24);
+        ok.CustomMinimumSize = new Vector2(150, 48);
+        ok.Pressed += () => { var a = _confirmAction; HideConfirm(); a?.Invoke(); };
+        btnRow.AddChild(ok);
+        var cancel = UIStyle.CreateStyledButton("取消", 24);
+        cancel.CustomMinimumSize = new Vector2(150, 48);
+        cancel.Pressed += HideConfirm;
+        btnRow.AddChild(cancel);
+    }
+
+    void ShowConfirm(string title, string body, Action onOk)
+    {
+        _confirmTitle.Text = title;
+        _confirmBody.Text = body;
+        _confirmAction = onOk;
+        _confirmLayer.Visible = true;
+    }
+
+    void HideConfirm()
+    {
+        _confirmAction = null;
+        if (_confirmLayer != null) _confirmLayer.Visible = false;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -409,10 +461,17 @@ public partial class SaveLoadController : Node
     void UpdateTabVisuals()
     {
         bool isSave = _currentMode == Mode.Save;
-        _saveTabBg.Color    = isSave ? TabActiveColor    : TabInactiveColor;
-        _saveTabLabel.AddThemeColorOverride("font_color", isSave ? TabActiveTextColor : TabInactiveTextColor);
-        _loadTabBg.Color    = !isSave ? TabActiveColor   : TabInactiveColor;
-        _loadTabLabel.AddThemeColorOverride("font_color", !isSave ? TabActiveTextColor : TabInactiveTextColor);
+        void Mark(Button b, bool active)
+        {
+            b.AddThemeColorOverride("font_color", active ? AccentColor : UIStyle.BtnTextColor);
+            b.AddThemeColorOverride("font_hover_color", active ? AccentColor : UIStyle.BtnTextColor);
+            b.AddThemeColorOverride("font_pressed_color", active ? AccentColor : UIStyle.BtnTextColor);
+            b.AddThemeColorOverride("font_focus_color", active ? AccentColor : UIStyle.BtnTextColor);
+            b.Modulate = active ? Colors.White : new Color(1f, 1f, 1f, 0.72f);
+        }
+        Mark(_saveTabBtn, isSave);
+        Mark(_loadTabBtn, !isSave);
+        _hintLabel.Text = isSave ? "點選欄位保存目前進度（已有存檔會先詢問是否覆蓋）" : "點選有存檔的欄位讀取進度";
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -420,77 +479,112 @@ public partial class SaveLoadController : Node
     // ═══════════════════════════════════════════════════════════
     void OnSlotClicked(int index)
     {
+        if (_busy) return;
+        bool hasData = File.Exists(GetSavePath(index));
         if (_currentMode == Mode.Save)
-            SaveToSlot(index);
+        {
+            if (hasData)
+                ShowConfirm("覆蓋存檔", $"存檔 {index + 1} 已有進度，要覆蓋嗎？", () => SaveToSlot(index));
+            else
+                SaveToSlot(index);
+        }
         else
-            LoadFromSlot(index);
+        {
+            if (!hasData) return;
+            ShowConfirm("讀取存檔", $"要讀取存檔 {index + 1} 嗎？\n目前未保存的進度會消失。", () => LoadFromSlot(index));
+        }
     }
 
-    void SaveToSlot(int index)
+    void AskDelete(int index)
     {
-        EnsureSaveDir();
+        if (_busy) return;
+        ShowConfirm("刪除存檔", $"確定要刪除存檔 {index + 1} 嗎？\n刪除後無法復原。", () => DeleteSlot(index));
+    }
 
-        // 取得遊戲狀態
-        SaveData data = OnGetSaveData?.Invoke();
-        if (data == null)
+    async void SaveToSlot(int index)
+    {
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            data = new SaveData();
-            data.sceneName = GetTree().CurrentScene.SceneFilePath;
+            // 從「讀檔」分頁切過來時沒有截圖：暫時隱藏面板，抓當前遊戲畫面
+            if (_pendingScreenshot == null)
+            {
+                _rootPanel.Visible = false;
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                _pendingScreenshot = GetViewport().GetTexture().GetImage();
+                _rootPanel.Visible = true;
+            }
+
+            EnsureSaveDir();
+            SaveData data = OnGetSaveData?.Invoke();
+            if (data == null)
+            {
+                data = new SaveData();
+                data.sceneName = GetTree().CurrentScene?.SceneFilePath ?? "";
+            }
+            data.saveTime = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
+            data.dialogueVars ??= PlayerDataManager.Instance?.GetAllDialogueVars();
+
+            string json = System.Text.Json.JsonSerializer.Serialize(data,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            // 先寫暫存檔再替換，避免寫到一半失敗把舊存檔弄壞
+            string path = GetSavePath(index), tmp = path + ".tmp";
+            File.WriteAllText(tmp, json);
+            File.Move(tmp, path, true);
+
+            if (_pendingScreenshot != null)
+                _pendingScreenshot.SavePng(GetScreenshotPath(index));
+
+            GD.Print($"[SaveLoad] 已儲存到槽位 {index + 1}: {data.saveTime}");
+            RefreshSlot(index);
         }
-        data.saveTime = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
-        data.dialogueVars ??= PlayerDataManager.Instance?.GetAllDialogueVars();
-
-        // 儲存 JSON
-        string json = System.Text.Json.JsonSerializer.Serialize(data,
-            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-        System.IO.File.WriteAllText(GetSavePath(index), json);
-
-        // 儲存截圖
-        if (_pendingScreenshot != null)
+        catch (Exception e)
         {
-            _pendingScreenshot.SavePng(GetScreenshotPath(index));
+            GD.PrintErr($"[SaveLoad] 儲存槽位 {index + 1} 失敗: {e.Message}");
+            ShowConfirm("保存失敗", "無法寫入存檔，請確認磁碟空間或權限。", null);
         }
-
-        GD.Print($"[SaveLoad] 已儲存到槽位 {index + 1}: {data.saveTime}");
-        RefreshSlot(index);
+        finally { _busy = false; }
     }
 
     void LoadFromSlot(int index)
     {
         string path = GetSavePath(index);
-        if (!System.IO.File.Exists(path))
-        {
-            GD.Print($"[SaveLoad] 槽位 {index + 1} 是空的");
-            return;
-        }
+        if (!File.Exists(path)) return;
 
-        string json = System.IO.File.ReadAllText(path);
         SaveData data;
         try
         {
-            data = System.Text.Json.JsonSerializer.Deserialize<SaveData>(json);
+            data = System.Text.Json.JsonSerializer.Deserialize<SaveData>(File.ReadAllText(path));
+            if (data == null) throw new InvalidDataException("空的存檔內容");
         }
         catch (Exception e)
         {
             GD.PrintErr($"[SaveLoad] 讀取槽位 {index + 1} 失敗: {e.Message}");
+            ShowConfirm("讀取失敗", "這個存檔已損毀，無法讀取。", null);
             return;
         }
 
         GD.Print($"[SaveLoad] 讀取槽位 {index + 1}: {data.saveTime}");
         PlayerDataManager.Instance?.SetAllDialogueVars(data.dialogueVars);
         Close();
-
-        // 呼叫讀檔回調
         OnApplyLoadData?.Invoke(data);
     }
 
     void DeleteSlot(int index)
     {
-        string savePath = GetSavePath(index);
-        string ssPath   = GetScreenshotPath(index);
-        if (System.IO.File.Exists(savePath)) System.IO.File.Delete(savePath);
-        if (System.IO.File.Exists(ssPath))   System.IO.File.Delete(ssPath);
-        GD.Print($"[SaveLoad] 已刪除槽位 {index + 1}");
+        try
+        {
+            string savePath = GetSavePath(index), ssPath = GetScreenshotPath(index);
+            if (File.Exists(savePath)) File.Delete(savePath);
+            if (File.Exists(ssPath))   File.Delete(ssPath);
+            GD.Print($"[SaveLoad] 已刪除槽位 {index + 1}");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[SaveLoad] 刪除槽位 {index + 1} 失敗: {e.Message}");
+        }
         RefreshSlot(index);
     }
 
@@ -499,54 +593,41 @@ public partial class SaveLoadController : Node
     // ═══════════════════════════════════════════════════════════
     void RefreshAllSlots()
     {
-        for (int i = 0; i < SlotCount; i++)
-            RefreshSlot(i);
+        for (int i = 0; i < SlotCount; i++) RefreshSlot(i);
     }
 
     void RefreshSlot(int index)
     {
-        if (index < 0 || index >= _slots.Length) return;
+        if (_slots == null || index < 0 || index >= _slots.Length) return;
         var slot = _slots[index];
-
         string savePath = GetSavePath(index);
-        bool hasData = System.IO.File.Exists(savePath);
 
-        if (hasData)
+        if (!File.Exists(savePath))
         {
-            string json = System.IO.File.ReadAllText(savePath);
-            SaveData data = null;
-            try { data = System.Text.Json.JsonSerializer.Deserialize<SaveData>(json); }
-            catch { /* 忽略解析錯誤 */ }
-
-            slot.nameLabel.Visible  = true;
-            slot.timeLabel.Visible  = true;
-            slot.emptyLabel.Visible = false;
-            slot.deleteBtn.Visible  = true;
-
-            slot.nameLabel.Text = $"存檔 {index + 1}";
-            slot.timeLabel.Text = data?.saveTime ?? "";
-
-            // 載入截圖
-            string ssPath = GetScreenshotPath(index);
-            if (System.IO.File.Exists(ssPath))
-            {
-                var img = new Image();
-                img.Load(ssPath);
-                var tex = ImageTexture.CreateFromImage(img);
-                slot.thumbnail.Texture = tex;
-            }
-            else
-            {
-                slot.thumbnail.Texture = null;
-            }
-        }
-        else
-        {
-            slot.nameLabel.Visible  = false;
-            slot.timeLabel.Visible  = false;
+            slot.nameLabel.Visible = slot.timeLabel.Visible = false;
             slot.emptyLabel.Visible = true;
-            slot.deleteBtn.Visible  = false;
-            slot.thumbnail.Texture  = null;
+            slot.deleteBtn.Visible = false;
+            slot.thumbnail.Texture = null;
+            return;
+        }
+
+        SaveData data = null;
+        bool corrupt = false;
+        try { data = System.Text.Json.JsonSerializer.Deserialize<SaveData>(File.ReadAllText(savePath)); }
+        catch { corrupt = true; }
+
+        slot.nameLabel.Visible = slot.timeLabel.Visible = true;
+        slot.emptyLabel.Visible = false;
+        slot.deleteBtn.Visible = true;
+        slot.nameLabel.Text = $"存檔 {index + 1}" + (corrupt ? "（已損毀）" : "");
+        slot.timeLabel.Text = data?.saveTime ?? "";
+
+        slot.thumbnail.Texture = null;
+        string ssPath = GetScreenshotPath(index);
+        if (File.Exists(ssPath))
+        {
+            var img = Image.LoadFromFile(ssPath);
+            if (img != null) slot.thumbnail.Texture = ImageTexture.CreateFromImage(img);
         }
     }
 
@@ -555,8 +636,7 @@ public partial class SaveLoadController : Node
     // ═══════════════════════════════════════════════════════════
     void EnsureSaveDir()
     {
-        if (!System.IO.Directory.Exists(SaveDir))
-            System.IO.Directory.CreateDirectory(SaveDir);
+        if (!Directory.Exists(SaveDir)) Directory.CreateDirectory(SaveDir);
     }
 
     string GetSavePath(int index)       => Path.Combine(SaveDir, $"save_{index}.json");
@@ -568,15 +648,14 @@ public partial class SaveLoadController : Node
     void AnimatePopIn()
     {
         _rootPanel.Modulate = new Color(1, 1, 1, 0);
-        _rootPanel.Scale = new Vector2(0.8f, 0.8f);
-        _rootPanel.PivotOffset = _rootPanel.Size / 2f;
+        _card.PivotOffset = _card.Size / 2f;
+        _card.Scale = new Vector2(0.92f, 0.92f);
 
         var tween = CreateTween();
         tween.SetParallel(true);
         tween.TweenProperty(_rootPanel, "modulate:a", 1.0f, PopInDuration);
-        tween.TweenProperty(_rootPanel, "scale", Vector2.One, PopInDuration)
-             .SetTrans(Tween.TransitionType.Back)
-             .SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_card, "scale", Vector2.One, PopInDuration)
+             .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
     }
 
     async void AnimatePopOut()
@@ -584,12 +663,12 @@ public partial class SaveLoadController : Node
         var tween = CreateTween();
         tween.SetParallel(true);
         tween.TweenProperty(_rootPanel, "modulate:a", 0.0f, PopOutDuration);
-        tween.TweenProperty(_rootPanel, "scale", new Vector2(0.8f, 0.8f), PopOutDuration)
-             .SetTrans(Tween.TransitionType.Quad)
-             .SetEase(Tween.EaseType.In);
+        tween.TweenProperty(_card, "scale", new Vector2(0.92f, 0.92f), PopOutDuration)
+             .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
 
         await ToSignal(tween, Tween.SignalName.Finished);
         _rootPanel.Visible = false;
+        _pendingScreenshot = null;   // 下次從「讀檔」進來的保存會重新截圖，不沿用過期畫面
         _onCloseCallback?.Invoke();
     }
 }

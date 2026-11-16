@@ -761,6 +761,7 @@ public partial class TrainingRoomRuntime : Node
     /// </summary>
     void OnOrgasmPressed()
     {
+        if (!BratR18) return;   // 全年齡：沒有高潮
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) return;
         pdm.TodayDidNothing  = false;

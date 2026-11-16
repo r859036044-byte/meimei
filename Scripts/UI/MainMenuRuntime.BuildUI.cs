@@ -198,8 +198,10 @@ public partial class MainMenuRuntime : Control
         };
         if (!DemoMode.Enabled)   // 試玩版沒有「繼續遊戲」按鈕
         {
-            btnLoad.Disabled = true;
-            BtnLabel(btnLoad)?.AddThemeColorOverride("font_color", new Color("978993"));   // TODO: 存檔系統
+            bool hasSave = SaveLoadController.HasAnySave();
+            btnLoad.Disabled = !hasSave;   // 有存檔才亮起
+            if (!hasSave) BtnLabel(btnLoad)?.AddThemeColorOverride("font_color", new Color("978993"));
+            btnLoad.Pressed += () => OpenLoadPanel();
         }
         btnSett.Pressed += () =>
         {

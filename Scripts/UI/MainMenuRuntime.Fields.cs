@@ -346,8 +346,16 @@ public partial class MainMenuRuntime : Control
         // 開發者模式（密技召喚 + 解鎖後 F9 開關）現在由 autoload 的
         // DevModeManager 全域常駐處理，不用在每個場景各自建立監聽節點。
 
+        // 讀檔回到序章：直接接著播，不顯示標題畫面
+        if (PendingResume != null)
+        {
+            var resume = PendingResume;
+            PendingResume = null;
+            SkipIntroOnce = false;
+            ResumePrologue(resume);
+        }
         // 從遊戲中「返回主畫面」→ 直接顯示開始畫面（不重播 LOGO 與開場動畫）
-        if (SkipIntroOnce || (DemoMode.Enabled && _demoLogoDone))   // 試玩版：播完 LOGO 後 OP 直接跳到主畫面
+        else if (SkipIntroOnce || (DemoMode.Enabled && _demoLogoDone))   // 試玩版：播完 LOGO 後 OP 直接跳到主畫面
         {
             SkipIntroOnce = false;
             // 試玩版：不預載調教室貼圖／場景（啟動時不要讀那麼多；進調教室時才載入）

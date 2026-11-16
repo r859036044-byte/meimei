@@ -3,7 +3,9 @@
   "lines": [
     {
       "speaker": "",
-      "text": "【場景：公寓樓下 —— 翌日黃昏】"
+      "text": "【場景：公寓樓下 —— 翌日黃昏】",
+      "fadein": "60",
+      "bgName": "bg_Apartment, fade"
     },
     {
       "speaker": "",
@@ -19,7 +21,9 @@
     },
     {
       "speaker": "",
-      "text": "【場景：客廳 —— 晚餐時間】"
+      "text": "【場景：客廳 —— 晚餐時間】",
+      "fadein": "60",
+      "bgName": "bg_Kitchen, fade"
     },
     {
       "speaker": "男主",

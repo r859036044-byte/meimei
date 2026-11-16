@@ -968,6 +968,12 @@ public partial class MainMenuRuntime : Control
 			sd.sceneName = GetTree()?.CurrentScene?.Name ?? "";
 			sd.saveTime  = System.DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
 			if (pdm != null) sd.lineIndex = pdm.CurrentNight;
+			if (_prologueRunning)
+			{   // 序章播放中：記錄目前行數與已選過的選項，讀檔時快轉重播到這一行
+				sd.scriptName = "prologue";
+				sd.lineIndex  = _prologueIdx;
+				sd.choices    = string.Join(",", _choiceHistory);
+			}
 			return sd;
 		};
 
@@ -975,8 +981,14 @@ public partial class MainMenuRuntime : Control
 		SaveLoadController.OnApplyLoadData = (sd) =>
 		{
 			GD.Print($"[SaveLoad] 讀取存檔：場景={sd.sceneName} 時間={sd.saveTime}");
-			if (!string.IsNullOrEmpty(sd.sceneName))
-				GetTree().ChangeSceneToFile($"res://Scenes/{sd.sceneName}.tscn");
+			if (string.IsNullOrEmpty(sd.sceneName)) return;
+			// 讀檔不重播 LOGO／開場動畫
+			if (sd.sceneName == "MainMenu")
+			{
+				SkipIntroOnce = true;
+				if (sd.scriptName == "prologue") PendingResume = sd;   // 重新載入主選單後，從存檔那一行接著播序章
+			}
+			GetTree().ChangeSceneToFile($"res://Scenes/{sd.sceneName}.tscn");
 		};
 	}
 
@@ -1035,5 +1047,23 @@ public partial class MainMenuRuntime : Control
 			SetOutline(txt, _topBtnCfg.OutlineSize,
 				new Color(0f, 0f, 0f, Mathf.Clamp(_topBtnCfg.OutlineAlpha, 0f, 1f)));
 		}
+	}
+}
+
+public partial class MainMenuRuntime
+{
+	/// <summary>讀檔後接回序章：快轉重播到存檔那一行（背景／CG／立繪／BGM／變數都會還原），再正常播放。</summary>
+	void ResumePrologue(SaveLoadController.SaveData sd)
+	{
+		SetActive(_logoPanel, false);
+		SetActive(_mainPanel, false);
+		GameFlowManager.Instance?.SetSkipPrologue(false);
+
+		_replayChoices.Clear();
+		foreach (var part in (sd.choices ?? "").Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+			if (int.TryParse(part, out int c)) _replayChoices.Enqueue(c);
+		_replayTo = Mathf.Max(0, sd.lineIndex);
+
+		TaskLogger.Run(PlayPrologue(_lifeCts.Token), "MainMenu.ResumePrologue");
 	}
 }
