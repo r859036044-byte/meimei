@@ -103,6 +103,14 @@ public partial class TrainingRoomRuntime
         GD.Print($"[Brat] 全年齡第 2 晚進場：第 2 天早上是{(good ? "好" : "壞")}劇情 → 心情 {md:+0;-0}、雌小鬼值 {bd:+0;-0}（現在：心情 {Mood:F0}、雌小鬼值 {BratValue:F0}）");
     }
 
+    /// <summary>存檔前呼叫（SaveLoadHost）：把房間內目前的心情／雌小鬼值立刻寫進劇情變數，存檔才不會漏掉當晚進度。</summary>
+    public void BratFlush()
+    {
+        if (!_bratLoaded) return;
+        BratSave();
+        _bratDirty = false;
+    }
+
     void BratSave()
     {
         BratValue = Mathf.Clamp(BratValue, 0f, 100f);

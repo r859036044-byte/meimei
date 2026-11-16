@@ -56,7 +56,11 @@ public static class SaveLoadHost
             extra["inserted"] = pdm.TodayInserted ? 1 : 0;
         }
         var troom = FindNode<TrainingRoomRuntime>(scene);
-        if (troom != null) extra["duvet"] = troom.DuvetState;
+        if (troom != null)
+        {
+            troom.BratFlush();   // 先把房間內的心情／雌小鬼值寫進劇情變數（SaveToSlot 之後才會複製變數）
+            extra["duvet"] = troom.DuvetState;
+        }
         sd.extra = extra;
         return sd;
     }
@@ -76,6 +80,10 @@ public static class SaveLoadHost
             pdm.TodayInsertNoOrg = Get("insertNoOrg") != 0;
             pdm.TodayInserted = Get("inserted") != 0;
             PendingDuvetState = sd.extra.TryGetValue("duvet", out var dv) ? dv : -1;
+            // 在房間內存的第 2 晚存檔：進房時的第 2 晚心情／雌小鬼加減早就套用過、而且已包含在存檔的數值裡。
+            // 補上「已套用」標記，避免讀檔重新載入調教室時 ApplyAANight2Bias 再加減一次（+20／−25 無限疊加）。
+            if (sd.extra.ContainsKey("duvet") && Get("night") == 2 && pdm.GetDialogueVar("aa_n2_bias") == 0)
+                pdm.AddDialogueVar("aa_n2_bias", 1);
         }
         string path = sd.sceneName.EndsWith(".tscn") ? sd.sceneName : $"res://Scenes/{sd.sceneName}.tscn";
         tree.ChangeSceneToFile(path);
