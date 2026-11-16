@@ -28,7 +28,8 @@ public partial class SpineChar : Control
     public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // 換回舊髮型：改回 "res://Resources/Spine/linai/"
     public const string DefaultName = "linai";
     /// <summary>前髮／劉海骨骼的晃動幅度倍率（1＝原動畫、0＝完全不晃）。</summary>
-    public static float BangSwayScale = 0.5f;
+    public static float BangSwayScale = 0.5f;       // 往右擺的倍率
+    public static float BangSwayScaleLeft = 0.75f;  // 往左擺的倍率（比往右大一點點）
     public static float BangRightDownPerDeg = 0f;   // 右邊前髮往內擺時往下壓（像素／度，0＝不動）
     public static float BangFringeUpPerDeg = 0f;    // 劉海（中間那束）往內擺時往上抬（像素／度）
     public static float BangLeftUpPerDeg = 0f;      // 左邊前髮往內擺時往上抬（像素／度，0＝不動）
@@ -549,7 +550,7 @@ public partial class SpineChar : Control
             {
                 Sample(tl.Rotate, t, out a, out c);
                 bool bang = b.Name != null && (b.Name.StartsWith("前髮") || b.Name.StartsWith("劉海"));
-                b.CRot = b.Rot + (bang ? a * BangSwayScale : a);
+                b.CRot = b.Rot + (bang ? a * (a < 0f ? BangSwayScaleLeft : BangSwayScale) : a);
                 // 前髮往內擺（a＞0）時：右邊那束往下壓、左邊那束往上抬（不要一邊飛起來、一邊蓋住眼睛）。單位：骨骼本地 X（沿髮束向下）每度的像素
                 if (b.Name == "前髮右") b.CX = b.X + BangRightDownPerDeg * Mathf.Max(0f, a);
                 else if (b.Name == "前髮左") b.CX = b.X - BangLeftUpPerDeg * Mathf.Max(0f, a);
