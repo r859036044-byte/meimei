@@ -200,6 +200,7 @@ void fragment() {
                     _pinchK = Mathf.Lerp(PinchCenterMinK, PinchOuterGain, t_ * t_ * (3f - 2f * t_));   // 越中間越小
                 }
                 PinchCursor(true);
+                PlayerDataManagerTouch();   // 捏臉也算本晚有互動（和摸頭一樣），否則只捏臉會被當成「什麼都沒做」而觸發不到互動劇情
                 _pinchPeak = 0f; _pinchDrag = true; _pinchActive = true; _pinchPressT = 0f; _pinchDragD = Vector2.Zero; _pinchGrab = mb.Position;   // 螢幕座標 _pinchOff = Vector2.Zero; _pinchVel = Vector2.Zero;
                 if (PinchDebugLog) GD.Print($"[PinchDbg] 按下臉頰 screen={_pinchGrab} 縮放={_camZoom:F2}");
                 return true;
