@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>房間 3D 檢視</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#e6e6eb;font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#2a2230}
+  #c{display:block;width:100vw;height:100vh;cursor:grab}
+  #c.drag{cursor:grabbing}
+  #panel{position:fixed;left:12px;top:12px;width:290px;background:rgba(255,255,255,.92);border:2px solid #4a3a52;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;max-height:calc(100vh - 48px);overflow:auto}
+  #panel h1{font-size:16px;margin:0 0 6px}
+  #panel button{font:inherit;padding:5px 10px;border:2px solid #4a3a52;border-radius:8px;background:#fff;cursor:pointer;margin:2px 2px 2px 0}
+  #panel button:hover{background:#ffe3ef}
+  #panel button.on{background:#ffc4dd}
+  #panel label{display:block;margin-top:6px}
+  #panel input[type=range]{width:100%}
+  #panel hr{border:0;border-top:1px solid #c9bccf;margin:8px 0}
+  #info{font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#f3edf6;border-radius:6px;padding:6px}
+  .small{font-size:12px;color:#665a6e}
+  kbd{background:#eee;border:1px solid #999;border-radius:4px;padding:0 4px;font-size:12px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="panel">
+  <h1>房間 3D 檢視（自己移動找構圖）</h1>
+  <div class="small">按 <kbd>H</kbd> 隱藏／顯示這個面板（截圖前可先隱藏看全貌；截圖本身不含面板）</div>
+  <div id="rooms"></div>
+  <hr>
+  <div class="small">
+    <b>視角</b>：滑鼠左鍵拖曳＝轉頭；<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>＝前後左右；<kbd>Q</kbd><kbd>E</kbd>＝下／上；<kbd>Shift</kbd>＝加速；滾輪＝前進／後退。<br>
+    <b>家具</b>：點一下家具選取（變粉紅），<kbd>↑↓←→</kbd>＝在地上移動（跟著畫面方向）、<kbd>PageUp</kbd>／<kbd>PageDown</kbd>＝升降、<kbd>R</kbd>＝轉 90°、<kbd>[</kbd><kbd>]</kbd>＝縮放寬度、<kbd>Del</kbd>＝隱藏、<kbd>Esc</kbd>＝取消選取。按 <kbd>Shift</kbd> 移動更大步。
+  </div>
+  <hr>
+  <label>視野 FOV：<span id="fovV"></span>°<input id="fov" type="range" min="20" max="110" step="1"></label>
+  <label>線條粗細：<span id="lwV"></span><input id="lw" type="range" min="0" max="0.08" step="0.005"></label>
+  <label><input id="grid" type="checkbox" checked> 顯示磁磚格線</label>
+  <label><input id="ceil" type="checkbox"> 顯示天花板</label>
+  <hr>
+  <button id="shot">截圖 PNG（1920×1080）</button>
+  <button id="shot2">截圖（目前視窗大小）</button><br>
+  <button id="s1">存視角1</button><button id="l1">讀視角1</button>
+  <button id="s2">存視角2</button><button id="l2">讀視角2</button>
+  <button id="s3">存視角3</button><button id="l3">讀視角3</button><br>
+  <button id="reset">回到預設視角</button>
+  <button id="resetF">家具全部還原</button>
+  <div id="info"></div>
+</div>
+<script>/*THREEJS*/</script>
+<script>
+const DATA = /*ROOMDATA*/;
+const $ = id => document.getElementById(id);
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe6e6eb);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 100);
+camera.rotation.order = 'YXZ';
+const col = c => new THREE.Color(c[0]/255, c[1]/255, c[2]/255);
+const shade = (c,k) => new THREE.Color(Math.min(1,c[0]*k/255), Math.min(1,c[1]*k/255), Math.min(1,c[2]*k/255));
+
+let curRoom = null, group = null, furniture = [], selected = null, gridLines = [], ceilMesh = null;
+let yaw = 0, pitch = 0, lineW = 0.012;
+const lineMat = new THREE.LineBasicMaterial({color:0x191920});
+const hullMat = new THREE.MeshBasicMaterial({color:0x191920, side:THREE.BackSide});
+
+function buildRoom(name){
+  if (group) scene.remove(group);
+  group = new THREE.Group(); scene.add(group); furniture = []; selected = null; gridLines = [];
+  const d = DATA[name], s0 = d.shell, H = s0.h;
+  // 底圖產生器是 z 往房間深處（左手座標），three.js 是右手座標：z 全部取負號，畫面才不會左右鏡像
+  const s = Object.assign({}, s0, {z0: -s0.z1, z1: -s0.z0});
+  const cx = (s.x0+s.x1)/2, cz = (s.z0+s.z1)/2, W = s.x1-s.x0, D = s.z1-s.z0;
+  const wallMat = c => new THREE.MeshBasicMaterial({color: col(c), side: THREE.DoubleSide});
+  const plane = (w,h,mat) => new THREE.Mesh(new THREE.PlaneGeometry(w,h), mat);
+  const fl = plane(W,D,wallMat(s.floor)); fl.rotation.x = -Math.PI/2; fl.position.set(cx,0,cz); group.add(fl);
+  const wl = plane(D,H,wallMat(s.wl)); wl.rotation.y = Math.PI/2; wl.position.set(s.x0,H/2,cz); group.add(wl);
+  const wb = plane(W,H,wallMat(s.wb)); wb.position.set(cx,H/2,s.z0); group.add(wb);   // 後牆在 three 座標的 z0（= -原 z1）
+  const wr = plane(D,H,wallMat(s.wr)); wr.rotation.y = -Math.PI/2; wr.position.set(s.x1,H/2,cz); group.add(wr);
+  ceilMesh = plane(W,D,wallMat([232,232,238])); ceilMesh.rotation.x = Math.PI/2; ceilMesh.position.set(cx,H,cz); ceilMesh.visible = $('ceil').checked; group.add(ceilMesh);
+  // 房間外框線
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W,H,D)), lineMat); edge.position.set(cx,H/2,cz); group.add(edge);
+  // 磁磚格線
+  if (s.tile){
+    const t = s.tile, pts = [];
+    for (let x=s.x0; x<=s.x1+1e-6; x+=t){ pts.push(x,0.002,s.z0, x,0.002,s.z1); pts.push(x,0,s.z0+0.001, x,H,s.z0+0.001); }
+    for (let z=s.z0; z<=s.z1+1e-6; z+=t){ pts.push(s.x0,0.002,z, s.x1,0.002,z); pts.push(s.x0+0.001,0,z, s.x0+0.001,H,z); pts.push(s.x1-0.001,0,z, s.x1-0.001,H,z); }
+    for (let y=t; y<=H+1e-6; y+=t){ pts.push(s.x0,y,s.z0+0.001, s.x1,y,s.z0+0.001); pts.push(s.x0+0.001,y,s.z0, s.x0+0.001,y,s.z1); pts.push(s.x1-0.001,y,s.z0, s.x1-0.001,y,s.z1); }
+    for (let z=s.z0; z<=s.z1+1e-6; z+=t){}
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
+    const gl = new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:0x7a7f8a})); group.add(gl); gridLines.push(gl);
+    gl.visible = $('grid').checked;
+  }
+  // 家具
+  d.boxes.forEach((b,i)=>{
+    const [x0,y0,z0,x1,y1,z1,c] = b, w = x1-x0, h = y1-y0, dd = z1-z0;
+    const geo = new THREE.BoxGeometry(w,h,dd);
+    const mats = [shade(c,.78),shade(c,.78),shade(c,1),shade(c,.6),shade(c,.88),shade(c,.88)].map(k=>new THREE.MeshBasicMaterial({color:k}));
+    const mesh = new THREE.Mesh(geo, mats); mesh.position.set((x0+x1)/2,(y0+y1)/2,-(z0+z1)/2);
+    const hull = new THREE.Mesh(geo, hullMat); mesh.add(hull);
+    const home = {p:mesh.position.clone(), ry:0, sx:1, vis:true};
+    mesh.userData = {hull, size:[w,h,dd], home, baseMats:mats};
+    group.add(mesh); furniture.push(mesh);
+  });
+  updateHulls();
+  // 預設視角
+  const cm = d.cam; camera.position.set(cm.pos[0], cm.pos[1], -cm.pos[2]); yaw = -cm.yaw*Math.PI/180; pitch = cm.pitch*Math.PI/180; camera.fov = cm.fov; camera.updateProjectionMatrix();
+  $('fov').value = cm.fov; refreshUI();
+}
+function updateHulls(){
+  furniture.forEach(m=>{ const [w,h,d] = m.userData.size, t = lineW; m.userData.hull.scale.set((w+2*t)/w,(h+2*t)/h,(d+2*t)/d); m.userData.hull.visible = t>0.001; });
+}
+function refreshUI(){
+  $('fovV').textContent = Math.round(camera.fov); $('lwV').textContent = lineW.toFixed(3);
+  document.querySelectorAll('#rooms button').forEach(b=>b.classList.toggle('on', b.dataset.n===curRoom));
+}
+Object.keys(DATA).forEach(n=>{ const b = document.createElement('button'); b.textContent = n; b.dataset.n = n; b.onclick = ()=>{ curRoom = n; buildRoom(n); }; $('rooms').appendChild(b); });
+curRoom = Object.keys(DATA)[0]; $('lw').value = lineW; buildRoom(curRoom);
+
+// ── 視角控制 ──
+const keys = {}; let dragging = false, moved = 0, lx = 0, ly = 0;
+canvas.addEventListener('mousedown', e=>{ dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; canvas.classList.add('drag'); });
+addEventListener('mouseup', e=>{ if (dragging && moved < 4 && e.target === canvas) pick(e); dragging = false; canvas.classList.remove('drag'); });
+addEventListener('mousemove', e=>{ if(!dragging) return; const dx = e.clientX-lx, dy = e.clientY-ly; lx = e.clientX; ly = e.clientY; moved += Math.abs(dx)+Math.abs(dy);
+  yaw -= dx*0.004; pitch = Math.max(-1.5, Math.min(1.5, pitch - dy*0.004)); });
+canvas.addEventListener('wheel', e=>{ e.preventDefault(); const f = new THREE.Vector3(); camera.getWorldDirection(f); camera.position.addScaledVector(f, -e.deltaY*0.0025); }, {passive:false});
+addEventListener('keydown', e=>{ if (e.target.tagName==='INPUT') return; if (e.code==='KeyH') { const pn=$('panel'); pn.style.display = pn.style.display==='none' ? '' : 'none'; return; } keys[e.code] = true; handleFurnitureKey(e); });
+addEventListener('keyup', e=>{ keys[e.code] = false; });
+function pick(e){
+  const r = canvas.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(v, camera);
+  const hit = ray.intersectObjects(furniture.filter(m=>m.visible), false)[0];
+  select(hit ? hit.object : null);
+}
+function select(m){
+  if (selected) selected.material.forEach((mt,i)=>mt.color.copy(selected.userData.baseMats[i].color));
+  selected = m;
+  if (m) m.material.forEach(mt=>mt.color.lerp(new THREE.Color(1,.45,.7), .55));
+}
+function camGroundDir(){ const f = new THREE.Vector3(Math.sin(yaw)*-1, 0, Math.cos(yaw)*-1); return f; }
+function handleFurnitureKey(e){
+  if (e.code === 'Escape') { select(null); return; }
+  if (!selected) return;
+  const step = e.shiftKey ? 0.25 : 0.05, fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  // 轉成最接近的世界軸向，家具才不會斜著走
+  const snap = v => Math.abs(v.x) > Math.abs(v.z) ? new THREE.Vector3(Math.sign(v.x),0,0) : new THREE.Vector3(0,0,Math.sign(v.z));
+  const F = snap(fwd), R = snap(right);
+  let used = true;
+  if (e.code==='ArrowUp') selected.position.addScaledVector(F, step);
+  else if (e.code==='ArrowDown') selected.position.addScaledVector(F, -step);
+  else if (e.code==='ArrowRight') selected.position.addScaledVector(R, step);
+  else if (e.code==='ArrowLeft') selected.position.addScaledVector(R, -step);
+  else if (e.code==='PageUp') selected.position.y += step;
+  else if (e.code==='PageDown') selected.position.y -= step;
+  else if (e.code==='KeyR') selected.rotation.y += Math.PI/2;
+  else if (e.code==='BracketRight') selected.scale.x *= 1.05;
+  else if (e.code==='BracketLeft') selected.scale.x /= 1.05;
+  else if (e.code==='Delete' || e.code==='Backspace') { selected.visible = false; select(null); }
+  else used = false;
+  if (used) e.preventDefault();
+}
+$('resetF').onclick = ()=>{ furniture.forEach(m=>{ m.visible = true; m.position.copy(m.userData.home.p); m.rotation.y = 0; m.scale.set(1,1,1); }); select(null); };
+$('reset').onclick = ()=>{ const keep = furniture.map(m=>({p:m.position.clone(),r:m.rotation.y,s:m.scale.x,v:m.visible})); buildRoom(curRoom); furniture.forEach((m,i)=>{ m.position.copy(keep[i].p); m.rotation.y = keep[i].r; m.scale.x = keep[i].s; m.visible = keep[i].v; }); };
+$('fov').oninput = e=>{ camera.fov = +e.target.value; camera.updateProjectionMatrix(); refreshUI(); };
+$('lw').oninput = e=>{ lineW = +e.target.value; updateHulls(); refreshUI(); };
+$('grid').onchange = e=>gridLines.forEach(g=>g.visible = e.target.checked);
+$('ceil').onchange = e=>{ if (ceilMesh) ceilMesh.visible = e.target.checked; };
+function shot(w,h,name){
+  const old = [renderer.getSize(new THREE.Vector2()), camera.aspect];
+  renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  const keepSel = selected; if (keepSel) select(null);
+  renderer.render(scene,camera);
+  const url = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(old[0].x, old[0].y, false); camera.aspect = old[1]; camera.updateProjectionMatrix();
+  if (keepSel) select(keepSel);
+}
+$('shot').onclick = ()=>shot(1920,1080,`${curRoom}_構圖.png`);
+$('shot2').onclick = ()=>shot(innerWidth,innerHeight,`${curRoom}_視窗.png`);
+const store = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} }, load = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+[1,2,3].forEach(i=>{
+  $('s'+i).onclick = ()=>store(`view_${curRoom}_${i}`, JSON.stringify({p:camera.position.toArray(),yaw,pitch,fov:camera.fov}));
+  $('l'+i).onclick = ()=>{ const v = load(`view_${curRoom}_${i}`); if(!v) return; const o = JSON.parse(v); camera.position.fromArray(o.p); yaw = o.yaw; pitch = o.pitch; camera.fov = o.fov; camera.updateProjectionMatrix(); $('fov').value = o.fov; refreshUI(); };
+});
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+let last = performance.now();
+function loop(t){
+  const dt = Math.min(0.1,(t-last)/1000); last = t;
+  const sp = (keys.ShiftLeft||keys.ShiftRight ? 4 : 1.4)*dt;
+  const f = new THREE.Vector3(); camera.rotation.set(pitch,yaw,0); camera.getWorldDirection(f);
+  const r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0,1,0)).normalize();
+  if (!selected || true){
+    if (keys.KeyW) camera.position.addScaledVector(f, sp); if (keys.KeyS) camera.position.addScaledVector(f, -sp);
+    if (keys.KeyD) camera.position.addScaledVector(r, sp); if (keys.KeyA) camera.position.addScaledVector(r, -sp);
+    if (keys.KeyE) camera.position.y += sp; if (keys.KeyQ) camera.position.y -= sp;
+  }
+  renderer.render(scene,camera);
+  const p = camera.position;
+  $('info').textContent = `位置 x ${p.x.toFixed(2)}  y ${p.y.toFixed(2)}  z ${p.z.toFixed(2)}\n水平轉角 ${(yaw*180/Math.PI).toFixed(1)}°  俯仰 ${(pitch*180/Math.PI).toFixed(1)}°\nFOV ${Math.round(camera.fov)}°` + (selected ? `\n已選取家具：x ${selected.position.x.toFixed(2)} y ${selected.position.y.toFixed(2)} z ${selected.position.z.toFixed(2)}` : '');
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

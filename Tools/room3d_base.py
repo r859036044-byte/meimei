@@ -36,10 +36,11 @@ def clip_poly(poly):
 
 class Scene:
     def __init__(s, cam, bg=(230, 230, 235)):
-        s.cam = cam; s.items = []; s.bg = bg
+        s.cam = cam; s.items = []; s.bg = bg; s.boxes = []; s.shell = None
     def quad(s, pts, fill, order, lines=None, cull_n=None, line_w=3, outline=True):
         s.items.append(dict(pts=pts, fill=fill, order=order, lines=lines or [], cull=cull_n, w=line_w, outline=outline))
     def box(s, x0, y0, z0, x1, y1, z1, fill, order=None, line_w=3):
+        s.boxes.append([x0, y0, z0, x1, y1, z1, list(fill)])
         cx, cy, cz = (x0+x1)/2, (y0+y1)/2, (z0+z1)/2
         if order is None:
             order = -math.dist((cx, cy, cz), s.cam.pos)
@@ -79,6 +80,7 @@ class Scene:
         return im.resize((W, H), Image.LANCZOS)
 
 def room_shell(sc, x0, x1, z0, z1, hgt, floor, wallL, wallB, wallR, tile=None):
+    sc.shell = dict(x0=x0, x1=x1, z0=z0, z1=z1, h=hgt, floor=list(floor), wl=list(wallL), wb=list(wallB), wr=list(wallR), tile=tile)
     far = -1e6
     # 地板、左牆、後牆、右牆（內側，不剔除）；order 很小＝最先畫
     fl = []; wl = []; wb = []; wr = []
@@ -120,7 +122,7 @@ def bathroom():
     sc.box(2.25, 0.7, 2.25, 2.3, 1.1, 2.4, (250,250,252))                 # 毛巾
     # 左牆置物架
     sc.box(0.0, 1.1, 1.0, 0.18, 1.14, 1.5, (210,215,222))
-    return sc.render()
+    return sc
 
 def player_room():
     cam = Cam((2.7, 1.45, -2.4), (1.9, 0.95, 4.0), fov=56)
@@ -152,11 +154,20 @@ def player_room():
     sc.box(3.2, 0.0, 1.9, 3.65, 0.45, 2.35, (190,130,85))                  # 椅子座
     sc.box(3.2, 0.45, 1.9, 3.25, 1.0, 2.35, (190,130,85))                  # 椅背
     sc.box(4.1, 0.78, 2.3, 4.35, 1.0, 2.55, (200,120,90))                  # 桌上盆栽
-    return sc.render()
+    return sc
 
 if __name__ == '__main__':
     out = sys.argv[1] if len(sys.argv) > 1 else '.'
     os.makedirs(out, exist_ok=True)
-    bathroom().save(os.path.join(out, '浴室_3D底圖.png'))
-    player_room().save(os.path.join(out, '男主房間_3D底圖.png'))
+    rooms = {'浴室': bathroom(), '男主房間': player_room()}
+    for name, sc in rooms.items():
+        sc.render().save(os.path.join(out, f'{name}_3D底圖.png'))
+    # 可自己移動視角的 HTML 檢視器（three.js 已內嵌，離線也能開）
+    import json
+    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'room3d_viewer_template.html')
+    threejs = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'three.min.js')
+    if os.path.exists(tpl) and os.path.exists(threejs):
+        data = {n: dict(shell=sc.shell, boxes=sc.boxes, cam=dict(pos=sc.cam.pos, yaw=math.degrees(sc.cam.yaw), pitch=math.degrees(sc.cam.pitch), fov=round(2*math.degrees(math.atan((W*SS/2)/sc.cam.f)),1))) for n, sc in rooms.items()}
+        html = open(tpl, encoding='utf-8').read().replace('/*THREEJS*/', open(threejs, encoding='utf-8').read()).replace('/*ROOMDATA*/', json.dumps(data, ensure_ascii=False))
+        open(os.path.join(out, '房間3D檢視.html'), 'w', encoding='utf-8').write(html)
     print('done')
