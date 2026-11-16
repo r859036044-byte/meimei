@@ -77,6 +77,7 @@ public partial class TrainingRoomRuntime
     {
         if (delta > 0f && ClimaxGainLocked) return;   // 被鎖住：不會再增加
         ClimaxLevel = Mathf.Clamp(ClimaxLevel + delta, 0f, 100f);
+        if (!BratR18) { ClimaxLevel = Mathf.Min(ClimaxLevel, 99f); return; }   // 全年齡：被摸不會高潮（高潮值頂多 99）
         if (ClimaxLevel >= 100f && !_spasmsRunning) TriggerClimax();
     }
 
