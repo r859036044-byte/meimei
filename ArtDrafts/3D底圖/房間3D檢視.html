@@ -16,6 +16,7 @@
   #panel label{display:block;margin-top:6px}
   #panel input[type=range]{width:100%}
   #panel hr{border:0;border-top:1px solid #c9bccf;margin:8px 0}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2a2230;color:#fff;border-radius:10px;padding:10px 16px;font-size:14px;display:none;z-index:30;max-width:calc(100vw - 32px)}
   #info{font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#f3edf6;border-radius:6px;padding:6px}
   .small{font-size:12px;color:#665a6e}
   kbd{background:#eee;border:1px solid #999;border-radius:4px;padding:0 4px;font-size:12px}
@@ -23,6 +24,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="toast"></div>
 <div id="panel">
   <h1>房間 3D 檢視（自己移動找構圖）</h1>
   <div class="small">按 <kbd>H</kbd> 隱藏／顯示這個面板（截圖前可先隱藏看全貌；截圖本身不含面板）</div>
@@ -172,13 +174,19 @@ $('fov').oninput = e=>{ camera.fov = +e.target.value; camera.updateProjectionMat
 $('lw').oninput = e=>{ lineW = +e.target.value; updateHulls(); refreshUI(); };
 $('grid').onchange = e=>gridLines.forEach(g=>g.visible = e.target.checked);
 $('ceil').onchange = e=>{ if (ceilMesh) ceilMesh.visible = e.target.checked; };
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(()=>{ t.style.display = 'none'; }, 5000); }
 function shot(w,h,name){
-  const old = [renderer.getSize(new THREE.Vector2()), camera.aspect];
+  const oldSize = renderer.getSize(new THREE.Vector2()), oldAspect = camera.aspect;
   renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
   const keepSel = selected; if (keepSel) select(null);
   renderer.render(scene,camera);
-  const url = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href = url; a.download = name; a.click();
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(old[0].x, old[0].y, false); camera.aspect = old[1]; camera.updateProjectionMatrix();
+  canvas.toBlob(blob=>{
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; a.style.display = 'none'; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 2000);
+    toast(`已下載「${name}」到瀏覽器的下載資料夾（按 Ctrl+J 可以看到）`);
+  }, 'image/png');
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(oldSize.x, oldSize.y, false); camera.aspect = oldAspect; camera.updateProjectionMatrix();
   if (keepSel) select(keepSel);
 }
 $('shot').onclick = ()=>shot(1920,1080,`${curRoom}_構圖.png`);
