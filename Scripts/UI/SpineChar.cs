@@ -25,8 +25,11 @@ using System.Text.Json;
 /// </summary>
 public partial class SpineChar : Control
 {
-    public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // 換回舊髮型：改回 "res://Resources/Spine/linai/"
+    public const string DefaultDir  = "res://Resources/Spine/linai_newhair/";   // R18 版。換回舊髮型：改回 "res://Resources/Spine/linai/"
+    /// <summary>全年齡版 Spine：衣服蓋住的身體與內褲已塗黑、沒有裸體／R18 睡衣皮膚。上架全年齡版時匯出要排除 R18 的資料夾。</summary>
+    public const string AllAgesDir  = "res://Resources/Spine/linai_allages/";
     public const string DefaultName = "linai";
+    private static bool WantR18 => PlayerDataManager.Instance?.R18ContentEnabled ?? false;
     /// <summary>前髮／劉海骨骼的晃動幅度倍率（1＝原動畫、0＝完全不晃）。</summary>
     public static float BangSwayScale = 0.5f;       // 往右擺的倍率
     public static float BangSwayScaleLeft = 0.75f;  // 往左擺的倍率（比往右大一點點）
@@ -75,6 +78,15 @@ public partial class SpineChar : Control
 
     // ══════════════ 狀態 ══════════════
     private bool _loaded, _ok;
+    private bool _loadedR18;                // 載入時玩家的 R18 設定（用來偵測切換）
+    private bool _r18Data;                  // 實際讀到的是 R18 檔（DefaultDir）；false＝全年齡檔
+
+    /// <summary>清掉已載入的資料，讓 EnsureLoaded 重新讀檔（切換全年齡／R18 用）</summary>
+    private void ResetLoaded()
+    {
+        _bones.Clear(); _slots.Clear(); _skins.Clear(); _anims.Clear();
+        _tex = null; _ok = false; _loaded = false;
+    }
     private readonly List<Bone> _bones = new List<Bone>();
     private readonly List<Slot> _slots = new List<Slot>();
     private readonly Dictionary<string, Dictionary<string, Dictionary<string, Att>>> _skins =
@@ -125,6 +137,7 @@ public partial class SpineChar : Control
 
     public override void _Process(double delta)
     {
+        if (_loaded && _loadedR18 != WantR18) { EnsureLoaded(); QueueRedraw(); }   // 遊戲中切換全年齡／R18 → 換讀另一份 Spine
         if (!_ok || !IsVisibleInTree()) return;
         _time += (float)delta * Speed;
         float loop = LoopDuration();
@@ -137,11 +150,17 @@ public partial class SpineChar : Control
     /// <summary>第一次使用時載入檔案；失敗回傳 false（並在輸出視窗印出原因）</summary>
     public bool EnsureLoaded()
     {
-        if (_loaded) return _ok;
+        bool r18 = WantR18;
+        if (_loaded && _loadedR18 == r18) return _ok;
+        if (_loaded) ResetLoaded();
         _loaded = true;
+        _loadedR18 = r18;
         try
         {
-            _ok = Load(DefaultDir, DefaultName);
+            // R18 資料夾不存在（全年齡版匯出時被排除）→ 一樣讀全年齡版
+            bool hasR18 = FileAccess.FileExists(DefaultDir + DefaultName + ".json");
+            _r18Data = r18 && hasR18;
+            _ok = Load(_r18Data ? DefaultDir : AllAgesDir, DefaultName);
         }
         catch (Exception e)
         {
@@ -162,7 +181,10 @@ public partial class SpineChar : Control
         if (!string.IsNullOrWhiteSpace(outfit))
         {
             string o = outfit.Trim();
-            if (_skins.ContainsKey(o)) Outfit = o;
+            if (!_r18Data && o == "sleep2") o = "sleep";        // 全年齡版沒有 R18 睡衣
+            if (!_r18Data && o == "nude") o = "";                // 全年齡版沒有裸體皮膚：維持目前服裝
+            if (o.Length == 0) { }
+            else if (_skins.ContainsKey(o)) Outfit = o;
             else GD.PrintErr("[SpineChar] 找不到皮膚 chOutfit=" + o);
         }
         if (!string.IsNullOrWhiteSpace(hair))
