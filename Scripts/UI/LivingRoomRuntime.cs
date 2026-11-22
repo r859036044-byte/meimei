@@ -1436,8 +1436,8 @@ public partial class LivingRoomRuntime : Node
             var clip = ResourceLoader.Load<AudioStream>("res://Resources/Audio/se/" + seName.Trim() + ".ogg");
             if (clip != null)
             {
-                if (seDelay > 0f) _ = PlaySEDelayedAsync(clip, seDelay);
-                else { _sePlayer.Stream = clip; _sePlayer.Play(); }
+                if (seDelay > 0f) _ = PlaySEDelayedAsync(clip, seDelay, seName);
+                else SettingsManager.PlaySeWithScale(_sePlayer, clip, seName);
             }
         }
         if (!string.IsNullOrEmpty(line.me))
@@ -1454,9 +1454,9 @@ public partial class LivingRoomRuntime : Node
         await Task.CompletedTask;
     }
 
-    async Task PlaySEDelayedAsync(AudioStream stream, float delay)
+    async Task PlaySEDelayedAsync(AudioStream stream, float delay, string seName = null)
     {
-        await TimerAsync(delay); _sePlayer.Stream = stream; _sePlayer.Play();
+        await TimerAsync(delay); SettingsManager.PlaySeWithScale(_sePlayer, stream, seName);
     }
 
     async Task FadeOutAudioAsync(AudioStreamPlayer player, float duration)

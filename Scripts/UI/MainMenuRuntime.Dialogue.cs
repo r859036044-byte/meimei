@@ -798,9 +798,9 @@ public partial class MainMenuRuntime : Control
                 if (clip != null)
                 {
                     if (seDelay > 0f)
-                        _ = PlaySEDelayed(clip, seDelay, ct);
+                        _ = PlaySEDelayed(clip, seDelay, seName, ct);
                     else
-                    { _seSource.Stream = clip; _seSource.Play(); }
+                        SettingsManager.PlaySeWithScale(_seSource, clip, seName);
                 }
             }
             if (!string.IsNullOrEmpty(line.me) && !Replaying)

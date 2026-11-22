@@ -170,8 +170,8 @@ public partial class WhiteFlashRunner : Node
                 var seClip = ResourceLoader.Load<AudioStream>("res://Resources/Audio/se/" + seName.Trim() + ".ogg");
                 if (seClip != null)
                 {
-                    if (seDelay > 0f) _ = PlaySEDelayed(seClip, seDelay);
-                    else { _sePlayer.Stream = seClip; _sePlayer.Play(); }
+                    if (seDelay > 0f) _ = PlaySEDelayed(seClip, seDelay, seName);
+                    else SettingsManager.PlaySeWithScale(_sePlayer, seClip, seName);
                 }
             }
             if (!string.IsNullOrEmpty(line.me))
@@ -472,10 +472,10 @@ public partial class WhiteFlashRunner : Node
         }
     }
 
-    async Task PlaySEDelayed(AudioStream clip, float delay)
+    async Task PlaySEDelayed(AudioStream clip, float delay, string seName = null)
     {
         await ToSignal(GetTree().CreateTimer(delay, false), SceneTreeTimer.SignalName.Timeout);
-        _sePlayer.Stream = clip; _sePlayer.Play();
+        SettingsManager.PlaySeWithScale(_sePlayer, clip, seName);
     }
 
     async Task FadeOutAudio(AudioStreamPlayer player, float duration)

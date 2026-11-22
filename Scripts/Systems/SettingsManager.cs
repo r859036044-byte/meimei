@@ -259,4 +259,30 @@ public partial class SettingsManager : Node
             }
         }
     }
+
+    /// <summary>單一 SE 音效的個別音量倍率（RPG Maker 內建音效音量偏大，預設減半至 0.5f）。</summary>
+    public static float GetSeVolumeScale(string seName)
+    {
+        if (string.IsNullOrWhiteSpace(seName)) return 1f;
+        string key = System.IO.Path.GetFileNameWithoutExtension(seName.Trim());
+        return key switch
+        {
+            "Phone"  => 0.5f,
+            "Water1" => 0.5f,
+            "Blow1"  => 0.5f,
+            "Open1"  => 0.5f,
+            _        => 1f,
+        };
+    }
+
+    /// <summary>套用 SE 音量並播放（自動乘上 SFXVolume 與個別 SE 音量倍率）。</summary>
+    public static void PlaySeWithScale(AudioStreamPlayer player, AudioStream clip, string seName)
+    {
+        if (player == null || !GodotObject.IsInstanceValid(player) || clip == null) return;
+        float baseVol = Instance?.SFXVolume ?? 1f;
+        float linear = Mathf.Clamp(baseVol * GetSeVolumeScale(seName), 0f, 1f);
+        player.VolumeDb = linear <= 0.0001f ? -80f : Mathf.LinearToDb(linear);
+        player.Stream = clip;
+        player.Play();
+    }
 }

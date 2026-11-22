@@ -387,12 +387,10 @@ public partial class MainMenuRuntime : Control
 	// ═══════════════════════════════════════════════════════════
 
 	/// <summary>延遲播放音效</summary>
-	async Task PlaySEDelayed(AudioStream clip, float delay, CancellationToken ct = default)
+	async Task PlaySEDelayed(AudioStream clip, float delay, string seName = null, CancellationToken ct = default)
 	{
 		await Wait(delay, ct);
-		if (clip == null || _seSource == null) return;
-		_seSource.Stream = clip;   // 對應 Unity 的 PlayOneShot
-		_seSource.Play();
+		SettingsManager.PlaySeWithScale(_seSource, clip, seName);
 	}
 
 	/// <summary>音訊淡出後停止，並把音量還原成原值</summary>

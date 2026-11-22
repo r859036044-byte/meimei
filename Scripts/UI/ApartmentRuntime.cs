@@ -180,8 +180,8 @@ public partial class ApartmentRuntime : Node
                 var seStream = ResourceLoader.Load<AudioStream>("res://Resources/Audio/se/" + seName.Trim() + ".ogg");
                 if (seStream != null)
                 {
-                    if (seDelay > 0f) _ = PlaySEDelayedAsync(seStream, seDelay);
-                    else { _sePlayer.Stream = seStream; _sePlayer.Play(); }
+                    if (seDelay > 0f) _ = PlaySEDelayedAsync(seStream, seDelay, seName);
+                    else SettingsManager.PlaySeWithScale(_sePlayer, seStream, seName);
                 }
             }
             if (!string.IsNullOrEmpty(line.me))
@@ -1000,10 +1000,10 @@ public partial class ApartmentRuntime : Node
     }
 
     // ── 音效 ─────────────────────────────────────────────────────
-    async Task PlaySEDelayedAsync(AudioStream stream, float delay)
+    async Task PlaySEDelayedAsync(AudioStream stream, float delay, string seName = null)
     {
         await ToSignal(GetTree().CreateTimer(delay, false), SceneTreeTimer.SignalName.Timeout);
-        _sePlayer.Stream = stream; _sePlayer.Play();
+        SettingsManager.PlaySeWithScale(_sePlayer, stream, seName);
     }
 
     async Task FadeOutAudioAsync(AudioStreamPlayer player, float duration)

@@ -564,9 +564,7 @@ public partial class MainMenuRuntime : Control
     public void PlaySE(string audioPath)
     {
         var stream = LoadAudio(audioPath);
-        if (stream == null || _seSource == null) return;
-        _seSource.Stream = stream;
-        _seSource.Play();
+        SettingsManager.PlaySeWithScale(_seSource, stream, audioPath);
     }
 }
 
