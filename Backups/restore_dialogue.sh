@@ -13,3 +13,4 @@ cp Backups/TrainingRoomRuntime.Arousal.cs.bak Scripts/UI/TrainingRoomRuntime.Aro
 for f in Brat PatTalk Brow Arousal; do cp Backups/TrainingRoomRuntime.$f.cs.bak3 Scripts/UI/TrainingRoomRuntime.$f.cs; done; rm -f Scripts/UI/TrainingRoomRuntime.PatAnnoy.cs; echo "摸頭不耐煩 已恢復"
 for f in BuildUI Bedding Dialogue; do cp Backups/TrainingRoomRuntime.$f.cs.bak4 Scripts/UI/TrainingRoomRuntime.$f.cs; done; echo "被子 已恢復"
 cp Backups/bg_PlayerRoom.png.bak Resources/Backgrounds/bg_PlayerRoom.png && echo "bg_PlayerRoom 已恢復"
+cp "Backups/bg_LinaiRoom(day).png.bak" "Resources/Backgrounds/bg_LinaiRoom(day).png" && cp "Backups/bg_LinaiRoom(night).png.bak" "Resources/Backgrounds/bg_LinaiRoom(night).png" && echo "bg_LinaiRoom 已恢復"
