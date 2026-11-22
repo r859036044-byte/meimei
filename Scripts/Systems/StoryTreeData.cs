@@ -107,10 +107,11 @@ public static class StoryTreeData
 
     public static readonly (string id, string label, string night)[] AABranchDefs =
     {
-        ("aa_n1_idle",  "什麼都不做", "第１晚"),
-        ("aa_n1_cover", "蓋被子",     "第１晚"),
-        ("aa_n2_idle",  "什麼都不做", "第２晚"),
-        ("aa_n2_cover", "蓋被子",     "第２晚"),
+        // 全年齡的路線其實是看心情／雌小鬼值決定（不是真的蓋被子），名稱先用中性的「路線A／B」＋判定條件，要改名改這裡的第二欄
+        ("aa_n1_idle",  "路線B（心情不夠高或雌小鬼值偏高）", "第１晚"),
+        ("aa_n1_cover", "路線A（心情高且雌小鬼值低）",       "第１晚"),
+        ("aa_n2_idle",  "路線B",                             "第２晚"),
+        ("aa_n2_cover", "路線A",                             "第２晚"),
     };
 
     public const string AATreeRoot = "A00";

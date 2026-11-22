@@ -199,9 +199,9 @@
     },
     {
       "fadein": "60",
-      "bgScale": 1.0,
+      "bgScale": 1.755,
       "bgX": 0,
-      "bgY": 0,
+      "bgY": 250,
       "text": "",
       "autoNext": 1,
       "cgScale1": 1.755,
@@ -214,7 +214,9 @@
       "text": "",
       "autoNext": 1,
       "cgY1": "-170, 120",
-      "cgY2": "-170, 120"
+      "cgY2": "-170, 120",
+      "bgY": -170,
+      "bgAnim": "approach, 120, 1"
     },
     {
       "fadein": "60",
@@ -223,7 +225,10 @@
       "cgScale1": 1.287,
       "cgScale2": 1.0,
       "cgY1": -20,
-      "cgY2": 0
+      "cgY2": 0,
+      "bgScale": 1.287,
+      "bgY": -20,
+      "bgAnim": "approach, 24, 1"
     },
     {
       "speaker": "莉奈",
@@ -247,6 +252,197 @@
       "speaker": "男主（內心）",
       "text": "記憶中的莉奈，應該是個乖巧怕生的孩子才對... 眼前這個把頭髮漂白、沒有禮貌的臭小鬼是怎麼回事？"
     },
+    { "branchStart": "allAges" },
+    {
+      "speaker": "男主（內心）",
+      "text": "不過... 這變化也太..."
+    },
+    {
+      "speaker": "男主（內心）",
+      "cgAsync": true,
+      "cgScale1": "1.3, 95",
+      "cgScale2": "1.3, 95",
+      "cgY2": "-60, 95",
+      "text": "個子長高了，頭髮也漂白了，連氣質都完全變了個人……這真的是那個莉奈嗎？",
+      "bgScale": 1.3,
+      "bgAnim": "approach, 95, 1"
+    },
+    {
+      "speaker": "男主（內心）",
+      "cgY2": "-100, 120",
+      "text": "糟糕... 太震驚了，一時說不出話來。"
+    },
+    {
+      "speaker": "男主（內心）",
+      "cgAsync": true,
+      "cgScale1": "1.287, 60",
+      "cgScale2": "1.17, 60",
+      "cgY2": "0, 60",
+      "text": "冷靜點... 先搞清楚狀況...",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
+    },
+    {
+      "speaker": "",
+      "showCG2": "linai knock 3, 30",
+      "text": ""
+    },
+    {
+      "speaker": "莉奈",
+      "text": "你要看到什麼時候？不是叫你把我的行李搬進去嗎！"
+    },
+    {
+      "speaker": "男主（內心）",
+      "text": "！"
+    },
+    {
+      "speaker": "",
+      "text": "",
+      "cgScale1": "1.3, 100",
+      "cgScale2": "1.4, 100",
+      "bgScale": 1.3,
+      "bgAnim": "approach, 100, 1"
+    },
+    {
+      "speaker": "男主",
+      "cgScale1": "1.42, 150",
+      "cgScale2": "1.29, 150",
+      "cgY1": "-100, 150",
+      "cgY2": "-80, 150",
+      "breath": "off",
+      "text": "呃...請問妳是...找錯人了嗎？",
+      "bgScale": 1.42,
+      "bgY": -100,
+      "bgAnim": "approach, 150, 1"
+    },
+    {
+      "speaker": "",
+      "showCG2": "linai knock 2, 0, keep",
+      "cgScale1": "1.287, 60",
+      "cgScale2": "1.0, 60",
+      "cgY2": "0, 60",
+      "text": "（莉奈終於停止滑手機。她緩緩抬起頭，眼神冰冷。）",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
+    },
+    {
+      "speaker": "莉奈",
+      "showCG2": "linai knock 4, 0",
+      "text": "哈？你是老年癡呆喔？"
+    },
+    {
+      "speaker": "男主（內心）",
+      "showCG2": "linai knock 3, 0",
+      "text": "這小鬼是怎樣？也太欠揍了吧！"
+    },
+    {
+      "speaker": "男主",
+      "text": "喂，小姐，妳跑到別人家門口隨便罵人老年癡呆，妳父母是沒教妳禮貌嗎？"
+    },
+    {
+      "speaker": "",
+      "showCG2": "linai knock 2, 0",
+      "text": "莉奈仿佛意識到了什麼"
+    },
+    {
+      "speaker": "莉奈",
+      "showCG2": "linai knock 5, 0",
+      "cgX2": "0, 0",
+      "text": "噗... 哈哈哈哈！"
+    },
+    {
+      "speaker": "男主",
+      "text": "蛤？你笑什麼，我沒空陪叛逆期的小鬼玩。"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "吶，你是認真的嗎？你的腦袋是不是真的壞掉了？"
+    },
+    {
+      "speaker": "男主",
+      "text": "蛤？"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "我的父母不就是你的父母嗎？笨～蛋雜魚哥哥。"
+    },
+    {
+      "speaker": "男主",
+      "text": "你是？莉... 莉奈！？"
+    },
+    {
+      "speaker": "男主（內心）",
+      "text": "騙人的吧... 眼前這個口氣超差的小太妹，真的是那個可愛的莉奈？"
+    },
+    {
+      "speaker": "莉奈",
+      "showCG2": "linai knock 4, 0",
+      "cgX2": "-8, 0",
+      "text": "哈？幹嘛一副看到鬼的樣子？認不出來嗎？該不會你腦子裡還在幻想我是小學生的樣子吧？死雜魚哥哥。"
+    },
+    {
+      "speaker": "男主",
+      "cgScale1": "1.3, 150",
+      "cgScale2": "1.3, 150",
+      "cgY2": "-60, 150",
+      "text": "不、不是... 妳這變化也太大了吧？簡直像變了一個人...",
+      "bgScale": 1.3,
+      "bgAnim": "approach, 150, 1"
+    },
+    {
+      "speaker": "",
+      "text": "",
+      "showCG2": "linai knock 3, 0, keep"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "吶... 你在發什麼呆啊？雜魚哥哥？"
+    },
+    {
+      "cgScale1": "1.287, 60",
+      "cgScale2": "1.0, 60",
+      "cgY2": "0, 60",
+      "speaker": "男主",
+      "text": "沒、沒有... 我只是...",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
+    },
+    {
+      "speaker": "莉奈",
+      "showCG2": "linai knock 5, 0, keep",
+      "cgX2": "0, 0",
+      "text": "明明整個人都看傻了... 真是噁心耶。"
+    },
+    {
+      "speaker": "男主",
+      "text": "這... 這只是因為太驚訝了！妳變化實在太大了！"
+    },
+    {
+      "speaker": "男主",
+      "text": "是因為妳變得太... 太多了！我一時沒反應過來才...！"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "雜魚還找藉口呢，跟沒見過世面似的... 真是噁心耶。"
+    },
+    {
+      "speaker": "男主",
+      "text": "住、住口！別說那麼大聲...！要是被鄰居聽到的話... 我就社會性死亡了啊！"
+    },
+    {
+      "speaker": "",
+      "showCG2": "linai knock 3, 0, keep",
+      "cgX2": "0, 0",
+      "text": "（莉奈似乎瞬間失去了興致。她無聊地撇撇嘴，眼神恢復成原本的冰冷。）"
+    },
+    {
+      "speaker": "莉奈",
+      "showCG2": "linai knock 4, 0, keep",
+      "cgX2": "-8, 0",
+      "text": "哼...。算了，跟你這種變態雜魚多說一句話，我都覺得空氣會變髒。"
+    },
+    { "branchEnd": true },
+    { "branchStart": "r18" },
     {
       "speaker": "男主（內心）",
       "text": "不過... 這打扮也太..."
@@ -258,7 +454,9 @@
       "cgScale1": "1.47, 95",
       "cgScale2": "2.13, 95",
       "cgY2": "590, 95",
-      "text": "穿的裙子也太短了吧，難道是超短裙嗎？而且竟然還穿露肩服，白皙的肩膀和皮膚就這麼展現出來嗎？"
+      "text": "穿的裙子也太短了吧，難道是超短裙嗎？而且竟然還穿露肩服，白皙的肩膀和皮膚就這麼展現出來嗎？",
+      "bgScale": 1.47,
+      "bgAnim": "approach, 95, 1"
     },
     {
       "speaker": "男主（內心）",
@@ -271,7 +469,9 @@
       "cgScale1": "1.287, 60",
       "cgScale2": "1.17, 60",
       "cgY2": "0, 60",
-      "text": "冷靜點... 先搞清楚狀況..."
+      "text": "冷靜點... 先搞清楚狀況...",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
     },
     {
       "speaker": "",
@@ -290,7 +490,9 @@
       "speaker": "",
       "text": "",
       "cgScale1": "1.51, 100",
-      "cgScale2": "2.2, 100"
+      "cgScale2": "2.2, 100",
+      "bgScale": 1.51,
+      "bgAnim": "approach, 100, 1"
     },
     {
       "speaker": "男主",
@@ -299,7 +501,10 @@
       "cgY1": "-100, 150",
       "cgY2": "-80, 150",
       "breath": "off",
-      "text": "呃...請問妳是...找錯人了嗎？"
+      "text": "呃...請問妳是...找錯人了嗎？",
+      "bgScale": 1.42,
+      "bgY": -100,
+      "bgAnim": "approach, 150, 1"
     },
     {
       "speaker": "",
@@ -307,7 +512,9 @@
       "cgScale1": "1.287, 60",
       "cgScale2": "1.0, 60",
       "cgY2": "0, 60",
-      "text": "（莉奈終於停止滑手機。她緩緩抬起頭，眼神冰冷。）"
+      "text": "（莉奈終於停止滑手機。她緩緩抬起頭，眼神冰冷。）",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
     },
     {
       "speaker": "莉奈",
@@ -370,14 +577,18 @@
       "cgScale1": "1.33, 150",
       "cgScale2": "1.5, 150",
       "cgY2": "250, 150",
-      "text": "不、不是... 妳這變化也太大了吧？還有妳這穿著..."
+      "text": "不、不是... 妳這變化也太大了吧？還有妳這穿著...",
+      "bgScale": 1.33,
+      "bgAnim": "approach, 150, 1"
     },
     {
       "speaker": "",
       "text": "",
       "cgScale1": "2.1, 90",
       "cgScale2": "2.5, 90",
-      "cgY2": "800, 90"
+      "cgY2": "800, 90",
+      "bgScale": 2.1,
+      "bgAnim": "approach, 90, 1"
     },
     {
       "speaker": "",
@@ -399,7 +610,9 @@
       "cgScale2": "1.0, 60",
       "cgY2": "0, 60",
       "speaker": "男主",
-      "text": "沒、沒有... 我只是..."
+      "text": "沒、沒有... 我只是...",
+      "bgScale": 1.287,
+      "bgAnim": "approach, 60, 1"
     },
     {
       "speaker": "莉奈",
@@ -413,7 +626,7 @@
     },
     {
       "speaker": "男主",
-      "text": "是因為妳穿得太... 太突然了！而且布料那麼少... 我一時沒反應過來才...！"
+      "text": "是因為妳穿得太... 太那個了……我一時沒反應過來才...！"
     },
     {
       "speaker": "莉奈",
@@ -435,6 +648,7 @@
       "cgX2": "-8, 0",
       "text": "哼...。算了，跟你這種變態雜魚多說一句話，我都覺得空氣會變髒。"
     },
+    { "branchEnd": true },
     {
       "speaker": "莉奈",
       "text": "快讓我進去。"
@@ -451,17 +665,20 @@
       "speaker": "",
       "hideCG": "1",
       "text": "（莉奈大搖大擺地直接走進玄關，經過男主身邊時還故意用肩膀撞了他一下。）",
-      "se": "Blow1, 30"
+      "se": "Blow1, 30",
+      "fadein": "60, 1",
+      "bgName": "bg_LivingRoom, fade",
+      "bgScale": 1.0,
+      "bgX": 0,
+      "bgY": 0
     },
     {
       "speaker": "莉奈",
       "text": "我要進去了。外面熱死了，快點開冷氣。"
     },
     {
-      "fadein": "60, 1",
       "speaker": "莉奈",
       "text": "這種破爛公寓真的能住人喔？",
-      "bgName": "bg_LivingRoom, fade",
       "chOutfit": "shirt",
       "chHair": "twin",
       "chSocks": "white",
@@ -530,6 +747,7 @@
       "autoNext": 1,
       "fadeoutBlack": "60, 1"
     },
+    { "branchStart": "r18" },
     {
       "fadein": "60",
       "bgName": "bg_LivingRoom",
@@ -634,6 +852,117 @@
       "text": "這樣啊…",
       "_off_showCH": "shengqi1"
     },
+    { "branchEnd": true },
+    { "branchStart": "allAges" },
+    {
+      "fadein": "60",
+      "bgName": "bg_LivingRoom",
+      "chOutfit": "shirt",
+      "chHair": "twin",
+      "chSocks": "white",
+      "chFace": "biaoqing1",
+      "chX": 0,
+      "chY": -100,
+      "speaker": "男主",
+      "text": "呼...呼... 搬、搬完了。莉奈，妳的行李箱還真重，裡面到底是裝了什麼啊..."
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "那是女孩子的隱私，雜魚哥哥想窺探妹妹的隱私嗎？好噁心"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "我沒那個意思……只是抱怨一下箱子有點重而已……"
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "雜魚搬個箱子就喘成這樣，你這雜魚身體也太虛了吧？平常是有多不運動啊"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "我每天上班很累的……"
+    },
+    {
+      "speaker": "男主",
+      "text": "還有，為什麼進門到現在一直叫我雜魚啊……"
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "學校裡前輩都這麼叫的啊"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "什麼啊??"
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "因為前輩男友很雜魚~"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "不是啦，我是說什麼前輩會滿嘴雜魚掛嘴邊啊?"
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "那當然是美樹鳳學姐了!"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "不認識....但是你.別學她的語氣啊，都學壞了都"
+    },
+    {
+      "speaker": "莉奈",
+      "chFace": "cixiaoguixiao",
+      "text": "我就是喜歡這麼~雜魚雜魚~"
+    },
+    {
+      "speaker": "男主",
+      "chFace": "laugh1",
+      "text": "這就是學壞了啊......"
+    },
+    {
+      "speaker": "男主",
+      "text": "算了隨便你吧..先不說這個，我們很久沒見了，稍微聊一下吧？你和媽媽這段事件過的如何？"
+    },
+    {
+      "text": "（莉奈手指停在螢幕上，發出一聲冷笑）",
+      "chFace": "biaoqing1"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "哈？和你有什麼關係？你是哪來的居委會大媽嗎？",
+      "chFace": "shengqi2"
+    },
+    {
+      "speaker": "男主",
+      "text": "……",
+      "chFace": "biaoqing1"
+    },
+    {
+      "speaker": "男主",
+      "text": "那媽媽呢？他去哪了？…"
+    },
+    {
+      "speaker": "莉奈",
+      "text": "我怎麼知道，那種人，死在哪裡都跟我沒關係吧，這種事別煩我",
+      "chFace": "fanbaiyan"
+    },
+    {
+      "speaker": "男主",
+      "text": "這樣啊…",
+      "chFace": "shengqi1"
+    },
+    { "branchEnd": true },
     {
       "r18Only": true,
       "speaker": "男主（內心）",
@@ -647,7 +976,7 @@
     {
       "speaker": "莉奈",
       "text": "我去洗澡了",
-      "_off_showCH": "xieyanmiaoshi"
+      "chFace": "xieyanmiaoshi"
     },
     {
       "speaker": "男主",
@@ -665,9 +994,7 @@
     {
       "text": "",
       "autoNext": 1,
-      "fadeoutBlack": "60, 1",
-      "hideCG1": "linai sofa phone 1",
-      "hideCG2": "linai sofa phone 2"
+      "fadeoutBlack": "60, 1"
     },
     { "branchEnd": true },
     { "branchStart": "r18" },

@@ -169,6 +169,15 @@ public partial class MainMenuRuntime : Control
     // ═══════════════════════════════════════════════════════════
     //  設定面板 - 佈局
     // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    //  劇情背景模糊（背景放大時自動模糊，讓視線聚焦在立繪／CG 上）
+    // ═══════════════════════════════════════════════════════════
+    [ExportGroup("劇情背景模糊")]
+    [Export] public bool  BgBlurEnabled   = true;    // 總開關
+    [Export] public float BgBlurPerScale  = 8f;      // 背景每多放大 1.0 倍增加的模糊半徑（像素）
+    [Export] public float BgBlurMax       = 10f;     // 模糊半徑上限（像素）
+    private ShaderMaterial _bgBlurMat;               // 兩層背景共用的模糊材質
+
     [ExportGroup("設定面板 佈局")]
     [Export] public Vector2 SetPanelPos     = new Vector2(0, 0);        // 背景框位置
     [Export] public Vector2 SetPanelSize    = new Vector2(780, 860);    // 背景框大小
@@ -176,8 +185,8 @@ public partial class MainMenuRuntime : Control
     [Export] public Vector2 SetHeadSize     = new Vector2(420, 65);     // 標題欄大小
     [Export] public float   SetRowW         = 560f;                     // 列寬度
     [Export] public float   SetRowH         = 46f;                      // 列高度
-    [Export] public float   SetRowStartY    = 240f;                     // 第一列 Y
-    [Export] public float   SetRowGap       = 64f;                      // 列間距
+    [Export] public float   SetRowStartY    = 252f;                     // 第一列 Y（第一列是全音量）
+    [Export] public float   SetRowGap       = 56f;                      // 列間距（多了全音量一列，所以縮小一點）
     [Export] public Vector2 SetBtnApplyPos  = new Vector2(-130, -350);  // 套用按鈕位置
     [Export] public Vector2 SetBtnApplySize = new Vector2(200, 72);     // 套用按鈕大小
     [Export] public Vector2 SetBtnExitPos   = new Vector2(130, -350);   // 退出按鈕位置
@@ -243,14 +252,14 @@ public partial class MainMenuRuntime : Control
     // ═══════════════════════════════════════════════════════════
     private Control _setBgRT, _setHeadRT;
     private Control _setLangBtnRT, _setLangBtn2RT, _setLangBtn3RT;
-    private Control _setSnd1RT, _setSnd2RT, _setSnd3RT;
+    private Control _setSnd0RT, _setSnd1RT, _setSnd2RT, _setSnd3RT;   // _setSnd0RT = 全音量（最上面那列）
     private Control _setBtn7RT, _setBtn8RT;
     private Label   _setHeadTxt, _setLangBtnTxt, _setLangBtn2Txt, _setLangBtn3Txt;
-    private Label   _setBtn1Txt, _setBtn2Txt, _setBtn3Txt;
+    private Label   _setBtn0Txt, _setBtn1Txt, _setBtn2Txt, _setBtn3Txt;
     private Label   _setBtn7Txt, _setBtn8Txt;
 
     // 設定面板的滑桿與選項索引
-    private HSlider  _settBgmSlider, _settSeSlider, _settVoiceSlider;
+    private HSlider  _settMasterSlider, _settBgmSlider, _settSeSlider, _settVoiceSlider;
     private int[]    _settResIdx, _settLangIdx, _settSpdIdx;
     private string[] _settResOpts, _settLangOpts, _settSpdOpts;
 

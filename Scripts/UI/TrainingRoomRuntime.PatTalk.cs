@@ -204,7 +204,7 @@ public partial class TrainingRoomRuntime
 
     void ShowBubble(ref Control bubble, ref Label lbl, string text, bool isPlayer)
     {
-        if (string.IsNullOrEmpty(text)) return;
+        if (string.IsNullOrEmpty(text) || _storyFrozen) return;   // 男主劇情凍結中不冒氣泡
         if (!_dlgInExchange && !_playerChoiceSetting && Time.GetTicksMsec() / 1000.0 < _dlgLockEnd) return;   // 莉奈和男主一來一往的對話進行中：別的台詞不能蓋掉
         if (isPlayer && _playerChoiceActive && !_playerChoiceSetting) return;   // 選項還在時，男主氣泡不被別的台詞蓋掉
         if (!isPlayer) _girlSide = PickGirlSide();   // 女主氣泡每次出現時決定放頭的左邊還是右邊

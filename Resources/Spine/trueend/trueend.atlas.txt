@@ -1,0 +1,79 @@
+trueend.png
+size: 4096, 8570
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+hair_back
+  bounds: 4, 4, 1226, 2340
+bg_blur
+  bounds: 1234, 4, 2560, 1429
+bg_overlay
+  bounds: 4, 2348, 2238, 1250
+bangs_b
+  bounds: 2246, 2348, 953, 1089
+bangs_a
+  bounds: 4, 3602, 907, 1080
+bangs_a_shade2
+  bounds: 915, 3602, 905, 1080
+viewer_a
+  bounds: 1824, 3602, 1162, 989
+viewer_b
+  bounds: 4, 4686, 1127, 973
+head_shade
+  bounds: 1135, 4686, 1004, 958
+hair_side_a
+  bounds: 2143, 4686, 504, 929
+hair_lock_l
+  bounds: 2651, 4686, 532, 923
+torso
+  bounds: 4, 5663, 1002, 923
+bangs_a_shade
+  bounds: 1010, 5663, 534, 917
+head_skin
+  bounds: 1548, 5663, 824, 891
+ponytail
+  bounds: 2376, 5663, 492, 821
+coat
+  bounds: 2872, 5663, 1046, 815
+stocking
+  bounds: 4, 6590, 538, 768
+bangs_shine
+  bounds: 546, 6590, 852, 760
+eyelash
+  bounds: 1402, 6590, 370, 627
+clothes_inner
+  bounds: 1776, 6590, 1020, 602
+eye_white
+  bounds: 2800, 6590, 348, 587
+viewer_c
+  bounds: 4, 7362, 1593, 578
+eyebrow
+  bounds: 1601, 7362, 326, 542
+viewer_d
+  bounds: 4, 7944, 2288, 529
+hair_side_b
+  bounds: 2296, 7944, 829, 505
+hand
+  bounds: 3129, 7944, 465, 483
+iris
+  bounds: 3598, 7944, 101, 118
+iris_shade
+  bounds: 3703, 7944, 89, 113
+cheek
+  bounds: 3796, 7944, 85, 107
+cheek_deep
+  bounds: 3885, 7944, 85, 107
+iris2
+  bounds: 3974, 7944, 81, 100
+iris2_shade
+  bounds: 4, 8477, 74, 89
+mouth
+  bounds: 82, 8477, 46, 60
+mouth_pout
+  bounds: 132, 8477, 46, 60
+mouth_smirk
+  bounds: 182, 8477, 46, 60
+iris2_light
+  bounds: 232, 8477, 19, 22
+iris_light
+  bounds: 255, 8477, 23, 20

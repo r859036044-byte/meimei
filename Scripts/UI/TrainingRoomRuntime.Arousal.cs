@@ -247,6 +247,7 @@ public partial class TrainingRoomRuntime
         _bTouchHand = hand;
         _bTouchRunning = true;
         HadBreastTouch = true;
+        MarkChestHoleTouch();
         PlayerDataManagerTouch();
         TaskLogger.Run(AnimateBTouch(hand), "TrainingRoom.AnimateBTouch");
     }

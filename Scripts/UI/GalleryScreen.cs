@@ -694,7 +694,14 @@ public partial class GalleryScreen : Control
             nameLbl.AddThemeColorOverride("font_color", new Color("79475f"));
             hb.AddChild(nameLbl);
 
-            // 分支劇情暫不提供重播（只有結局可以重播），所以這裡只顯示已解鎖的分支名稱
+            // 通關過一次後：可以從分支開始遊戲（BranchStart.cs 會跳出選路線視窗）
+            if (BranchStart.Available())
+            {
+                var go = new Button { Text = "從這裡開始", CustomMinimumSize = new Vector2(180, 0), FocusMode = FocusModeEnum.None };
+                go.AddThemeFontSizeOverride("font_size", 20);
+                go.Pressed += () => BranchStart.OpenPicker(this);
+                hb.AddChild(go);
+            }
         }
         else
         {

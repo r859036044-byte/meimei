@@ -688,6 +688,7 @@ public partial class TrainingRoomRuntime : Node
                 if (_tongueTool) { ToggleLick("L"); break; }   // 選了 👅：改成舔（Tongue.cs）
                 ComfortChest = Mathf.Min(100f, ComfortChest + 3f);
                 HadBreastTouch = true;
+                MarkChestHoleTouch();
                 PlayerDataManagerTouch();
                 ToggleHandTouchAnim(true);
                 PlayPartTouchVoice("breast");
@@ -696,6 +697,7 @@ public partial class TrainingRoomRuntime : Node
                 if (_tongueTool) { ToggleLick("R"); break; }
                 ComfortChest = Mathf.Min(100f, ComfortChest + 3f);
                 HadBreastTouch = true;
+                MarkChestHoleTouch();
                 PlayerDataManagerTouch();
                 ToggleHandTouchAnim(false);
                 PlayPartTouchVoice("breast");
@@ -728,6 +730,13 @@ public partial class TrainingRoomRuntime : Node
         AddClimax(avgComfort * 0.01f);
     }
 
+    /// <summary>R18 分支「摸了」：碰到胸（左／右）或小穴（B）就記下來（圖鑒分支與「從分支開始」用）</summary>
+    void MarkChestHoleTouch()
+    {
+        var p = PlayerDataManager.Instance;
+        if (p != null) p.TodayTouchedChestHole = true;
+    }
+
     void PlayerDataManagerTouch()
     {
         var pdm = PlayerDataManager.Instance;
@@ -745,6 +754,7 @@ public partial class TrainingRoomRuntime : Node
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) return;
         pdm.TodayDidNothing = false;
+        pdm.TodayTouchedChestHole = true;
         pdm.AddBreastUse();
         HadBreastTouch = true;
         // 輕微增加胸部舒服度，讓數值面板有視覺回饋

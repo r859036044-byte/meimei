@@ -202,6 +202,7 @@ public partial class TrainingRoomRuntime : Node
 
         _endingDay = true;
         RecordBlanketState(pdm);   // 離開時記錄今晚蓋沒蓋被子：dayN_blanket／dayN_noBlanket（劇本條件用）
+        UnlockR18Branch(pdm);      // R18：依今晚做了什麼解鎖圖鑒分支（什麼都不做／摸了／高潮）
         if (pdm.TodayDidNothing)
         {
             TaskLogger.Run(IdleEndFlowAsync(), "TrainingRoom.IdleEndFlowAsync");
@@ -250,6 +251,18 @@ public partial class TrainingRoomRuntime : Node
             }
         }
         WriteBlanketVars(pdm, night, covered);
+    }
+
+    /// <summary>R18 圖鑒分支：高潮＝今晚高潮過（高潮值滿觸發）；摸了＝有碰到胸或小穴（或舔、或插入）；其餘＝什麼都不做。只記第 1、2 晚。</summary>
+    void UnlockR18Branch(PlayerDataManager pdm)
+    {
+        if (!pdm.R18ContentEnabled) return;
+        int n = pdm.CurrentNight;
+        if (n < 1 || n > 2) return;
+        string kind = (pdm.TodayTouchedOrgasm || pdm.TodayInsertOrgasm) ? "orgasm"
+                    : (pdm.TodayTouchedChestHole || pdm.TodayInserted) ? "touch" : "idle";
+        GalleryDataManager.Instance?.UnlockBranch($"night{n}_{kind}");
+        GD.Print($"[Troom] 圖鑒分支解鎖：night{n}_{kind}");
     }
 
     /// <summary>把「第 N 晚蓋／不蓋」寫進劇情變數：兩個變數互斥，設其中一個為 1、另一個歸 0，劇本的 varStart 條件就能判斷。</summary>
@@ -324,6 +337,13 @@ public partial class TrainingRoomRuntime : Node
         {
             bool isGoodRoute = pdmCheck.GetDialogueVar("day1_blanket") > 0;
             await PlayNight1AllAgesEndingAsync(didInteract: true, isGoodRoute: isGoodRoute);
+        }
+        else if (success && pdmCheck != null && pdmCheck.R18ContentEnabled && PendingBratEnding() == 0
+                 && (pdmCheck.CurrentNight == 1 || pdmCheck.CurrentNight == 2))
+        {   // R18：結束時男主說話劇情（第 1 晚 Night1/LinaiLast、第 2 晚 Day2/Day2_Last）。播之前所有動作停止、畫面先暗下來、氣泡與莉奈語音全清掉
+            await BeginStoryFreezeAsync();
+            await PlayPendingDialogueAsync(pdmCheck.CurrentNight == 1 ? "Night1/LinaiLast" : "Day2/Day2_Last");
+            await FadeToBlackAsync();
         }
         else
         {
@@ -408,6 +428,7 @@ public partial class TrainingRoomRuntime : Node
         StoryPlaying = true;   // 劇情期間凍結 troom 機制，結束後不再恢復（隨即轉場）
         _voiceSeq.Clear();
         if (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer)) _trVoicePlayer.Stop();   // 立刻停掉正在播的莉奈語音
+        await BeginStoryFreezeAsync();   // 動作全停＋畫面先暗下來＋清掉氣泡
         var lines = new List<(string spk, string txt, string action)>();
 
         if (didInteract)
@@ -549,6 +570,37 @@ public partial class TrainingRoomRuntime : Node
         await FadeToBlackAsync();
         container.QueueFree();
         if (_menuReader != null && IsInstanceValid(_menuReader)) _menuReader.AlwaysShowMenu = true;
+    }
+
+    // ── 男主劇情開始：整個 TR 凍結 ─────────────────────────────────
+    bool _storyFrozen;   // true＝_Process 整個跳過（呼吸、拖動、抽插、鏡頭、語音全停），ShowBubble 也不再冒氣泡
+    ColorRect _storyDim;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float StoryDimAlpha = 0.6f;     // 劇情開始時畫面變暗的程度
+    [Export(PropertyHint.Range, "0.1,3,0.1")] public float StoryDimSec = 0.7f;      // 變暗花幾秒
+    async Task BeginStoryFreezeAsync()
+    {
+        if (_storyFrozen) return;
+        StoryPlaying = true;
+        _storyFrozen = true;
+        _voiceSeq.Clear(); _seqCurrent = false;
+        if (_trVoicePlayer != null && IsInstanceValid(_trVoicePlayer)) _trVoicePlayer.Stop();
+        if (_trAmbientPlayer != null && IsInstanceValid(_trAmbientPlayer)) _trAmbientPlayer.Stop();
+        foreach (var bb in new[] { _bubblePlayer, _bubbleGirl })
+        {
+            if (bb == null || !IsInstanceValid(bb)) continue;
+            if (bb.HasMeta("hide_t")) bb.RemoveMeta("hide_t");
+            bb.Visible = false;
+        }
+        _storyDim = new ColorRect { Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Stop };
+        _storyDim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        UiRoot.AddChild(_storyDim);   // 在對話框容器之前加入，所以對話框會蓋在這層暗幕上面
+        float t = 0f;
+        while (t < 1f)
+        {
+            t += (float)GetProcessDeltaTime() / Mathf.Max(0.05f, StoryDimSec);
+            _storyDim.Color = new Color(0, 0, 0, Mathf.Clamp(t, 0f, 1f) * StoryDimAlpha);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
     }
 
     // ── 淡場 ─────────────────────────────────────────────────────

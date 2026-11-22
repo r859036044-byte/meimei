@@ -210,6 +210,7 @@ public partial class MainMenuRuntime : Control
         };
         btnQuit.Pressed += () => GetTree().Quit();
 
+        DevContact.Attach(panel, V2(24, 24));   // 主畫面左上角：Discord／X 聯絡按鈕（DevContact.cs）
         return panel;
     }
 
@@ -253,7 +254,13 @@ public partial class MainMenuRuntime : Control
             V2(0.5f, 0.5f), V2(-130, -65), 200, 52);
         var btnSkip  = Btn(bt, "BtnSkip",  "直接開始", Colors.Black,
             V2(0.5f, 0.5f), V2(130, -65), 200, 52);
-        foreach (var btn in new[] { btnWatch, btnSkip })
+        // 通關過一次後才出現：從分支開始（選路線視窗在 BranchStart.cs）
+        var btnBranch = Btn(bt, "BtnBranch", "從分支開始", Colors.Black,
+            V2(0.5f, 0.5f), V2(0, -135), 200, 52);
+        btnBranch.Visible = false;
+        panel.VisibilityChanged += () => { if (panel.Visible) btnBranch.Visible = BranchStart.Available(); };
+        btnBranch.Pressed += () => BranchStart.OpenPicker(this);
+        foreach (var btn in new[] { btnWatch, btnSkip, btnBranch })
             BtnLabel(btn)?.AddThemeFontSizeOverride("font_size", 22);
 
         btnWatch.Pressed += () =>
@@ -318,6 +325,10 @@ public partial class MainMenuRuntime : Control
         var dispSp = MakeRoundRect(18, new Color("fffafd"), new Color("edb8cf"), 2);
         Color text = new Color("79475f");
         float rowY = SetRowStartY;
+        // 全音量（最上面一列）：控制整個遊戲的總音量，預設 50%
+        _setSnd0RT = BuildSoundRow(panel, "全音量", rowY, SetRowW, SetRowH, labelSp, grooveSp, trackSp, text,
+            out _setBtn0Txt, out _settMasterSlider);
+        rowY -= SetRowGap;
         _setSnd1RT = BuildSoundRow(panel, "音樂", rowY, SetRowW, SetRowH, labelSp, grooveSp, trackSp, text,
             out _setBtn1Txt, out _settBgmSlider);
         rowY -= SetRowGap;
@@ -388,18 +399,19 @@ public partial class MainMenuRuntime : Control
         _setBtn7Txt = BtnLabel(apply); _setBtn8Txt = BtnLabel(cancel);
         _setBtn7Txt.AddThemeFontSizeOverride("font_size", 26);
         _setBtn8Txt.AddThemeFontSizeOverride("font_size", 26);
-        float originalMusic = 0.8f, originalSfx = 1f, originalVoice = 1f;
+        float originalMaster = 0.5f, originalMusic = 0.5f, originalSfx = 0.5f, originalVoice = 0.5f;
         panel.VisibilityChanged += () => {
             if (!panel.Visible || SettingsManager.Instance == null) return;
             var settings = SettingsManager.Instance;
-            originalMusic = settings.MusicVolume; originalSfx = settings.SFXVolume; originalVoice = settings.VoiceVolume;
-            _settBgmSlider.Value = originalMusic; _settSeSlider.Value = originalSfx; _settVoiceSlider.Value = originalVoice;
+            originalMaster = settings.MasterVolume; originalMusic = settings.MusicVolume; originalSfx = settings.SFXVolume; originalVoice = settings.VoiceVolume;
+            _settMasterSlider.Value = originalMaster; _settBgmSlider.Value = originalMusic; _settSeSlider.Value = originalSfx; _settVoiceSlider.Value = originalVoice;
             _settResIdx[0] = settings.ResolutionIndex; _settingsDropdowns["解析度"].Select(_settResIdx[0]);
             _settLangIdx[0] = settings.LanguageIndex; _settingsDropdowns["語言"].Select(_settLangIdx[0]);
             _settSpdIdx[0] = settings.TextSpeed; _settingsDropdowns["文字速度"].Select(_settSpdIdx[0]);
             modeIndex[0] = settings.IsFullscreen ? 0 : 1; _settingsDropdowns["顯示模式"].Select(modeIndex[0]);
             allAgesCheck.ButtonPressed = !(PlayerDataManager.Instance?.R18ContentEnabled ?? false);
         };
+        _settMasterSlider.ValueChanged += v => SettingsManager.Instance?.SetMasterVolume((float)v);
         _settBgmSlider.ValueChanged += v => SettingsManager.Instance?.SetMusicVolume((float)v);
         _settSeSlider.ValueChanged += v => SettingsManager.Instance?.SetSFXVolume((float)v);
         _settVoiceSlider.ValueChanged += v => SettingsManager.Instance?.SetVoiceVolume((float)v);
@@ -423,11 +435,13 @@ public partial class MainMenuRuntime : Control
             SetActive(_mainPanel, true);
         };
         cancel.Pressed += () => {
+            SettingsManager.Instance?.SetMasterVolume(originalMaster);
             SettingsManager.Instance?.SetMusicVolume(originalMusic);
             SettingsManager.Instance?.SetSFXVolume(originalSfx);
             SettingsManager.Instance?.SetVoiceVolume(originalVoice);
             SetActive(panel, false); SetActive(_mainPanel, true);
         };
+        DevContact.Attach(panel, V2(24, 24));   // 設定頁左上角：Discord／X 聯絡按鈕（DevContact.cs）
         return panel;
     }
 
@@ -566,6 +580,7 @@ public partial class MainMenuRuntime : Control
         if (_setBtn8Txt != null && IsInstanceValid(_setBtn8Txt))
             _setBtn8Txt.Text = I18n.T("返回");
 
+        UpdateRowLabel("Row_全音量", "全音量");
         UpdateRowLabel("Row_音樂", "音樂");
         UpdateRowLabel("Row_音效", "音效");
         UpdateRowLabel("Row_語音", "語音");

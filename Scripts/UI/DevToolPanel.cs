@@ -41,11 +41,14 @@ public partial class DevToolPanel : Control
         };
         var winSty = new StyleBoxFlat
         {
-            BgColor = new Color("120b1cf0"),
-            BorderColor = new Color("6a3888"),
+            BgColor = new Color("fffafd"),        // 跟遊戲其他介面一致：奶白底、粉色細框、柔和投影
+            BorderColor = new Color("edb8cf"),
+            ShadowColor = new Color(0.34f, 0.12f, 0.24f, 0.22f),
+            ShadowSize = 12,
+            ShadowOffset = new Vector2(0, 6),
         };
         winSty.SetBorderWidthAll(2);
-        winSty.SetCornerRadiusAll(14);
+        winSty.SetCornerRadiusAll(24);
         winSty.ContentMarginLeft = winSty.ContentMarginRight = 0;
         winSty.ContentMarginTop = winSty.ContentMarginBottom = 0;
         ((PanelContainer)_window).AddThemeStyleboxOverride("panel", winSty);
@@ -73,11 +76,11 @@ public partial class DevToolPanel : Control
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         hint.AddThemeFontSizeOverride("font_size", 12);
-        hint.AddThemeColorOverride("font_color", new Color("a080c0"));
+        hint.AddThemeColorOverride("font_color", new Color("a7778e"));
         hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         content.AddChild(hint);
 
-        content.AddChild(new HSeparator());
+        content.AddChild(MakeSep());
 
         // ── 全解鎖模式（圖鑒顯示層開關，不動真實存檔）──────────────
         _unlockToggleBtn = MakeButton("", () =>
@@ -100,9 +103,9 @@ public partial class DevToolPanel : Control
             var gallery = GetTree().CurrentScene?.GetNodeOrNull<GalleryScreen>("GalleryScreen");
             if (gallery == null) { SetMsg("目前畫面沒有圖鑒（只有主選單才有）", false); return; }
             gallery.Open();
-        }, "1e2a3a", "5a90c0"));
+        }, "eaf2fc", "a9c8ea"));
 
-        content.AddChild(new HSeparator());
+        content.AddChild(MakeSep());
 
         // ── R18 / 全年齡（原主選單按鈕搬過來，邏輯不變）──────────────
         _r18ToggleBtn = MakeButton("", () =>
@@ -127,14 +130,16 @@ public partial class DevToolPanel : Control
                 DevModeManager.Instance.PendingAutoOpenExpressionTester = true;
             ClosePanel();
             GetTree().ChangeSceneToFile("res://Scenes/TrainingRoom.tscn");
-        }, "1a3a2a", "40a070"));
+        }, "e8f6ee", "a8d8b8"));
 
-        content.AddChild(new HSeparator());
+        content.AddChild(MakeSep());
 
         _msgLabel = new Label { Text = "", HorizontalAlignment = HorizontalAlignment.Center };
         _msgLabel.AddThemeFontSizeOverride("font_size", 13);
         _msgLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         content.AddChild(_msgLabel);
+
+        DevContact.AttachInline(content, this, 44f);   // Discord／X 聯絡圖示（點開有連結與 QR Code）
 
         content.AddChild(MakeButton("關閉（F9 可再打開）", ClosePanel));
 
@@ -166,25 +171,27 @@ public partial class DevToolPanel : Control
         var bar = new PanelContainer { MouseFilter = MouseFilterEnum.Stop, CustomMinimumSize = new Vector2(0, 40) };
         var barSty = new StyleBoxFlat
         {
-            BgColor = new Color("2a1848"),
-            CornerRadiusTopLeft = 12,
-            CornerRadiusTopRight = 12,
+            BgColor = new Color("fbdfeb"),
+            CornerRadiusTopLeft = 22,
+            CornerRadiusTopRight = 22,
         };
         barSty.ContentMarginLeft = 16;
         barSty.ContentMarginRight = 8;
+        barSty.ContentMarginTop = 6; barSty.ContentMarginBottom = 6;
         bar.AddThemeStyleboxOverride("panel", barSty);
 
         var hb = new HBoxContainer();
         bar.AddChild(hb);
 
         var title = new Label { Text = "開發者工具", VerticalAlignment = VerticalAlignment.Center };
-        title.AddThemeFontSizeOverride("font_size", 18);
-        title.AddThemeColorOverride("font_color", new Color("f0d8ff"));
+        title.AddThemeFontSizeOverride("font_size", 20);
+        title.AddThemeColorOverride("font_color", new Color("79475f"));
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         hb.AddChild(title);
 
         var closeBtn = new Button { Text = "✕", Flat = true, CustomMinimumSize = new Vector2(32, 32) };
-        closeBtn.AddThemeColorOverride("font_color", new Color("d0a8e0"));
+        closeBtn.AddThemeColorOverride("font_color", new Color("a7778e"));
+        closeBtn.AddThemeColorOverride("font_hover_color", new Color("79475f"));
         closeBtn.Pressed += ClosePanel;
         hb.AddChild(closeBtn);
 
@@ -236,7 +243,7 @@ public partial class DevToolPanel : Control
         _unlockToggleBtn.Text = on ? "全解鎖模式：開啟中（點擊關閉）" : "全解鎖模式：關閉中（點擊開啟）";
         StyleToggle(_unlockToggleBtn, on);
         _unlockStatusLabel.Text = on ? "圖鑒目前顯示：全部解鎖" : "圖鑒目前顯示：玩家真實進度";
-        _unlockStatusLabel.AddThemeColorOverride("font_color", on ? new Color("9ae6a0") : new Color("a080c0"));
+        _unlockStatusLabel.AddThemeColorOverride("font_color", on ? new Color("4f9a68") : new Color("a7778e"));
     }
 
     void RefreshR18Display()
@@ -245,34 +252,38 @@ public partial class DevToolPanel : Control
         _r18ToggleBtn.Text = on ? "R18：開啟中（點擊切換為全年齡）" : "全年齡：開啟中（點擊切換為 R18）";
         StyleToggle(_r18ToggleBtn, on);
         _r18StatusLabel.Text = on ? "目前顯示：R18 成人內容" : "目前顯示：全年齡（已遮蔽成人內容）";
-        _r18StatusLabel.AddThemeColorOverride("font_color", on ? new Color("e0a0a0") : new Color("a080c0"));
+        _r18StatusLabel.AddThemeColorOverride("font_color", on ? new Color("c0607a") : new Color("a7778e"));
     }
 
     static void StyleToggle(Button btn, bool on)
     {
-        string bg = on ? "2a5c2a" : "5c2a2a";
-        string border = on ? "60c060" : "c06060";
+        // 開啟＝淡綠、關閉＝淡粉紅（跟整體粉色介面搭配）
+        string bg = on ? "e3f5e8" : "fde4ea";
+        string border = on ? "8fcaa4" : "eba3b5";
+        string ink = on ? "2f6b45" : "8a3d4d";
 
         var normal = new StyleBoxFlat { BgColor = new Color(bg), BorderColor = new Color(border) };
         normal.SetBorderWidthAll(2);
-        normal.SetCornerRadiusAll(10);
+        normal.SetCornerRadiusAll(16);
 
-        var hover = new StyleBoxFlat { BgColor = new Color(bg), BorderColor = new Color(border) };
-        hover.BgColor = hover.BgColor.Lightened(0.15f);
+        var hover = new StyleBoxFlat { BgColor = new Color(bg).Darkened(0.05f), BorderColor = new Color(border) };
         hover.SetBorderWidthAll(2);
-        hover.SetCornerRadiusAll(10);
+        hover.SetCornerRadiusAll(16);
 
         btn.AddThemeStyleboxOverride("normal", normal);
         btn.AddThemeStyleboxOverride("hover", hover);
         btn.AddThemeStyleboxOverride("pressed", hover);
         btn.AddThemeStyleboxOverride("focus", normal);
-        btn.AddThemeColorOverride("font_color", new Color("f0f0f0"));
+        btn.AddThemeColorOverride("font_color", new Color(ink));
+        btn.AddThemeColorOverride("font_hover_color", new Color(ink));
+        btn.AddThemeColorOverride("font_pressed_color", new Color(ink));
+        btn.AddThemeFontSizeOverride("font_size", 18);
     }
 
     void SetMsg(string msg, bool ok)
     {
         _msgLabel.Text = msg;
-        _msgLabel.AddThemeColorOverride("font_color", ok ? new Color("9ae6a0") : new Color("e08080"));
+        _msgLabel.AddThemeColorOverride("font_color", ok ? new Color("4f9a68") : new Color("c0607a"));
     }
 
     void ClosePanel()
@@ -281,23 +292,34 @@ public partial class DevToolPanel : Control
         DevModeManager.Instance?.ClosePanel();
     }
 
-    static Button MakeButton(string text, Action onPressed, string bg = "261540", string border = "7a48a8")
+    static HSeparator MakeSep()
     {
-        var btn = new Button { Text = text, CustomMinimumSize = new Vector2(0, 46) };
+        var sep = new HSeparator();
+        sep.AddThemeStyleboxOverride("separator", new StyleBoxLine { Color = new Color("f4dbe6"), Thickness = 2 });
+        return sep;
+    }
+
+    static Button MakeButton(string text, Action onPressed, string bg = "fff0f6", string border = "f0cede")
+    {
+        var btn = new Button { Text = text, CustomMinimumSize = new Vector2(0, 48), FocusMode = FocusModeEnum.None, MouseDefaultCursorShape = CursorShape.PointingHand };
+        Color ink = new Color("79475f");
 
         var normal = new StyleBoxFlat { BgColor = new Color(bg), BorderColor = new Color(border) };
-        normal.SetBorderWidthAll(1);
-        normal.SetCornerRadiusAll(10);
+        normal.SetBorderWidthAll(2);
+        normal.SetCornerRadiusAll(16);
 
-        var hover = new StyleBoxFlat { BgColor = new Color("3a1860"), BorderColor = new Color("a060e0") };
-        hover.SetBorderWidthAll(1);
-        hover.SetCornerRadiusAll(10);
+        var hover = new StyleBoxFlat { BgColor = new Color(bg).Darkened(0.04f), BorderColor = new Color("edb8cf") };
+        hover.SetBorderWidthAll(2);
+        hover.SetCornerRadiusAll(16);
 
         btn.AddThemeStyleboxOverride("normal", normal);
         btn.AddThemeStyleboxOverride("hover", hover);
         btn.AddThemeStyleboxOverride("pressed", hover);
         btn.AddThemeStyleboxOverride("focus", normal);
-        btn.AddThemeColorOverride("font_color", new Color("f0d8ff"));
+        btn.AddThemeColorOverride("font_color", ink);
+        btn.AddThemeColorOverride("font_hover_color", ink);
+        btn.AddThemeColorOverride("font_pressed_color", ink);
+        btn.AddThemeFontSizeOverride("font_size", 18);
         btn.Pressed += onPressed;
         return btn;
     }

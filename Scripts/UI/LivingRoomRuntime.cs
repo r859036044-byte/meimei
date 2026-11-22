@@ -35,6 +35,8 @@ public partial class LivingRoomRuntime : Node
     }
 
     public static bool PendingDay3 = false;
+    /// <summary>「從分支開始」進第 2 天早上用（BranchStart.cs）：略過 PrologueLast，直接播 Day2_Start2。用掉就清掉。</summary>
+    public static bool SkipPrologueLastOnce = false;
     /// <summary>雌小鬼值滿 100（心情沒歸 0）→ 離開 TrainingRoom 後的隔天早上，直接播雌小鬼大小姐結局（Day3_Start 開頭那段）。</summary>
     public static bool PendingMesugaki = false;
     bool _mesugakiRun;
@@ -51,7 +53,8 @@ public partial class LivingRoomRuntime : Node
     Label _contentText;
     Control _panel;
     TextureRect _charBodyImage;
-    SpineChar _spineChar;   // Spine 動態立繪（掛在身體圖底下，跟著它的位置／縮放／淡入淡出）
+    SpineChar _spineChar;       // Spine 動態立繪（掛在身體圖底下，跟著它的位置／縮放／淡入淡出）
+    SpineChar _trueEndSpine;    // 真結局全螢幕 Spine CG（res://Resources/Spine/trueend/）
     TextureRect _charFaceImage;
     TextureRect _char2Image;
     Panel _nameBarPanel;
@@ -235,7 +238,8 @@ public partial class LivingRoomRuntime : Node
         }
         else if (!HasDialoguePlayed("PrologueLast"))
         {
-            await PlayDialogueAsync("Prologue/PrologueLast");
+            if (SkipPrologueLastOnce) SkipPrologueLastOnce = false;   // 從分支開始：不播 PrologueLast（第 1 晚結束後的早上）
+            else await PlayDialogueAsync("Prologue/PrologueLast");
             MarkDialoguePlayed("PrologueLast");
             _gotoAllAges = null;
             // 全年齡：第 2 晚蓋不蓋被子不再讓玩家選，由心情／雌小鬼值決定（有數值紀錄才自動選；沒有就照原本讓玩家選）
@@ -600,6 +604,7 @@ public partial class LivingRoomRuntime : Node
 
 
             await HandleAudioAsync(line);
+            await HandleCameraFxAsync(line);   // camZoom / impact（見 LivingRoomRuntime.CameraFx.cs）
 
             var (foVal, foColor, foPriority, foFrames) = ParseFadeout(line);
             var (hideCHVal, hideCHPriority) = ParseHideCH(line.hideCH);
@@ -759,6 +764,7 @@ public partial class LivingRoomRuntime : Node
         }
 
         SetDialogueUIVisible(false);
+        ResetCameraFx();
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1126,6 +1132,11 @@ public partial class LivingRoomRuntime : Node
     /// <summary>套用這一行的 Spine 設定；還沒顯示時淡入（instant＝true 直接顯示）。</summary>
     async Task SpineApplyAsync(DialogueSystem.DialogueLine l, bool instant)
     {
+        if (_trueEndSpine != null && _trueEndSpine.Visible)
+        {
+            _trueEndSpine.Apply(l.chOutfit, l.chHair, l.chSocks, l.chFace, l.chAnim);
+            return;
+        }
         if (_spineChar == null || !_spineChar.EnsureLoaded()) return;
         string outfit = !string.IsNullOrWhiteSpace(l.chOutfit) ? l.chOutfit : l.chSkin;
         if (Spine18PlusOutfit && outfit != null && outfit.Trim() == "sleep" && (PlayerDataManager.Instance?.R18ContentEnabled ?? false)) outfit = "sleep2";
@@ -1387,6 +1398,21 @@ public partial class LivingRoomRuntime : Node
             var parts = name.Split(','); name = parts[0].Trim();
             crossfade = parts.Length > 1 && parts[1].Trim().ToLower() == "fade";
         }
+        if (name.Equals("spine_trueend", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_trueEndSpine != null)
+            {
+                _trueEndSpine.EnsureLoaded();
+                _trueEndSpine.Apply(null, null, null, "idle", "idle");
+                _trueEndSpine.Visible = true;
+            }
+            if (_spineChar != null) _spineChar.Visible = false;
+            return;
+        }
+        if (_trueEndSpine != null && _trueEndSpine.Visible)
+        {
+            _trueEndSpine.Visible = false;
+        }
         if (name.ToLower() == "black")
         {
             if (crossfade) await FadeBGColorAsync(Colors.Black);
@@ -1396,6 +1422,12 @@ public partial class LivingRoomRuntime : Node
         {
             if (crossfade) await FadeBGColorAsync(Colors.White);
             else { _bgImage.Texture = SolidTex(); _bgImage.Modulate = Colors.White; }
+        }
+        else if (name.StartsWith("#") && Color.HtmlIsValid(name))
+        {
+            var col = new Color(name);
+            if (crossfade) await FadeBGColorAsync(col);
+            else { _bgImage.Texture = SolidTex(); _bgImage.Modulate = col; }
         }
         else
         {
@@ -1745,6 +1777,17 @@ public partial class LivingRoomRuntime : Node
         bg.Modulate    = new Color(0.08f, 0.04f, 0.12f);
         panel.AddChild(bg);
         _bgImage = bg;
+
+        _trueEndSpine = new SpineChar
+        {
+            Name = "TrueEndSpine",
+            CustomDir = "res://Resources/Spine/trueend/",
+            CustomName = "trueend",
+            CoverMode = true,
+            Visible = false
+        };
+        panel.AddChild(_trueEndSpine);
+        _trueEndSpine.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
         var portraitLayer = new Control { Name = "PortraitFloatRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
         panel.AddChild(portraitLayer);

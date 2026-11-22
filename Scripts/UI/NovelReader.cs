@@ -811,9 +811,10 @@ public partial class NovelReader : Node
         vb.AddChild(new HSeparator());
 
         var sm = SettingsManager.Instance;
-        vb.AddChild(VolumeRow("音　樂", sm?.MusicVolume ?? 0.8f, v => SettingsManager.Instance?.SetMusicVolume(v)));
-        vb.AddChild(VolumeRow("音　效", sm?.SFXVolume ?? 1f,   v => SettingsManager.Instance?.SetSFXVolume(v)));
-        vb.AddChild(VolumeRow("語　音", sm?.VoiceVolume ?? 1f, v => SettingsManager.Instance?.SetVoiceVolume(v)));
+        vb.AddChild(VolumeRow("全音量", sm?.MasterVolume ?? 0.5f, v => SettingsManager.Instance?.SetMasterVolume(v)));
+        vb.AddChild(VolumeRow("音　樂", sm?.MusicVolume ?? 0.5f, v => SettingsManager.Instance?.SetMusicVolume(v)));
+        vb.AddChild(VolumeRow("音　效", sm?.SFXVolume ?? 0.5f,   v => SettingsManager.Instance?.SetSFXVolume(v)));
+        vb.AddChild(VolumeRow("語　音", sm?.VoiceVolume ?? 0.5f, v => SettingsManager.Instance?.SetVoiceVolume(v)));
         vb.AddChild(VolumeRow("手・舌透明度", sm?.InteractAlpha ?? 0.85f, v => { SettingsManager.Instance?.SetInteractAlpha(v); SettingsManager.Instance?.Save(); }));
 
         // 文字速度：循環切換

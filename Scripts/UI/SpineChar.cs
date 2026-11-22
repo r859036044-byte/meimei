@@ -59,6 +59,8 @@ public partial class SpineChar : Control
     {
         public int VertCount;
         public bool Weighted;
+        public bool IsClip;
+        public string ClipEndSlot;
         public float[] Raw;                 // 加權：[n, bone, x, y, w, ...]；未加權：x,y 成對（slot 骨骼座標）
         public Vector2[] UV;                // 已換算成 atlas 貼圖的 0~1 座標
         public int[] Tris;
@@ -128,6 +130,9 @@ public partial class SpineChar : Control
 
     /// <summary>動畫播放速度倍率</summary>
     public float Speed = 1f;
+    public string CustomDir = null;
+    public string CustomName = null;
+    public bool CoverMode = false;
 
     public SpineChar()
     {
@@ -137,7 +142,7 @@ public partial class SpineChar : Control
 
     public override void _Process(double delta)
     {
-        if (_loaded && _loadedR18 != WantR18) { EnsureLoaded(); QueueRedraw(); }   // 遊戲中切換全年齡／R18 → 換讀另一份 Spine
+        if (string.IsNullOrEmpty(CustomDir) && _loaded && _loadedR18 != WantR18) { EnsureLoaded(); QueueRedraw(); }   // 遊戲中切換全年齡／R18 → 換讀另一份 Spine
         if (!_ok || !IsVisibleInTree()) return;
         _time += (float)delta * Speed;
         float loop = LoopDuration();
@@ -150,6 +155,21 @@ public partial class SpineChar : Control
     /// <summary>第一次使用時載入檔案；失敗回傳 false（並在輸出視窗印出原因）</summary>
     public bool EnsureLoaded()
     {
+        if (!string.IsNullOrEmpty(CustomDir))
+        {
+            if (_loaded) return _ok;
+            _loaded = true;
+            try
+            {
+                _ok = Load(CustomDir, CustomName ?? "trueend");
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr("[SpineChar] 自訂 Spine 載入失敗：" + e);
+                _ok = false;
+            }
+            return _ok;
+        }
         bool r18 = WantR18;
         if (_loaded && _loadedR18 == r18) return _ok;
         if (_loaded) ResetLoaded();
@@ -177,6 +197,25 @@ public partial class SpineChar : Control
     public void Apply(string outfit, string hair, string socks, string face, string anim)
     {
         if (!EnsureLoaded()) return;
+
+        if (!string.IsNullOrEmpty(CustomDir))
+        {
+            string target = !string.IsNullOrWhiteSpace(anim) ? anim.Trim() : (!string.IsNullOrWhiteSpace(face) ? face.Trim() : null);
+            if (!string.IsNullOrEmpty(target))
+            {
+                string mapped = target switch
+                {
+                    "laugh1" or "laugh" or "crylaugh" or "smile" => "smile",
+                    "cixiaoguixiao" or "smirk" => "cixiaoguixiao",
+                    "shengqi1" or "shengqi2" or "angry1" or "angry2" => "shengqi1",
+                    "shy" or "shuijiao" => "shy",
+                    _ => _anims.ContainsKey(target) ? target : "idle"
+                };
+                if (_anims.ContainsKey(mapped)) Body = mapped;
+            }
+            QueueRedraw();
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(outfit))
         {
@@ -404,6 +443,10 @@ public partial class SpineChar : Control
                          float pw, float ph, Dictionary<string, int> boneIdx)
     {
         string type = Str(e, "type") ?? "region";
+        if (type == "clipping")
+        {
+            return null;
+        }
         string path = Str(e, "path") ?? name;
         if (!regions.TryGetValue(path, out var reg))
         {
@@ -676,11 +719,15 @@ public partial class SpineChar : Control
         if (!_ok || _tex == null) return;
         ComputePose();
 
-        // 骨架範圍 → 控制項範圍（底部置中、等比縮放）
-        float scale = Mathf.Min(Size.X / _skelW, Size.Y / _skelH);
+        // 骨架範圍 → 控制項範圍（CoverMode 全螢幕 CG 用等比填滿置中；一般立繪用底部置中）
+        float scale = CoverMode
+            ? Mathf.Max(Size.X / _skelW, Size.Y / _skelH)
+            : Mathf.Min(Size.X / _skelW, Size.Y / _skelH);
         if (scale <= 0f) return;
         float ox = Size.X * 0.5f - (_skelX + _skelW * 0.5f) * scale;
-        float oy = Size.Y + _skelY * scale;
+        float oy = CoverMode
+            ? Size.Y * 0.5f + (_skelY + _skelH * 0.5f) * scale
+            : Size.Y + _skelY * scale;
 
         Rid item = GetCanvasItem();
         Rid texRid = _tex.GetRid();

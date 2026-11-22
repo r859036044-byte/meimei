@@ -245,6 +245,7 @@ public partial class TrainingRoomRuntime
     void StartLick(string target)
     {
         StopLick();
+        if (target == "L" || target == "R" || target == "B") MarkChestHoleTouch();   // 舔胸／小穴也算摸了
         if (_tongueOn) StopTongue();
         // 同一個地方有手在弄就先拿掉手
         if (target == "L" && _touchAnimRunningLeft)  CancelHandTouchAnim(true);

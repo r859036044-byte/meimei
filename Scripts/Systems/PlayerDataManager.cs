@@ -191,6 +191,8 @@ public partial class PlayerDataManager : Node
     public bool TodayInsertOrgasm  { get; set; }
     public bool TodayInsertNoOrg   { get; set; }
     public bool TodayInserted      { get; set; }
+    /// <summary>今晚有碰到胸或小穴（R18 分支「摸了」的判定；摸鼻子／嘴／尻／腳不算）</summary>
+    public bool TodayTouchedChestHole { get; set; }
 
     // ── 劇情變數（對話 JSON 的 addVar / varStart 使用）──────────
     readonly System.Collections.Generic.Dictionary<string, int> _dialogueVars = new();
@@ -280,6 +282,7 @@ public partial class PlayerDataManager : Node
         TodayInsertOrgasm  = false;
         TodayInsertNoOrg   = false;
         TodayInserted      = false;
+        TodayTouchedChestHole = false;
         MeimeiHasOrgasmed  = false;
         LastOrgasmType     = MeimeiOrgasmType.None;
         SetAlertLevel(0f);

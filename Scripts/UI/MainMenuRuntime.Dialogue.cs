@@ -203,6 +203,32 @@ public partial class MainMenuRuntime : Control
         ApplyStretchAnchor(_bgImage2, Vector2.Zero, Vector2.One, Vector2.Zero, Vector2.Zero);
         _bgImage2.Modulate = new Color(1f, 1f, 1f, 0f);
 
+        // 背景模糊材質：背景放大（鏡頭推近）時才模糊，平常 blur=0 不影響畫面
+        _bgBlurMat = new ShaderMaterial { Shader = new Shader { Code = @"
+shader_type canvas_item;
+uniform float blur = 0.0;
+varying vec4 vcol;
+void vertex() { vcol = COLOR; }
+void fragment() {
+    vec4 c = texture(TEXTURE, UV);
+    if (blur > 0.05) {
+        vec2 px = TEXTURE_PIXEL_SIZE * blur;
+        vec4 sum = c;
+        float w = 1.0;
+        for (int i = 0; i < 12; i++) {
+            float a = 6.2831853 * float(i) / 12.0;
+            vec2 o = vec2(cos(a), sin(a)) * px;
+            sum += texture(TEXTURE, UV + o * 0.5);
+            sum += texture(TEXTURE, UV + o);
+            w += 2.0;
+        }
+        c = sum / w;
+    }
+    COLOR = c * vcol;
+}" } };
+        _bgImage.Material  = _bgBlurMat;
+        _bgImage2.Material = _bgBlurMat;
+
         // ── 2. CG 圖層（BG 之上、對話框之下）── 多層 ────────────
         // 全部 CG 層放進同一個容器，呼吸晃動只動這個容器，不影響各層自己的位移/縮放
         _cgBreathRoot = new Control { Name = "CG_BreathRoot", MouseFilter = MouseFilterEnum.Ignore };
@@ -360,8 +386,8 @@ public partial class MainMenuRuntime : Control
         // Unity: anchor (1,0)、pivot (1,0)、pos (-20,10)、size (180,24)
         hint.AnchorLeft = 1f; hint.AnchorRight = 1f;
         hint.AnchorTop  = 1f; hint.AnchorBottom = 1f;
-        hint.OffsetRight  = -20f;
-        hint.OffsetLeft   = -20f - 180f;
+        hint.OffsetRight  = -64f;   // 往左移，避免提示文字貼到對話框右緣（原 -20）
+        hint.OffsetLeft   = -64f - 260f;
         hint.OffsetBottom = -10f;
         hint.OffsetTop    = -10f - 24f;
         hint.AddThemeFontSizeOverride("font_size", 15);
@@ -1533,12 +1559,22 @@ public partial class MainMenuRuntime : Control
         _cgBreathRoot.Scale = Vector2.One * Mathf.Lerp(1f, s, Mathf.Min(k, 1f));
     }
 
+    /// <summary>背景放大越多就越模糊（每幀依目前縮放計算，Inspector 調整立即生效）。</summary>
+    void UpdateBgBlur()
+    {
+        if (_bgBlurMat == null || _bgImage == null || !IsInstanceValid(_bgImage)) return;
+        float zoom = Mathf.Max(0f, _bgImage.Scale.X - 1f);
+        float b = BgBlurEnabled ? Mathf.Min(zoom * BgBlurPerScale, BgBlurMax) : 0f;
+        _bgBlurMat.SetShaderParameter("blur", b);
+    }
+
     public override void _Process(double delta)
     {
         // ① 原本的 Update 邏輯（含提前 return，故抽成獨立方法）
         UpdateDialogueInput((float)delta);
         UpdateOpBgmEq();
         UpdateBreath((float)delta);
+        UpdateBgBlur();
 
         // ② 原本的 LateUpdate 邏輯：即時同步 Inspector 數值到 UI 物件
         if (_titleRT != null)
@@ -1569,12 +1605,13 @@ public partial class MainMenuRuntime : Control
 
         // 列佈局即時同步（移動整列容器）
         Vector2 rowSize = new Vector2(SetRowW, SetRowH);
-        if (_setSnd1RT != null) DlgSetPosSize(_setSnd1RT, new Vector2(0, SetRowStartY), rowSize);
-        if (_setSnd2RT != null) DlgSetPosSize(_setSnd2RT, new Vector2(0, SetRowStartY - SetRowGap), rowSize);
-        if (_setSnd3RT != null) DlgSetPosSize(_setSnd3RT, new Vector2(0, SetRowStartY - SetRowGap * 2), rowSize);
-        if (_setLangBtnRT  != null) DlgSetPosSize(_setLangBtnRT,  new Vector2(0, SetRowStartY - SetRowGap * 3), rowSize);
-        if (_setLangBtn2RT != null) DlgSetPosSize(_setLangBtn2RT, new Vector2(0, SetRowStartY - SetRowGap * 4), rowSize);
-        if (_setLangBtn3RT != null) DlgSetPosSize(_setLangBtn3RT, new Vector2(0, SetRowStartY - SetRowGap * 5), rowSize);
+        if (_setSnd0RT != null) DlgSetPosSize(_setSnd0RT, new Vector2(0, SetRowStartY), rowSize);
+        if (_setSnd1RT != null) DlgSetPosSize(_setSnd1RT, new Vector2(0, SetRowStartY - SetRowGap), rowSize);
+        if (_setSnd2RT != null) DlgSetPosSize(_setSnd2RT, new Vector2(0, SetRowStartY - SetRowGap * 2), rowSize);
+        if (_setSnd3RT != null) DlgSetPosSize(_setSnd3RT, new Vector2(0, SetRowStartY - SetRowGap * 3), rowSize);
+        if (_setLangBtnRT  != null) DlgSetPosSize(_setLangBtnRT,  new Vector2(0, SetRowStartY - SetRowGap * 4), rowSize);
+        if (_setLangBtn2RT != null) DlgSetPosSize(_setLangBtn2RT, new Vector2(0, SetRowStartY - SetRowGap * 5), rowSize);
+        if (_setLangBtn3RT != null) DlgSetPosSize(_setLangBtn3RT, new Vector2(0, SetRowStartY - SetRowGap * 6), rowSize);
 
         // 偵測滑動參數變化 → 重播滑動
         if (_slideRT != null)

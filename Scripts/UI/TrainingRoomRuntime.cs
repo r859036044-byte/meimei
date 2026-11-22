@@ -98,6 +98,7 @@ public partial class TrainingRoomRuntime : Node
 	public override void _Process(double delta)
 	{
 		float dt = (float)delta;
+		if (_storyFrozen) return;   // 男主劇情播放中：整個 TR 的動作全部停住（Dialogue.cs BeginStoryFreezeAsync）
 
 		UpdateDuvet();   // 被子位置／配色／折疊參數（Inspector 可即時調）
 		UpdateClothAlpha();   // 衣物不透明度（Inspector 可即時調）
@@ -153,6 +154,18 @@ public partial class TrainingRoomRuntime : Node
 		overlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 		UiRoot.AddChild(overlay);
 		overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+
+		// 有新手教學時：黑屏撐到教學的暗幕蓋上去才開始淡出，避免淡出時整個介面先閃一下才出現教學（最多撐 4 秒保險）
+		if (_tutWaiting)
+		{
+			float hold = 0f;
+			while (!_tutActive && hold < 4f)
+			{
+				hold += (float)GetProcessDeltaTime();
+				await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			}
+			for (int i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);   // 等教學暗幕畫出來
+		}
 
 		float t = 1f;
 		while (t > 0f)

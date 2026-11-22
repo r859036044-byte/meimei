@@ -232,6 +232,12 @@ public static class I18n
             "スキップ",
             "건너뛰기");
 
+        Add("全音量",
+            "总音量",
+            "Master Volume",
+            "全体音量",
+            "전체 음량");
+
         Add("音樂",
             "音乐",
             "Music",
