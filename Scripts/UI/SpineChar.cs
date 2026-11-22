@@ -111,6 +111,7 @@ public partial class SpineChar : Control
         { "shuijiao",       "sleepy"    },
         { "cixiaoguixiao",  "smirk"     },
         { "xingxingyan",    "star_eyes" },
+        { "feicixiaoguixiao", "gentle_laugh" },   // 非雌小鬼笑（2026-11 新增）
     };
 
     /// <summary>動畫播放速度倍率</summary>
