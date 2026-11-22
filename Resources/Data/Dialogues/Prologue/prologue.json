@@ -461,7 +461,7 @@
       "fadein": "60, 1",
       "speaker": "莉奈",
       "text": "這種破爛公寓真的能住人喔？",
-      "bgName": "bg_Hallway_suitcase, fade",
+      "bgName": "bg_LivingRoom, fade",
       "chOutfit": "shirt",
       "chHair": "twin",
       "chSocks": "white",
@@ -502,12 +502,12 @@
     {
       "text": "",
       "autoNext": 1,
-      "bgName": "bg_ApartmentDoor, fade"
+      "bgName": "bg_LivingRoom, fade"
     },
     {
       "speaker": "男主（內心）",
       "text": "這...這跟我想像中的感人重逢完全不一樣啊！！我的天使妹妹去哪了！？",
-      "bgName": "bg_ApartmentDoor, fade"
+      "bgName": "bg_LivingRoom, fade"
     },
     {
       "speaker": "男主（內心）",
