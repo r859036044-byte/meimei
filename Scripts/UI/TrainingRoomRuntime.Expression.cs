@@ -262,13 +262,32 @@ public partial class TrainingRoomRuntime : Node
         _charRoot.AddChild(wrapper);
         _charRoot.MoveChild(wrapper, insertIndex);
 
-        foreach (var c in new[] { whiteCtrl, eyeballCtrl })
+        if (whiteCtrl != null && eyeballCtrl != null)
         {
-            if (c == null) continue;
-            Vector2 localPos = c.Position - rect.Position;
-            _charRoot.RemoveChild(c);
-            wrapper.AddChild(c);
-            c.Position = localPos; // 換算成相對容器的本地座標，畫面上視覺位置不變
+            // 讓眼白成為眼球的遮色片（ClipChildrenMode.AndDraw）：眼球超出眼白不透明範圍的部分會被自動裁掉
+            whiteCtrl.ClipChildren = CanvasItem.ClipChildrenMode.AndDraw;
+
+            Vector2 whiteLocalPos = whiteCtrl.Position - rect.Position;
+            Vector2 eyeballRelPos = eyeballCtrl.Position - whiteCtrl.Position;
+
+            _charRoot.RemoveChild(whiteCtrl);
+            wrapper.AddChild(whiteCtrl);
+            whiteCtrl.Position = whiteLocalPos;
+
+            _charRoot.RemoveChild(eyeballCtrl);
+            whiteCtrl.AddChild(eyeballCtrl);
+            eyeballCtrl.Position = eyeballRelPos;
+        }
+        else
+        {
+            foreach (var c in new[] { whiteCtrl, eyeballCtrl })
+            {
+                if (c == null) continue;
+                Vector2 localPos = c.Position - rect.Position;
+                _charRoot.RemoveChild(c);
+                wrapper.AddChild(c);
+                c.Position = localPos; // 換算成相對容器的本地座標，畫面上視覺位置不變
+            }
         }
 
         return wrapper;
