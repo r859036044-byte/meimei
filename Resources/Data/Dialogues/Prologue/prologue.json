@@ -194,7 +194,7 @@
       "text": "",
       "autoNext": 1,
       "fadeoutWhite": "60, 1",
-      "showCG1": "linai knock background2, 0",
+      "bgName": "bg_Hallway_suitcase",
       "showCG2": "linai knock 1, 0"
     },
     {
