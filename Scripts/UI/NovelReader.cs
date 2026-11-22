@@ -70,8 +70,11 @@ public partial class NovelReader : Node
     Panel _paper;
     bool _holdArmed;
     float _holdSeconds;
+    Key _holdKey = Key.None;   // 長按快進是由哪個鍵觸發（None＝滑鼠左鍵）
     bool HoldFast => _holdArmed && _holdSeconds >= 0.45f;
-    bool IsFast => Mode == Playback.Fast || HoldFast;
+    // 按住 Ctrl＝快進（對話框可見、沒被暫停時才算）
+    bool CtrlFast => Input.IsKeyPressed(Key.Ctrl) && IsInstanceValid(_box) && _box.IsVisibleInTree() && !Paused && !UIHidden && GetWindow().HasFocus();
+    bool IsFast => Mode == Playback.Fast || HoldFast || CtrlFast;
     Control _speakerBadge;
     // 右上角選單（保存／讀檔／歷史紀錄／設定）
     Button _menuButton;
@@ -83,7 +86,7 @@ public partial class NovelReader : Node
     Panel _face;
     HeartDecoration _heartIcon;
     FishDecoration _fishIcon;
-    void CancelHold() { _holdArmed = false; _holdSeconds = 0; }
+    void CancelHold() { _holdArmed = false; _holdSeconds = 0; _holdKey = Key.None; }
 
     public static NovelReader Install(Node owner, Control box, Control content, Control oldBar,
         Func<bool> typing, Func<bool> waiting, Func<bool> locked, Action reveal, Action advance, Func<bool> blocked = null)
@@ -288,7 +291,8 @@ public partial class NovelReader : Node
         if (IsInstanceValid(_speakerBadge)) _speakerBadge.Modulate = new Color(1, 1, 1, _speakerBadge.Modulate.A);
         if (_holdArmed)
         {
-            if (!Input.IsMouseButtonPressed(MouseButton.Left) || Paused || !_box.IsVisibleInTree() || OverButton() || !GetWindow().HasFocus()) CancelHold();
+            bool held = _holdKey == Key.None ? Input.IsMouseButtonPressed(MouseButton.Left) : Input.IsKeyPressed(_holdKey);
+            if (!held || Paused || !_box.IsVisibleInTree() || (_holdKey == Key.None && OverButton()) || !GetWindow().HasFocus()) CancelHold();
             else _holdSeconds += (float)delta;
         }
         // 舊列保留存讀檔功能；只移除已被統一工具列取代的播放按鈕。
@@ -358,9 +362,9 @@ public partial class NovelReader : Node
         if (IsFast && _typing()) { _reveal(); return; }
         if (_typing() || !_waiting() || _locked()) { _elapsed = 0; return; }
         _elapsed += (float)delta;
-        float delay = Mode == Playback.Fast ? 0.03f : HoldFast ? 0.10f : Mathf.Clamp(1.25f + _length * 0.055f, 2f, 9f) / _autoSpeed;
+        float delay = (Mode == Playback.Fast || CtrlFast) ? 0.03f : HoldFast ? 0.10f : Mathf.Clamp(1.25f + _length * 0.055f, 2f, 9f) / _autoSpeed;
         if (Mode == Playback.Auto && _dailyVoice?.Playing == true) return;
-        if ((Mode != Playback.Manual || HoldFast) && _elapsed >= delay) { _elapsed = 0; _advance(); }
+        if ((Mode != Playback.Manual || HoldFast || CtrlFast) && _elapsed >= delay) { _elapsed = 0; _advance(); }
     }
     // 跳過模式：不遮黑屏，右上角顯示小提示文字，到選擇點（Stop）或再按一次就解除
     void UpdateSkipOverlay()
@@ -411,7 +415,8 @@ public partial class NovelReader : Node
     }
     public override void _Input(InputEvent ev)
     {
-        if (ev is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) CancelHold();
+        if (ev is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } && _holdKey == Key.None) CancelHold();
+        if (ev is InputEventKey { Pressed: false } up && up.Keycode == _holdKey && _holdKey != Key.None) CancelHold();
         if (UIHidden)
         {
             // 隱藏中：任何點擊或按鍵只負責把對話框叫回來，不推進劇情
@@ -432,7 +437,12 @@ public partial class NovelReader : Node
             else if (key.Keycode == Key.A) SetMode(Playback.Auto);
             else if (key.Keycode == Key.F) SetMode(Playback.Fast);
             else if (key.Keycode == Key.Escape) Stop();
-            else if (key.Keycode == Key.Space && GetViewport().GuiGetFocusOwner() is not BaseButton) ManualAdvance();
+            else if ((key.Keycode == Key.Space || key.Keycode == Key.Enter || key.Keycode == Key.KpEnter) && GetViewport().GuiGetFocusOwner() is not BaseButton)
+            {
+                bool canHold = _typing() || _waiting();
+                ManualAdvance();
+                _holdArmed = canHold; _holdSeconds = 0; _holdKey = key.Keycode;   // 按住 Space／Enter 也能長按快進（跟滑鼠一樣）
+            }
             else return;
             GetViewport().SetInputAsHandled();
         }
@@ -445,7 +455,7 @@ public partial class NovelReader : Node
                 bool canHold = _typing() || _waiting();
                 ManualAdvance();
                 GetViewport().GuiGetFocusOwner()?.ReleaseFocus();
-                _holdArmed = canHold; _holdSeconds = 0;
+                _holdArmed = canHold; _holdSeconds = 0; _holdKey = Key.None;
             }
             else return;
             GetViewport().SetInputAsHandled();
