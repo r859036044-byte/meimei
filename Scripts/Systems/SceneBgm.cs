@@ -45,12 +45,25 @@ public partial class SceneBgm : Node
         foreach (string ext in exts)
         {
             string full = basePath + ext;
-            if (!ResourceLoader.Exists(full)) continue;
-            var source = ResourceLoader.Load<AudioStream>(full);
-            if (source == null) continue;
-            var copy = source.Duplicate() as AudioStream ?? source;
-            EnableLoop(copy);
-            return copy;
+            if (ResourceLoader.Exists(full))
+            {
+                var source = ResourceLoader.Load<AudioStream>(full);
+                if (source != null)
+                {
+                    var copy = source.Duplicate() as AudioStream ?? source;
+                    EnableLoop(copy);
+                    return copy;
+                }
+            }
+            if (full.EndsWith(".mp3") && FileAccess.FileExists(full))
+            {
+                var bytes = FileAccess.GetFileAsBytes(full);
+                if (bytes != null && bytes.Length > 0)
+                {
+                    var mp3 = new AudioStreamMP3 { Data = bytes, Loop = true };
+                    return mp3;
+                }
+            }
         }
         return null;
     }

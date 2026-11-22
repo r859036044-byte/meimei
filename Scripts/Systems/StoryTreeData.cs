@@ -59,18 +59,18 @@ public static class StoryTreeData
     // ═══════════════════════════════════════════════════════════
     public static readonly (int ending, float mood, float brat)[] AAEndingTargets =
     {
-        (5, 90f, 10f),   // 我喜歡我的妹妹是雌小鬼：心情很高、雌小鬼很低
+        (1, 90f, 10f),   // 我喜歡我的妹妹是雌小鬼（真結局）：心情很高、雌小鬼很低
         (3, 55f, 70f),   // 課後輔導：心情中等、雌小鬼偏高
-        (7, 15f, 50f),   // 斷線的風箏（已融合「無聲的拒絕」）：心情很低、雌小鬼中等。結局 4 不再觸發，這個區域改成走結局 7（離家出走）
-        (1,  7f, 90f),   // 雜魚敗犬：心情超低、雌小鬼超高（結局 2「衝動的代價」已拿掉，第 3 晚深夜不再有選擇，一律走結局 1）
+        (5, 15f, 50f),   // 斷線的風箏（已融合「無聲的拒絕」）：心情很低、雌小鬼中等。結局 4 不再觸發，這個區域改成走結局 7（離家出走）
+        (2,  7f, 90f),   // 雜魚敗犬：心情超低、雌小鬼超高（結局 2「衝動的代價」已拿掉，第 3 晚深夜不再有選擇，一律走結局 1）
     };
 
     /// <summary>已經從遊戲拿掉、不會再觸發的結局（劇本內容還留著，只是不能觸發、圖鑒也不顯示）：
     /// 2＝衝動的代價（併入結局 1 雜魚敗犬）、4＝無聲的拒絕（融合進結局 7 斷線的風箏）。想恢復就把它從這裡拿掉並還原觸發條件。</summary>
-    public static bool AAEndingRemoved(int n) => n == 2 || n == 4;
+    public static bool AAEndingRemoved(int n) => n == 6 || n == 7;   // 2026-11-23 重新編號：舊 2（衝動的代價）→6、舊 4（無聲的拒絕）→7
 
     /// <summary>算出的結局編號 → 要不要走「離家出走」結局 7（斷線的風箏，Ending4 場景播 Day2_Start(bad end)）。</summary>
-    public static bool AAEndingIsBadEnd(int ending) => ending == 7;
+    public static bool AAEndingIsBadEnd(int ending) => ending == 5;
 
     /// <summary>依心情、雌小鬼值決定結局（結局 7＝心情 0、結局 6＝雌小鬼 100，由別處優先判定，不在這裡）：
     ///   結局 1：心情 &lt; 30
@@ -78,16 +78,16 @@ public static class StoryTreeData
     ///   結局 3：其餘（心情 ≥ 30；心情 &gt; 80 但雌小鬼 &gt; 30 也算在這）</summary>
     public static int PickAAEndingByStats(float mood, float brat)
     {
-        if (mood < 30f) return 1;
-        if (mood > 80f && brat <= 30f) return 5;
-        return 3;
+        if (mood < 30f) return 2;                       // 雜魚敗犬
+        if (mood > 80f && brat <= 30f) return 1;        // 真結局：我喜歡我的妹妹是雌小鬼
+        return 3;                                       // 課後輔導
     }
 
     /// <summary>結局編號對應的劇本路徑（劇本裡 day1／day2 的 blanket／noBlanket 分段只是「分段標籤」，現在由數值推出來）。</summary>
     public static (bool d1Cover, bool d2Cover) AAEndingPath(int ending) => ending switch
     {
-        5 => (true, true),
-        4 => (true, false),
+        1 => (true, true),
+        7 => (true, false),
         3 => (false, true),
         _ => (false, false),
     };
@@ -96,13 +96,14 @@ public static class StoryTreeData
     public static readonly AAEnding[] AAEndings =
     {
         default, // [0] 不使用
-        new("雜魚敗犬",     "心情低於 30",   "day1_noBlanket", "day2_noBlanket", 0), // 結局1
-        new("衝動的代價",       "第1晚不做 → 第2晚不做 → 教訓妹妹", "day1_noBlanket", "day2_noBlanket", 1), // 結局2
+        // 2026-11-23 重新編號：真結局放 1 號，其餘照原本順序往下排、中間不留空；已拿掉的兩個結局放最後（6、7，圖鑒不顯示）
+        new("我喜歡我的妹妹是雌小鬼", "心情高於 80 且雌小鬼值 30 以下",      "day1_blanket",   "day2_blanket",   -1), // 結局1（真結局，舊 5）
+        new("雜魚敗犬",     "心情低於 30",   "day1_noBlanket", "day2_noBlanket", 0), // 結局2（舊 1）
         new("課後輔導~❤",   "心情 30～80（心情高於 80 但雌小鬼值高於 30 也算）",        "day1_noBlanket", "day2_blanket",   -1), // 結局3
-        new("無聲的拒絕",       "第1晚蓋被子 → 第2晚不做",        "day1_blanket",   "day2_noBlanket", -1), // 結局4
-        new("我喜歡我的妹妹是雌小鬼", "心情高於 80 且雌小鬼值 30 以下",      "day1_blanket",   "day2_blanket",   -1), // 結局5
-        new("雌小鬼大小姐",     "雌小鬼值滿 100（心情沒歸 0）",  "mesugaki100",    "mesugaki100",    -1), // 結局6：重播時把 mesugaki100 設成 1，播 Day3_Start 開頭那段
-        new("斷線的風箏",       "心情歸 0 → 莉奈離家出走",        AAEndingBadEndVar, AAEndingBadEndVar, -1), // 結局7：播 Day2_Start(bad end)（重播時特別處理，見 LivingRoomRuntime.ReplayAAEndingAsync）
+        new("雌小鬼大小姐",     "雌小鬼值滿 100（心情沒歸 0）",  "mesugaki100",    "mesugaki100",    -1), // 結局4（舊 6）：重播時把 mesugaki100 設成 1，播 Day3_Start 開頭那段
+        new("斷線的風箏",       "心情歸 0 → 莉奈離家出走",        AAEndingBadEndVar, AAEndingBadEndVar, -1), // 結局5（舊 7）：播 Day2_Start(bad end)（重播時特別處理，見 LivingRoomRuntime.ReplayAAEndingAsync）
+        new("衝動的代價",       "第1晚不做 → 第2晚不做 → 教訓妹妹", "day1_noBlanket", "day2_noBlanket", 1), // 結局6（舊 2，已拿掉）
+        new("無聲的拒絕",       "第1晚蓋被子 → 第2晚不做",        "day1_blanket",   "day2_noBlanket", -1), // 結局7（舊 4，已拿掉）
     };
 
     public static readonly (string id, string label, string night)[] AABranchDefs =
@@ -129,13 +130,13 @@ public static class StoryTreeData
         ["A08"] = new() { Id="A08", Label="第3天（第2晚不做）",  Type=NodeType.Story,  Time="D3",   File="Day3/Day3_Start",     Preview="" },
         ["A09"] = new() { Id="A09", Label="第3天（兩晚都蓋被）", Type=NodeType.Story,  Time="D3",   File="Day3/Day3_Start",     Preview="" },
         ["A10"] = new() { Id="A10", Label="第3天 深夜：選擇",    Type=NodeType.Choice, Time="D3深夜", File="Day3/Day3_Start",     Preview="" },
-        ["AE1"] = new() { Id="AE1", Label="結局1 雜魚敗犬",   Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=1, EndingLabel="結局1", Preview="" },
-        ["AE2"] = new() { Id="AE2", Label="結局2 衝動的代價",     Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=2, EndingLabel="結局2", Preview="" },
+        ["AE1"] = new() { Id="AE1", Label="結局2 雜魚敗犬",   Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=2, EndingLabel="結局2", Preview="" },
+        ["AE2"] = new() { Id="AE2", Label="結局6 衝動的代價",     Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=6, EndingLabel="結局6", Preview="" },
         ["AE3"] = new() { Id="AE3", Label="結局3 課後輔導~❤", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=3, EndingLabel="結局3", Preview="" },
-        ["AE4"] = new() { Id="AE4", Label="結局4 無聲的拒絕",     Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=4, EndingLabel="結局4", Preview="" },
-        ["AE5"] = new() { Id="AE5", Label="結局5 我喜歡我的妹妹是雌小鬼", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=5, EndingLabel="結局5", Preview="" },
-        ["AE6"] = new() { Id="AE6", Label="結局6 雌小鬼大小姐", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=6, EndingLabel="結局6", Preview="" },
-        ["AE7"] = new() { Id="AE7", Label="結局7 斷線的風箏",   Type=NodeType.Ending, Time="D2", File="Endings/Day2_Start(bad end)", EndingNum=7, EndingLabel="結局7", Preview="" },
+        ["AE4"] = new() { Id="AE4", Label="結局7 無聲的拒絕",     Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=7, EndingLabel="結局7", Preview="" },
+        ["AE5"] = new() { Id="AE5", Label="結局1 我喜歡我的妹妹是雌小鬼", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=1, EndingLabel="結局1", Preview="" },
+        ["AE6"] = new() { Id="AE6", Label="結局4 雌小鬼大小姐", Type=NodeType.Ending, Time="D3", File="Day3/Day3_Start", EndingNum=4, EndingLabel="結局4", Preview="" },
+        ["AE7"] = new() { Id="AE7", Label="結局5 斷線的風箏",   Type=NodeType.Ending, Time="D2", File="Endings/Day2_Start(bad end)", EndingNum=5, EndingLabel="結局5", Preview="" },
     };
 
     public static readonly Dictionary<string, List<StoryEdge>> AAEdges = new()

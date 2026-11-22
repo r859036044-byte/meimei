@@ -445,7 +445,17 @@ public partial class SpineChar : Control
         string type = Str(e, "type") ?? "region";
         if (type == "clipping")
         {
-            return null;
+            if (!e.TryGetProperty("vertices", out var cvProp)) return null;
+            var cverts = Floats(cvProp);
+            int vc = (int)Fl(e, "vertexCount", cverts.Length / 2f);
+            return new Att
+            {
+                IsClip = true,
+                ClipEndSlot = Str(e, "end"),
+                VertCount = vc,
+                Weighted = cverts.Length != vc * 2,
+                Raw = cverts,
+            };
         }
         string path = Str(e, "path") ?? name;
         if (!regions.TryGetValue(path, out var reg))
@@ -732,11 +742,22 @@ public partial class SpineChar : Control
         Rid item = GetCanvasItem();
         Rid texRid = _tex.GetRid();
 
+        Vector2[] activeClipPoly = null;
+        string activeClipEndSlot = null;
+
         for (int si = 0; si < _slots.Count; si++)
         {
             Slot slot = _slots[si];
             Att att = FindAtt(slot.Name, _cur[si]);
-            if (att == null) continue;
+            if (att == null)
+            {
+                if (activeClipEndSlot != null && slot.Name == activeClipEndSlot)
+                {
+                    activeClipPoly = null;
+                    activeClipEndSlot = null;
+                }
+                continue;
+            }
 
             var pts = new Vector2[att.VertCount];
             if (att.Weighted)
@@ -768,7 +789,70 @@ public partial class SpineChar : Control
                 }
             }
 
-            RenderingServer.CanvasItemAddTriangleArray(item, att.Tris, pts, White(att.VertCount), att.UV, null, null, texRid, -1);
+            if (att.IsClip)
+            {
+                activeClipPoly = pts;
+                activeClipEndSlot = att.ClipEndSlot;
+                continue;
+            }
+
+            if (activeClipPoly != null && activeClipPoly.Length >= 3)
+            {
+                DrawClippedMesh(item, texRid, pts, att.UV, att.Tris, activeClipPoly);
+            }
+            else
+            {
+                RenderingServer.CanvasItemAddTriangleArray(item, att.Tris, pts, White(att.VertCount), att.UV, null, null, texRid, -1);
+            }
+
+            if (activeClipEndSlot != null && slot.Name == activeClipEndSlot)
+            {
+                activeClipPoly = null;
+                activeClipEndSlot = null;
+            }
+        }
+    }
+
+    private static void DrawClippedMesh(Rid item, Rid texRid, Vector2[] pts, Vector2[] uvs, int[] tris, Vector2[] clipPoly)
+    {
+        var outPts = new List<Vector2>();
+        var outUvs = new List<Vector2>();
+        var outTris = new List<int>();
+
+        for (int t = 0; t + 2 < tris.Length; t += 3)
+        {
+            int i0 = tris[t], i1 = tris[t + 1], i2 = tris[t + 2];
+            Vector2 p0 = pts[i0], p1 = pts[i1], p2 = pts[i2];
+            Vector2 u0 = uvs[i0], u1 = uvs[i1], u2 = uvs[i2];
+            float denom = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
+            if (Mathf.Abs(denom) < 1e-4f) continue;
+
+            var clippedList = Geometry2D.IntersectPolygons(new[] { p0, p1, p2 }, clipPoly);
+            foreach (var poly in clippedList)
+            {
+                if (poly == null || poly.Length < 3) continue;
+                int baseIdx = outPts.Count;
+                for (int k = 0; k < poly.Length; k++)
+                {
+                    Vector2 p = poly[k];
+                    float w0 = ((p1.Y - p2.Y) * (p.X - p2.X) + (p2.X - p1.X) * (p.Y - p2.Y)) / denom;
+                    float w1 = ((p2.Y - p0.Y) * (p.X - p2.X) + (p0.X - p2.X) * (p.Y - p2.Y)) / denom;
+                    float w2 = 1f - w0 - w1;
+                    outPts.Add(p);
+                    outUvs.Add(u0 * w0 + u1 * w1 + u2 * w2);
+                }
+                for (int k = 1; k + 1 < poly.Length; k++)
+                {
+                    outTris.Add(baseIdx);
+                    outTris.Add(baseIdx + k);
+                    outTris.Add(baseIdx + k + 1);
+                }
+            }
+        }
+
+        if (outTris.Count >= 3)
+        {
+            RenderingServer.CanvasItemAddTriangleArray(item, outTris.ToArray(), outPts.ToArray(), White(outPts.Count), outUvs.ToArray(), null, null, texRid, -1);
         }
     }
 }

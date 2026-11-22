@@ -142,7 +142,7 @@ public partial class GalleryDataManager : Node
 
         var aa = new Godot.Collections.Array();
         for (int i = 1; i <= AAEndingCount; i++) if (_aaEndings[i]) aa.Add(i);
-        d["aaEndings"] = aa;
+        d["aaEndings2"] = aa;   // 2026-11-23 結局重新編號後改用新欄位（舊欄位 aaEndings 讀取時會換算）
 
         var ca = new Godot.Collections.Array();
         foreach (var c in _cgs) ca.Add(c);
@@ -178,12 +178,23 @@ public partial class GalleryDataManager : Node
                 if (n is >= 1 and <= 19) _endings[n] = true;
             }
 
-        if (d.TryGetValue("aaEndings", out var av) && av.VariantType == Variant.Type.Array)
-            foreach (var e in av.AsGodotArray())
+        if (d.TryGetValue("aaEndings2", out var av2) && av2.VariantType == Variant.Type.Array)
+        {
+            foreach (var e in av2.AsGodotArray())
             {
                 int n = e.AsInt32();
                 if (n >= 1 && n <= AAEndingCount) _aaEndings[n] = true;
             }
+        }
+        else if (d.TryGetValue("aaEndings", out var av) && av.VariantType == Variant.Type.Array)
+        {   // 舊存檔：舊編號 → 新編號（真結局 5→1、雜魚敗犬 1→2、課後輔導 3→3、雌小鬼大小姐 6→4、斷線的風箏 7→5、拿掉的 2→6、4→7）
+            int[] oldToNew = { 0, 2, 6, 3, 7, 1, 4, 5 };
+            foreach (var e in av.AsGodotArray())
+            {
+                int n = e.AsInt32();
+                if (n >= 1 && n <= AAEndingCount) _aaEndings[oldToNew[n]] = true;
+            }
+        }
 
         if (d.TryGetValue("cgs", out var cv) && cv.VariantType == Variant.Type.Array)
             foreach (var c in cv.AsGodotArray()) _cgs.Add(c.AsString());

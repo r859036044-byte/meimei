@@ -159,9 +159,7 @@ public partial class DevToolPanel : Control
         _window.Size = _window.GetCombinedMinimumSize();
 
         var vpSize = GetViewportRect().Size;
-        _window.Position = s_lastWindowPos.X >= 0
-            ? s_lastWindowPos
-            : new Vector2(340f, 80f);   // 預設放左邊（狀態卡右側），不跟右邊的表情測試面板疊在一起
+        _window.Position = (vpSize - _window.Size) * 0.5f;   // 每次打開都置中（打開後仍可拖動標題列移動）
 
         ClampWindowToScreen();
     }

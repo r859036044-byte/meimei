@@ -1,5 +1,5 @@
 trueend.png
-size: 4096, 8570
+size: 4096, 9214
 format: RGBA8888
 filter: Linear, Linear
 repeat: none
@@ -15,65 +15,77 @@ bangs_a
   bounds: 4, 3602, 907, 1080
 bangs_a_shade2
   bounds: 915, 3602, 905, 1080
+blush
+  bounds: 1824, 3602, 1150, 1000
+blush_deep
+  bounds: 4, 4686, 1150, 1000
 viewer_a
-  bounds: 1824, 3602, 1162, 989
+  bounds: 1158, 4686, 1162, 989
 viewer_b
-  bounds: 4, 4686, 1127, 973
-head_shade
-  bounds: 1135, 4686, 1004, 958
+  bounds: 2324, 4686, 1127, 973
+gap_fill
+  bounds: 4, 5690, 800, 950
 hair_side_a
-  bounds: 2143, 4686, 504, 929
+  bounds: 808, 5690, 504, 929
 hair_lock_l
-  bounds: 2651, 4686, 532, 923
+  bounds: 1316, 5690, 532, 923
 torso
-  bounds: 4, 5663, 1002, 923
+  bounds: 1852, 5690, 1002, 923
 bangs_a_shade
-  bounds: 1010, 5663, 534, 917
+  bounds: 2858, 5690, 534, 917
 head_skin
-  bounds: 1548, 5663, 824, 891
+  bounds: 4, 6644, 824, 891
 ponytail
-  bounds: 2376, 5663, 492, 821
+  bounds: 832, 6644, 492, 821
 coat
-  bounds: 2872, 5663, 1046, 815
+  bounds: 1328, 6644, 1046, 815
 stocking
-  bounds: 4, 6590, 538, 768
+  bounds: 2378, 6644, 538, 768
 bangs_shine
-  bounds: 546, 6590, 852, 760
-eyelash
-  bounds: 1402, 6590, 370, 627
+  bounds: 2920, 6644, 852, 760
+side_shade_b
+  bounds: 4, 7539, 828, 628
 clothes_inner
-  bounds: 1776, 6590, 1020, 602
+  bounds: 836, 7539, 1020, 602
 eye_white
-  bounds: 2800, 6590, 348, 587
+  bounds: 1860, 7539, 348, 587
 viewer_c
-  bounds: 4, 7362, 1593, 578
+  bounds: 2212, 7539, 1593, 578
+side_shade_a
+  bounds: 4, 8171, 447, 552
 eyebrow
-  bounds: 1601, 7362, 326, 542
+  bounds: 455, 8171, 326, 542
 viewer_d
-  bounds: 4, 7944, 2288, 529
+  bounds: 785, 8171, 2288, 529
 hair_side_b
-  bounds: 2296, 7944, 829, 505
+  bounds: 3077, 8171, 829, 505
 hand
-  bounds: 3129, 7944, 465, 483
+  bounds: 4, 8727, 465, 483
+lash_up_a
+  bounds: 473, 8727, 213, 276
+lash_up_b
+  bounds: 690, 8727, 212, 252
+lash_lo_b
+  bounds: 906, 8727, 116, 136
 iris
-  bounds: 3598, 7944, 101, 118
+  bounds: 1026, 8727, 101, 118
 iris_shade
-  bounds: 3703, 7944, 89, 113
-cheek
-  bounds: 3796, 7944, 85, 107
-cheek_deep
-  bounds: 3885, 7944, 85, 107
-iris2
-  bounds: 3974, 7944, 81, 100
-iris2_shade
-  bounds: 4, 8477, 74, 89
+  bounds: 1131, 8727, 89, 113
 mouth
-  bounds: 82, 8477, 46, 60
+  bounds: 1224, 8727, 85, 107
 mouth_pout
-  bounds: 132, 8477, 46, 60
+  bounds: 1313, 8727, 85, 107
 mouth_smirk
-  bounds: 182, 8477, 46, 60
+  bounds: 1402, 8727, 85, 107
+lash_lo_a
+  bounds: 1491, 8727, 31, 103
+iris2
+  bounds: 1526, 8727, 81, 100
+iris2_shade
+  bounds: 1611, 8727, 74, 89
+nose
+  bounds: 1689, 8727, 46, 60
 iris2_light
-  bounds: 232, 8477, 19, 22
+  bounds: 1739, 8727, 19, 22
 iris_light
-  bounds: 255, 8477, 23, 20
+  bounds: 1762, 8727, 23, 20

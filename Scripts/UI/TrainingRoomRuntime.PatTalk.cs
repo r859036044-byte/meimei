@@ -83,13 +83,13 @@ public partial class TrainingRoomRuntime
 
         if (_patTalkStep == 0 && _patTalkT >= PatTalkFirstDelay)
         {
-            var pPool = (_jijiPhase == 3 && PatPlayerLinesSex != null && PatPlayerLinesSex.Length > 0) ? PatPlayerLinesSex : PatPlayerLines;
+            var pPool = (BratR18 && _jijiPhase == 3 && PatPlayerLinesSex != null && PatPlayerLinesSex.Length > 0) ? PatPlayerLinesSex : PatPlayerLines;
             ShowBubble(ref _bubblePlayer, ref _bubblePlayerLbl, Pick(pPool), true);
             _patTalkStep = 1; _patTalkT = 0f;
         }
         else if (_patTalkStep == 1 && _patTalkT >= PatTalkGap)
         {
-            var gPool = (_jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlPoolNonSex();
+            var gPool = (BratR18 && _jijiPhase == 3 && PatGirlLinesSex != null && PatGirlLinesSex.Length > 0) ? PatGirlLinesSex : PatGirlPoolNonSex();
             string gLine_ = Pick(gPool);
             ShowBubble(ref _bubbleGirl, ref _bubbleGirlLbl, gLine_, false);
             bool friendly_ = PatGirlLinesFriendly != null && System.Array.IndexOf(PatGirlLinesFriendly, gLine_) >= 0;

@@ -144,10 +144,10 @@ public partial class TrainingRoomRuntime
     {
         var pdm = PlayerDataManager.Instance;
         if (pdm == null) return "";
-        if (Mood <= 0f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局7 斷線的風箏";
-        if (BratValue >= 100f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局6 雌小鬼大小姐";
+        if (Mood <= 0f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局5 斷線的風箏";
+        if (BratValue >= 100f) return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → 結局4 雌小鬼大小姐";
         int e = StoryTreeData.PickAAEndingByStats(Mood, BratValue);
-        return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → " + (e == 1 ? "結局1／2（雜魚敗犬／衝動的代價）" : $"結局{e}");
+        return $"心情 {Mood:F0}／雌小鬼 {BratValue:F0} → " + (e == 2 ? "結局2 雜魚敗犬" : e == 1 ? "結局1 我喜歡我的妹妹是雌小鬼（真結局）" : $"結局{e}");
     }
 
     /// <summary>測試用（F1 面板的按鈕）：心情值加減 delta，立刻存檔並檢查結局條件（心情歸 0 → BratEnd=1）。</summary>

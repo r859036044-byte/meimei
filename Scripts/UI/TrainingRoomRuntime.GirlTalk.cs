@@ -380,6 +380,7 @@ public partial class TrainingRoomRuntime
     void GirlTalkMaleReply(bool brat)
     {
         if (_lastGirlLineSoundOnly) return;   // 莉奈只發出聲音，男主不回應
+        if (!BratR18) return;   // 全年齡：痛／要高潮的男主回應只屬於 R18
         var lines = CurrentGirlTalkState() switch
         {
             GirlTalkState.Pain       => brat ? MaleReplyBratPain       : MaleReplyNormalPain,
@@ -397,6 +398,8 @@ public partial class TrainingRoomRuntime
     /// <summary>依目前狀態回傳要說的那一組台詞。brat＝雌小鬼話（true）或正常話（false）。</summary>
     string[] GirlTalkLines(bool brat)
     {
+        // 全年齡：只用「什麼都沒做」那組（摸頭時 _patOn 會被算成「觸摸中」，不能讓成人向台詞漏出來）
+        if (!BratR18) return DemoMode.Trim(brat ? BratLines : BratNormalLines);
         string[] ejacLines = CurrentGirlTalkState() == GirlTalkState.MaleNearEjac
             ? (GirlFeelsGood() ? LinesMaleNearEjacGood : LinesMaleNearEjacBad) : null;
         if (ejacLines != null && ejacLines.Length > 0) return DemoMode.Trim(ejacLines);

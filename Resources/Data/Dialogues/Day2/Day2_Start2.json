@@ -229,10 +229,15 @@
       "speaker": "男主",
       "text": "……沒鎖。這丫頭今天又特地留了一道門縫。"
     },
+    { "branchStart": "allAges" },
+    {"speaker": "男主", "text": "（推開門走進去，看到莉奈縮在被窩裡睡得正熟，但想到白天莉奈似笑非笑的試探，男主心裡突然一陣退縮與膽怯）"},
+    { "branchEnd": true },
+    { "branchStart": "r18" },
     {
       "speaker": "男主",
       "text": "（推開門走進去，看到莉奈又踢開了被子，但想到白天莉奈似笑非笑的試探，男主心裡突然一陣退縮與膽怯）"
     },
+    { "branchEnd": true },
     {
       "varEnd": true
     },
@@ -263,10 +268,15 @@
       "speaker": "男主",
       "text": "晚上回家又對我冷嘲熱諷……每次只有在睡覺的時候才像是以前乖巧的妹妹啊。"
     },
+    { "branchStart": "allAges" },
+    {"speaker": "男主", "text": "不過這丫頭，睡著的樣子倒是一點防備都沒有……"},
+    { "branchEnd": true },
+    { "branchStart": "r18" },
     {
       "speaker": "男主",
       "text": "不過這丫頭，睡相還是這麼差。被子又踢到了一邊……"
     },
+    { "branchEnd": true },
     {
       "varEnd": true
     },

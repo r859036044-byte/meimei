@@ -150,30 +150,33 @@ public partial class TrainingRoomRuntime : Node
 
 	async Task FadeInAsync()
 	{
+		// 黑幕放在獨立的最上層 CanvasLayer（1400：高於 HUD/選單/說明鈕等所有 UI，低於教學層 1500 與暫停 3000），
+		// 之前放在 UiRoot（Layer 11）裡，其他較高層的 UI 會穿透黑幕先閃出來。
+		var fadeLayer = new CanvasLayer { Layer = 1400, Name = "TrFadeInLayer" };
+		AddChild(fadeLayer);
 		var overlay = new ColorRect { Color = Colors.Black, MouseFilter = Control.MouseFilterEnum.Ignore };
-		overlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-		UiRoot.AddChild(overlay);
+		fadeLayer.AddChild(overlay);
 		overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
-		// 有新手教學時：黑屏撐到教學的暗幕蓋上去才開始淡出，避免淡出時整個介面先閃一下才出現教學（最多撐 4 秒保險）
+		// 有新手教學時：黑幕撐到教學暗幕出現才淡出。
+		// 用實際時間計時（之前用 delta 累加，場景載入後第一幀 delta 很大，會直接超過上限、黑幕提早淡掉）。
+		// 若進房先播劇情（StoryPlaying），劇情要看得到，就照常淡出。保險上限 8 秒。
 		if (_tutWaiting)
 		{
-			float hold = 0f;
-			while (!_tutActive && hold < 4f)
-			{
-				hold += (float)GetProcessDeltaTime();
+			ulong t0 = Time.GetTicksMsec();
+			while (_tutWaiting && !_tutActive && !StoryPlaying && Time.GetTicksMsec() - t0 < 8000)
 				await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-			}
-			for (int i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);   // 等教學暗幕畫出來
+			if (_tutActive)
+				for (int i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);   // 等教學暗幕畫出來
 		}
 
 		float t = 1f;
 		while (t > 0f)
 		{
-			t -= (float)GetProcessDeltaTime() * 1.5f;
+			t -= Mathf.Min((float)GetProcessDeltaTime(), 1f / 30f) * 1.5f;   // 夾住 delta：卡頓的一幀不會讓淡出直接跳完
 			overlay.Color = new Color(0, 0, 0, Mathf.Clamp(t, 0f, 1f));
 			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		}
-		overlay.QueueFree();
+		fadeLayer.QueueFree();
 	}
 }

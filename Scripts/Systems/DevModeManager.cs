@@ -85,7 +85,7 @@ public partial class DevModeManager : Node
         {
             _buffer.Clear();
             Unlocked = true;
-            OpenPanel();
+            ShowThanks();   // 先跳「感謝使用作弊碼」視窗（X／DC），按「進入開發者工具」才打開工具視窗
         }
     }
 
@@ -96,6 +96,87 @@ public partial class DevModeManager : Node
         for (int i = 0; i < seq.Length; i++)
             if (_buffer[offset + i] != seq[i]) return false;
         return true;
+    }
+
+    // ── 輸入密技後先跳出的感謝視窗（畫面置中）──────────────────────
+    Control _thanks;
+    static readonly Color Ink = new Color("79475f");
+
+    static StyleBoxFlat Round(Color bg, Color border, int radius, int bw)
+    {
+        var s = new StyleBoxFlat { BgColor = bg, BorderColor = border };
+        s.SetCornerRadiusAll(radius); s.SetBorderWidthAll(bw);
+        return s;
+    }
+
+    static Button ThanksBtn(string text, Action onPress)
+    {
+        var b = new Button { Text = text, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(170, 46), MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+        b.AddThemeFontSizeOverride("font_size", 20);
+        b.AddThemeColorOverride("font_color", Ink); b.AddThemeColorOverride("font_hover_color", Ink); b.AddThemeColorOverride("font_pressed_color", Ink);
+        b.AddThemeStyleboxOverride("normal",  Round(new Color("fff0f6"), new Color("f0cede"), 16, 2));
+        b.AddThemeStyleboxOverride("hover",   Round(new Color("ffe3ef"), new Color("edb8cf"), 16, 2));
+        b.AddThemeStyleboxOverride("pressed", Round(new Color("f5cfe0"), new Color("edb8cf"), 16, 2));
+        b.Pressed += onPress;
+        return b;
+    }
+
+    void ShowThanks()
+    {
+        if (IsInstanceValid(_thanks)) return;
+        ClosePanel();
+
+        var overlay = new ColorRect { Name = "CheatThanks", Color = new Color(0.07f, 0.04f, 0.11f, 0.7f), MouseFilter = Control.MouseFilterEnum.Stop };
+        _layer.AddChild(overlay);
+        overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _thanks = overlay;
+
+        var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        overlay.AddChild(center);
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+
+        var box = new PanelContainer();
+        box.AddThemeStyleboxOverride("panel", Round(new Color("fffafd"), new Color("edb8cf"), 28, 2));
+        center.AddChild(box);
+        var margin = new MarginContainer();
+        foreach (var m in new[] { "margin_left", "margin_right" }) margin.AddThemeConstantOverride(m, 40);
+        foreach (var m in new[] { "margin_top", "margin_bottom" }) margin.AddThemeConstantOverride(m, 30);
+        box.AddChild(margin);
+        var v = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        v.AddThemeConstantOverride("separation", 16);
+        margin.AddChild(v);
+
+        var title = new Label { Text = "感謝你使用了作弊碼！", HorizontalAlignment = HorizontalAlignment.Center };
+        title.AddThemeFontSizeOverride("font_size", 30); title.AddThemeColorOverride("font_color", Ink);
+        v.AddChild(title);
+
+        var body = new Label
+        {
+            Text = "如果你是從正版渠道購買的，真的非常感謝你的支持❤\n"
+                 + "如果你是從非正版渠道取得的，也希望你可以補票支持我們，\n"
+                 + "讓我們能繼續做出更多作品！",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        body.AddThemeFontSizeOverride("font_size", 20); body.AddThemeColorOverride("font_color", new Color("8a5a70"));
+        v.AddChild(body);
+
+        var follow = new Label { Text = "追蹤我們的 X（推特）／加入 Discord：", HorizontalAlignment = HorizontalAlignment.Center };
+        follow.AddThemeFontSizeOverride("font_size", 18); follow.AddThemeColorOverride("font_color", new Color("a7778e"));
+        v.AddChild(follow);
+
+        DevContact.AttachInline(v, overlay, 64f);   // X／Discord 圖示，點開是置中的連結＋QR Code 視窗
+
+        var btns = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        btns.AddThemeConstantOverride("separation", 16);
+        v.AddChild(btns);
+        btns.AddChild(ThanksBtn("進入開發者工具", () => { CloseThanks(); OpenPanel(); }));
+        btns.AddChild(ThanksBtn("關閉", CloseThanks));
+    }
+
+    void CloseThanks()
+    {
+        if (IsInstanceValid(_thanks)) _thanks.QueueFree();
+        _thanks = null;
     }
 
     public void OpenPanel()

@@ -439,29 +439,20 @@ public partial class TrainingRoomRuntime : Node
 
         if (didInteract && isGoodRoute)
         {
-            lines.Add(("", "男主幫莉奈蓋好了被子", "cover"));
-            lines.Add(("男主", "喂喂……才剛蓋上去怎麼又一腳踢開了？這睡相也太差了吧。", "uncover"));
-            lines.Add(("男主", "就算在自己家裡，這也太隨便了吧……", ""));
-            lines.Add(("", "…男主看著穿著睡衣的莉奈", ""));
-            lines.Add(("男主", "真可愛啊，我這個妹妹❤，真的和她一比我就是個雜魚哥哥呢", ""));
-            lines.Add(("男主", "不不不，我在想什麼呢！", ""));
-            lines.Add(("", "男主看著睡得很死的莉奈", ""));
-            lines.Add(("男主", "她現在睡得這麼死，剛怎麼碰她也沒什麼反應呢", ""));
-            lines.Add(("男主", "要不……我再捏捏臉……？", ""));
+            lines.Add(("男主", "……睡得這麼香，臉頰鼓鼓的，跟小時候一模一樣。", ""));   // 全年齡：拿掉「看著穿睡衣的莉奈／稍微碰一下」那幾句
             lines.Add(("", "男主摸了摸捏了捏莉奈的臉", ""));
             lines.Add(("男主", "哇~", ""));
             lines.Add(("男主", "臉還是那麼柔軟，果然妹妹的臉就是用來捏的啊❤", ""));
             lines.Add(("莉奈", "嗯……呀……", ""));
             lines.Add(("男主", "啊！糟糕……", ""));
-            lines.Add(("", "男主給莉奈蓋好被子就跑了出去", "coverAndLivingRoom"));
+            lines.Add(("", "男主趕緊躡手躡腳地退出了房間", "coverAndLivingRoom"));
             lines.Add(("男主", "呼……真危險，要是起來了一定罵我是變態雜魚的……", ""));
             lines.Add(("男主", "……", ""));
-            lines.Add(("男主", "趁人睡覺捏臉，我看來真是變態雜魚……", ""));
         }
         else
         {
-            lines.Add(("男主", "……算了，她既然自己要把被子踢開，我也懶得再多管閒事了。", ""));
-            lines.Add(("男主", "要是把她吵醒，肯定又要被她罵雜魚。還是直接回房間睡覺吧。", ""));
+            lines.Add(("男主", "……算了，她睡得正熟，還是別打擾她了。", ""));
+            lines.Add(("男主", "要是把她吵醒，肯定又要被她罵雜魚了……晚安，莉奈。", ""));
         }
 
         var container = new Control { Name = "Night1EndingDialogue", MouseFilter = Control.MouseFilterEnum.Stop };
