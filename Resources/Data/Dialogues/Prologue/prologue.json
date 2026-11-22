@@ -461,7 +461,7 @@
       "fadein": "60, 1",
       "speaker": "莉奈",
       "text": "這種破爛公寓真的能住人喔？",
-      "bgName": "bg_LivingRoom, fade",
+      "bgName": "bg_Hallway_suitcase, fade",
       "chOutfit": "shirt",
       "chHair": "twin",
       "chSocks": "white",
