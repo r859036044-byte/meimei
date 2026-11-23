@@ -97,20 +97,22 @@ public static class BranchStart
 
         var root = new Control { Name = "BranchStartPicker", MouseFilter = Control.MouseFilterEnum.Stop, ZIndex = 200 };
         host.AddChild(root);
-        root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         var dim = new ColorRect { Color = new Color(0, 0, 0, 0.6f), MouseFilter = Control.MouseFilterEnum.Stop };
         root.AddChild(dim);
-        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        dim.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
         var card = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
         var sb = new StyleBoxFlat { BgColor = new Color("fffafd"), BorderColor = new Color("edb8cf") };
         sb.SetBorderWidthAll(2); sb.SetCornerRadiusAll(24);
         sb.ContentMarginLeft = 36; sb.ContentMarginRight = 36; sb.ContentMarginTop = 28; sb.ContentMarginBottom = 28;
         card.AddThemeStyleboxOverride("panel", sb);
-        root.AddChild(card);
-        card.SetAnchorsPreset(Control.LayoutPreset.Center);
+        // 用 CenterContainer 置中：不靠錨點／偏移，視窗大小改變或剛建立時也不會掉到左上角
+        var centerBox = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        root.AddChild(centerBox);
+        centerBox.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        centerBox.AddChild(card);
         card.CustomMinimumSize = new Vector2(760, 0);
-        card.GrowHorizontal = Control.GrowDirection.Both; card.GrowVertical = Control.GrowDirection.Both;
 
         var vb = new VBoxContainer();
         vb.AddThemeConstantOverride("separation", 14);

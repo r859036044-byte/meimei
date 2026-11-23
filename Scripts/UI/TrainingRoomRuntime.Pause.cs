@@ -18,7 +18,7 @@ public partial class TrainingRoomRuntime
     {
         _pauseBtn = new Button
         {
-            Name = "PauseButton", Text = "⏸", TooltipText = "暫停",
+            Name = "PauseButton", Text = "", TooltipText = "暫停",   // 不用 ⏸ 字元：Windows 會把它畫成藍色方塊表情符號
             FocusMode = Control.FocusModeEnum.None,
         };
         _pauseBtn.AnchorLeft = 1f; _pauseBtn.AnchorRight = 1f; _pauseBtn.AnchorTop = 0f; _pauseBtn.AnchorBottom = 0f;
@@ -38,6 +38,14 @@ public partial class TrainingRoomRuntime
         _pauseBtn.AddThemeStyleboxOverride("pressed", Circle(new Color(0.95f, 0.85f, 0.90f)));
         _pauseBtn.AddThemeStyleboxOverride("focus",   new StyleBoxEmpty());
         _pauseBtn.Pressed += () => { if (!_endingDay) SetPaused(true); };
+        // 暫停圖示：兩條粉色直槓，跟旁邊「?」同色（用方塊畫，不依賴字型）
+        foreach (float x in new[] { -9f, 3f })
+        {
+            var bar = new ColorRect { Color = UiAccent, MouseFilter = Control.MouseFilterEnum.Ignore };
+            bar.AnchorLeft = 0.5f; bar.AnchorRight = 0.5f; bar.AnchorTop = 0.5f; bar.AnchorBottom = 0.5f;
+            bar.OffsetLeft = x; bar.OffsetRight = x + 6f; bar.OffsetTop = -10f; bar.OffsetBottom = 10f;
+            _pauseBtn.AddChild(bar);
+        }
         UiRoot.AddChild(_pauseBtn);
     }
 
@@ -77,7 +85,7 @@ public partial class TrainingRoomRuntime
         box.Position = new Vector2(-180f, -120f);
         dim.AddChild(box);
 
-        var title = new Label { Text = "⏸　暫停中", HorizontalAlignment = HorizontalAlignment.Center, ProcessMode = ProcessModeEnum.Always };
+        var title = new Label { Text = "暫停中", HorizontalAlignment = HorizontalAlignment.Center, ProcessMode = ProcessModeEnum.Always };
         title.AddThemeFontSizeOverride("font_size", 40);
         title.AddThemeColorOverride("font_color", Colors.White);
         box.AddChild(title);

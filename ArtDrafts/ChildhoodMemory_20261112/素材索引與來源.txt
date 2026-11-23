@@ -1,0 +1,25 @@
+童年回憶 CG 第二版｜2026-11-12
+
+成品位置：Resources/CG/ChildhoodMemory_20261112_v2/
+01_pc_first_person.png：童年男主第一人稱玩電腦，桌前為牆面。
+02_turn_to_child_linai.png：向右下方看短黑髮幼兒莉奈。
+03_refuse_plush.png：男主暫不交出娃娃。
+04_linai_crying.png：同構圖哭泣差分。
+05_give_plush.png：交出狼女孩娃娃。
+06_present_linai_hugging.png：現在白髮莉奈坐在地板上抱娃娃。
+07_divorce_court.png：法庭分離，前景父親與中景母女、伸手的距離及側光強化張力。
+08_separation.png：父親帶男主離開，回望母女。
+09_play_together.png：童年兄妹一起玩積木。
+
+本次只新增與修訂CG素材，尚未插入特定劇情節點，沒有修改既有對話或觸發條件。
+前一批不合適的構圖保留於 Resources/CG/ChildhoodMemory_20261112；本次請以帶_v2資料夾為準。
+坐姿與法庭修改前版本：ArtDrafts/ChildhoodMemory_20261112/修訂前備份/。
+
+素材來源與權利紀錄
+本次沒有下載或引入外部網站的美術、字型、圖片、遊戲畫面或商標。
+輸入為使用者專案既有角色及背景，原素材權利沿用 BACKGROUND_ASSET_LICENSES.txt 的既有紀錄。
+角色及畫風：Resources/CG/linai knock 1.png、Resources/Character/Linai1.png。
+房間與娃娃：Resources/Backgrounds/bg_PlayerRoom.png、bg_LinaiRoom(day).png。娃娃依使用者自有其他遊戲角色製作。
+生成工具：OpenAI 內建 image_gen.imagegen，依上述素材參考生成/編輯；螢幕內小遊戲畫面為本次生成，沒有挪用第三方遊戲截圖。
+工具服務網址：https://openai.com/；工具條款頁：https://openai.com/policies/terms-of-use/。此紀錄不是第三方素材授權，也未將AI輸出標記為CC0；原始輸入素材權利不因重製而改變。
+完整提示詞、輸出原檔及修改鏈：生成紀錄_v2.json。

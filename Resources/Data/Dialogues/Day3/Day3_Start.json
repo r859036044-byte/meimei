@@ -1064,7 +1064,7 @@
     },
     {
       "text": "原本哭泣、滿身是刺的莉奈漸漸淡去，記憶回到了小時候……",
-      "bgName": "bg_Kitchen",
+      "bgName": "bg_LivingRoom_child",
       "bgm": "amacha_omoide"
     },
     {
@@ -1125,7 +1125,7 @@
     },
     {
       "text": "我們各自拎起書包，走到玄關準備穿鞋子。",
-      "bgName": "bg_Entrance"
+      "bgName": "bg_LivingRoom_child"
     },
     {
       "fadein": "30"
@@ -1184,7 +1184,7 @@
     },
     {
       "text": "男主房間",
-      "bgName": "bg_PlayerRoom"
+      "bgName": "bg_LivingRoom_child"
     },
     {
       "fadein": "30"
@@ -1527,9 +1527,9 @@
     {
       "speaker": "男主",
       "text": "莉奈？",
-      "chOutfit": "sleep",
+      "chOutfit": "school",
       "chHair": "twin",
-      "chSocks": "none",
+      "chSocks": "black",
       "chFace": "biaoqing1"
     },
     {
@@ -1795,9 +1795,9 @@
     {
       "speaker": "莉奈",
       "text": "哥哥……你說不會再丟下我，是真的嗎？",
-      "chOutfit": "sleep",
+      "chOutfit": "school",
       "chHair": "twin",
-      "chSocks": "none",
+      "chSocks": "black",
       "chFace": "cry",
       "bgm": "amacha_kasumisou"
     },
@@ -1856,7 +1856,7 @@
       "speaker": "莉奈",
       "text": "哥哥，把門關好。",
       "chOutfit": "sleep",
-      "chHair": "twin",
+      "chHair": "long",
       "chSocks": "none",
       "chFace": "biaoqing2"
     },

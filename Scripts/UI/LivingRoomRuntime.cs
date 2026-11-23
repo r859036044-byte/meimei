@@ -54,6 +54,7 @@ public partial class LivingRoomRuntime : Node
     Control _panel;
     TextureRect _charBodyImage;
     SpineChar _spineChar;       // Spine 動態立繪（掛在身體圖底下，跟著它的位置／縮放／淡入淡出）
+    Control _portraitLayer;     // 立繪層（真結局 CG 出現時整層隱藏）
     SpineChar _trueEndSpine;    // 真結局全螢幕 Spine CG（res://Resources/Spine/trueend/）
     TextureRect _charFaceImage;
     TextureRect _char2Image;
@@ -1086,11 +1087,14 @@ public partial class LivingRoomRuntime : Node
                 _cgImages[layer] = cg;
                 _cgScale[layer]  = 1f; _cgOffset[layer] = Vector2.Zero;
                 int bgIdx = _bgImage?.GetIndex() + 1 ?? 0;
-                _panel.MoveChild(cg, bgIdx + layer);
+                // CG 要蓋在立繪前面：放到立繪層之上（沒有立繪層時退回背景之上）
+                int baseIdx = (_portraitLayer != null && IsInstanceValid(_portraitLayer)) ? _portraitLayer.GetIndex() + 1 : bgIdx;
+                _panel.MoveChild(cg, baseIdx + layer);
             }
             var tex = ResourceLoader.Load<Texture2D>("res://Resources/CG/" + cgName.Trim() + ".png");
             if (tex == null) { GD.PushWarning("[LivingRoom] 找不到 CG：" + cgName); return; }
             _cgImages[layer].Texture = tex; _cgImages[layer].Visible = true;
+            UpdatePortraitForCG();
             _cgScale[layer] = 1f; _cgOffset[layer] = Vector2.Zero; ApplyCGTransform(layer);
             _cgImages[layer].Modulate = new Color(1, 1, 1, 0);
             float t = 0f;
@@ -1116,7 +1120,18 @@ public partial class LivingRoomRuntime : Node
             _cgImages[layer].Texture  = null;
             _cgScale[layer] = 1f; _cgOffset[layer] = Vector2.Zero; ApplyCGTransform(layer);
             _cgImages[layer].Visible = false;
+            UpdatePortraitForCG();
         }
+    }
+
+    /// <summary>有 CG 在畫面上時，立繪層整個藏起來（CG 與立繪不同時出現）；CG 都收起來後恢復。</summary>
+    void UpdatePortraitForCG()
+    {
+        if (_portraitLayer == null || !IsInstanceValid(_portraitLayer)) return;
+        bool any = _trueEndSpine != null && _trueEndSpine.Visible;
+        if (!any && _cgImages != null)
+            foreach (var c in _cgImages) if (c != null && c.Visible) { any = true; break; }
+        _portraitLayer.Visible = !any;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1405,6 +1420,13 @@ public partial class LivingRoomRuntime : Node
                 _trueEndSpine.EnsureLoaded();
                 _trueEndSpine.Apply(null, null, null, "idle", "idle");
                 _trueEndSpine.Visible = true;
+                // CG 要蓋在立繪前面，而且 CG 與立繪不同時出現：立繪層整個藏起來
+                if (_portraitLayer != null && IsInstanceValid(_portraitLayer))
+                {
+                    _panel.MoveChild(_trueEndSpine, _portraitLayer.GetIndex() + 1);
+                    _portraitLayer.Visible = false;
+                }
+                GalleryDataManager.Instance?.UnlockCG(GalleryScreen.SpineCgId);   // 圖鑒：真結局 Spine 解鎖
             }
             if (_spineChar != null) _spineChar.Visible = false;
             return;
@@ -1412,6 +1434,7 @@ public partial class LivingRoomRuntime : Node
         if (_trueEndSpine != null && _trueEndSpine.Visible)
         {
             _trueEndSpine.Visible = false;
+            if (_portraitLayer != null && IsInstanceValid(_portraitLayer)) _portraitLayer.Visible = true;
         }
         if (name.ToLower() == "black")
         {
@@ -1432,13 +1455,21 @@ public partial class LivingRoomRuntime : Node
         else
         {
             var tex = ResourceHelper.LoadTexAny("Backgrounds/" + name);
+            // 小時候的背景：沒有專用的 xxx_child 圖時，借用現在的背景並套上暖色復古色調，讓回憶和現在看得出差別
+            Color bgTint = Colors.White;
+            if (tex == null && name.EndsWith("_child", StringComparison.OrdinalIgnoreCase))
+            {
+                tex = ResourceHelper.LoadTexAny("Backgrounds/" + name.Substring(0, name.Length - 6));
+                if (tex != null) bgTint = new Color(1.0f, 0.86f, 0.68f);
+            }
             if (tex == null) GD.PrintErr($"[LivingRoom] 找不到背景圖：Backgrounds/{name}（背景沒有切換）");
             if (tex != null && _bgImage != null)
             {
                 if (crossfade && _screenBlack) crossfade = false;   // 畫面是黑的（例如一段劇情從黑屏開始）時看不到交叉淡入，直接換成新背景最保險，不會卡在舊背景
                 GD.Print($"[LivingRoom] 切換背景 → {name}{(crossfade ? "（淡入）" : "")}");
                 if (crossfade) await CrossfadeBGAsync(tex);
-                else { _bgImage.Texture = tex; _bgImage.Modulate = Colors.White; }
+                else _bgImage.Texture = tex;
+                _bgImage.Modulate = bgTint;
             }
         }
     }
@@ -1790,6 +1821,7 @@ public partial class LivingRoomRuntime : Node
         _trueEndSpine.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
         var portraitLayer = new Control { Name = "PortraitFloatRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
+        _portraitLayer = portraitLayer;
         panel.AddChild(portraitLayer);
         portraitLayer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         void SetupChar(out TextureRect tr, string goName)

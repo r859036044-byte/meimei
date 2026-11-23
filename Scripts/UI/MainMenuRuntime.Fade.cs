@@ -36,7 +36,7 @@ public partial class MainMenuRuntime : Control
         _fadeImage.Color = new Color(c.R, c.G, c.B, startA);
         _fadeImage.Visible = true;
 
-        await Lerp(FF(duration), p =>
+        await LerpFF(duration, p =>
         {
             float a = Mathf.Lerp(startA, endA, p);
             _fadeImage.Color = new Color(c.R, c.G, c.B, a);
@@ -61,7 +61,7 @@ public partial class MainMenuRuntime : Control
 
         Color startColor = _bgImage.Modulate;
 
-        await Lerp(FF(duration), p =>
+        await LerpFF(duration, p =>
         {
             _bgImage.Modulate = startColor.Lerp(targetColor, p);
         }, ct);
@@ -89,7 +89,7 @@ public partial class MainMenuRuntime : Control
         _bgImage2.Modulate = new Color(1f, 1f, 1f, 0f);
         _bgImage2.Visible  = true;
 
-        await Lerp(FF(duration), p =>
+        await LerpFF(duration, p =>
         {
             _bgImage2.Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(p, 0f, 1f));
         }, ct);
@@ -217,7 +217,7 @@ public partial class MainMenuRuntime : Control
         float start = fadeIn ? 0f : 1f;
         float end   = fadeIn ? 1f : 0f;
 
-        await Lerp(FF(duration), p =>
+        await LerpFF(duration, p =>
         {
             float a = Mathf.Lerp(start, end, p);
             img.Modulate = new Color(1f, 1f, 1f, a);

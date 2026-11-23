@@ -250,15 +250,26 @@ public partial class MainMenuRuntime : Control
         Img(bt, "PinkDivider", new Color("f4dbe6"),
             V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(-260, -1), V2(260, 1));
 
+        // 三顆按鈕寬度一致（190）。通關後出現「從分支開始」時三顆排成同一橫列，
+        // 沒有分支時只剩兩顆，維持原本左右對稱的位置。
+        const float MenuBtnW = 190, MenuBtnH = 52, MenuBtnY = -65;
         var btnWatch = Btn(bt, "BtnWatch", "觀看劇情", Colors.Black,
-            V2(0.5f, 0.5f), V2(-130, -65), 200, 52);
+            V2(0.5f, 0.5f), V2(-130, MenuBtnY), MenuBtnW, MenuBtnH);
         var btnSkip  = Btn(bt, "BtnSkip",  "直接開始", Colors.Black,
-            V2(0.5f, 0.5f), V2(130, -65), 200, 52);
+            V2(0.5f, 0.5f), V2(130, MenuBtnY), MenuBtnW, MenuBtnH);
         // 通關過一次後才出現：從分支開始（選路線視窗在 BranchStart.cs）
         var btnBranch = Btn(bt, "BtnBranch", "從分支開始", Colors.Black,
-            V2(0.5f, 0.5f), V2(0, -135), 200, 52);
+            V2(0.5f, 0.5f), V2(210, MenuBtnY), MenuBtnW, MenuBtnH);
         btnBranch.Visible = false;
-        panel.VisibilityChanged += () => { if (panel.Visible) btnBranch.Visible = BranchStart.Available(); };
+        panel.VisibilityChanged += () =>
+        {
+            if (!panel.Visible) return;
+            bool hasBranch = BranchStart.Available();
+            btnBranch.Visible = hasBranch;
+            ApplyPointAnchor(btnWatch,  V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(hasBranch ? -210 : -130, MenuBtnY), V2(MenuBtnW, MenuBtnH));
+            ApplyPointAnchor(btnSkip,   V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(hasBranch ? 0 : 130, MenuBtnY),    V2(MenuBtnW, MenuBtnH));
+            ApplyPointAnchor(btnBranch, V2(0.5f, 0.5f), V2(0.5f, 0.5f), V2(210, MenuBtnY),                    V2(MenuBtnW, MenuBtnH));
+        };
         btnBranch.Pressed += () => BranchStart.OpenPicker(this);
         foreach (var btn in new[] { btnWatch, btnSkip, btnBranch })
             BtnLabel(btn)?.AddThemeFontSizeOverride("font_size", 22);

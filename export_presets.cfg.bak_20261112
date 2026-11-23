@@ -1,0 +1,43 @@
+[preset.0]
+
+name="Demo"
+platform="Windows Desktop"
+runnable=true
+advanced_options=false
+dedicated_server=false
+custom_features="demo,dl"
+export_filter="all_resources"
+include_filter="AI_NOTICE.txt, Resources/Audio/Voice/TR/*.wav, Resources/Audio/Voice/RJ01047725/*.wav"
+exclude_filter="Resources/MG/*, ArtDrafts/*, Marketing/*, _參考圖/*, Tools/*, *.xlsx, *.md, prologue_backup_*.json, *LICENSES.txt, AUDIO_CREDITS.txt, BACKGROUND_ASSET_LICENSES.txt, Resources/Data/*, Resources/新增資料夾*/*, Resources/Character/*, Resources/CG/linai knock *, Resources/CG/linai knock background*, Resources/CG/linai shower*, Resources/CG/linai sofa phone*, Resources/CG/player_bath*, Resources/CG/_backup/*, Resources/CG/random_title_image/random title image (1)*, Resources/CG/random_title_image/random title image (3)*, Resources/CG/random_title_image/random title image (4)*, Resources/CG/random_title_image/random title image (5)*, Resources/CG/random_title_image/random title image (6)*, Resources/CG/random_title_image/random title image (7)*, Resources/CG/random_title_image/random title image (8)*, Resources/CG/random_title_image/random title image (9)*, Resources/Backgrounds/bg_Apartment*, Resources/Backgrounds/bg_Bathroom*, Resources/Backgrounds/bg_Entrance*, Resources/Backgrounds/bg_Hallway*, Resources/Backgrounds/bg_Kitchen*, Resources/Backgrounds/bg_LinaiBed(day)*, Resources/Backgrounds/bg_LinaiRoom*, Resources/Backgrounds/bg_LivingRoomSofa*, Resources/Backgrounds/bg_Office*, Resources/Backgrounds/bg_PlayerRoom*, Resources/Backgrounds/tiaojiaofang2*, Resources/Backgrounds/調教房*, Resources/Backgrounds/_backup/*, Resources/Audio/bgm/amacha_kasumisou*, Resources/Audio/bgm/amacha_kouchanojikan*, Resources/Audio/bgm/amacha_lovelyflower*, Resources/Audio/bgm/amacha_picopicodisco*, Resources/Audio/bgm/amacha_yuruyakanaasayake*, Resources/Audio/bgm/maoudamashii_*, Resources/Audio/bgm/Scene1*, Resources/Audio/bgm/Scene7*, Resources/Audio/bgm/Town1*, Resources/Audio/bgm/meimei_op - 複製*, Scenes/Apartment.tscn*, Scenes/Bathroom.tscn*, Scenes/Bedroom.tscn*, Scenes/LivingRoom.tscn*, Scenes/Ending*.tscn*, _backups/*, _backup_*/*, BackupVersion/*, _exports/*, meimei/*, Godot/*, *.bak*, *.old, _eye_sim.png*, screenshot_night_allages.png*, Resources/Sprites/雞雞.png*, Resources/Sprites/xiaoxuekai*.png*, Resources/Sprites/小穴_M.png*"
+export_path="C:/Users/User/Desktop/meimei_demo/meimei.exe"
+patches=PackedStringArray()
+encryption_include_filters=""
+encryption_exclude_filters=""
+seed=0
+encrypt_pck=false
+encrypt_directory=false
+script_export_mode=2
+
+[preset.0.options]
+
+binary_format/embed_pck=false
+binary_format/architecture="x86_64"
+texture_format/s3tc_bptc=true
+texture_format/etc2_astc=false
+application/modify_resources=true
+application/icon="res://demo_icon.ico"
+application/console_wrapper_icon=""
+application/icon_interpolation=4
+application/file_version=""
+application/product_version=""
+application/company_name=""
+application/product_name="吉太研究部"
+application/file_description="吉太研究部 試玩版"
+application/copyright="吉太研究部"
+application/trademarks=""
+application/export_angle=0
+application/export_d3d12=0
+application/d3d12_agility_sdk_multiarch=true
+dotnet/include_scripts_content=false
+dotnet/include_debug_symbols=false
+dotnet/embed_build_outputs=false

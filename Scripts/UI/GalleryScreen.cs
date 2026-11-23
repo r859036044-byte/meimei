@@ -410,7 +410,7 @@ public partial class GalleryScreen : Control
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment   = VerticalAlignment.Center,
             };
-            qMark.AddThemeFontSizeOverride("font_size", 52);
+            qMark.AddThemeFontSizeOverride("font_size", 72);
             qMark.AddThemeColorOverride("font_color", new Color("bd98aa"));
             panel.AddChild(qMark);
             qMark.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -423,26 +423,108 @@ public partial class GalleryScreen : Control
     //  CG 頁
     // ══════════════════════════════════════════════════════════════
 
+    // CG 卡片（小窗）大小：靜態／動態共用
+    static readonly Vector2 CgCardSize = new Vector2(460, 320);
+
+    // CG 頁篩選：0＝動態（預設，排最前）、1＝靜態、2＝立繪、3＝全部
+    int _cgFilter = 0;
+    readonly Button[] _cgFilterBtns = new Button[4];
+    Control _cgDynSection, _cgStaticSection, _cgPortraitSection;
+
     Control BuildCGPage(Control parent)
     {
         var scroll = new ScrollContainer { Name = "CGPage", Visible = false };
         parent.AddChild(scroll);
         scroll.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-        var grid = new GridContainer { Columns = 4 };
-        grid.AddThemeConstantOverride("h_separation", 16);
-        grid.AddThemeConstantOverride("v_separation", 16);
-        scroll.AddChild(grid);
-        grid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        var vb = new VBoxContainer();
+        vb.AddThemeConstantOverride("separation", 20);
+        scroll.AddChild(vb);
+        vb.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
-        // 敲門的 5 張 CG 合成一張卡片：點進去看大圖，左右切換、滾輪縮放
         var gdm = GalleryDataManager.Instance;
+
+        // ── 篩選列：動態／靜態／全部 ──
+        var filterBar = new HBoxContainer();
+        filterBar.AddThemeConstantOverride("separation", 10);
+        vb.AddChild(filterBar);
+        string[] filterLabels = { "動態", "靜態", "立繪", "全部" };
+        for (int i = 0; i < filterLabels.Length; i++)
+        {
+            int idx = i;
+            var b = new Button { Text = filterLabels[i], CustomMinimumSize = new Vector2(130, 44), FocusMode = FocusModeEnum.None };
+            b.AddThemeFontSizeOverride("font_size", 22);
+            b.Pressed += () => { _cgFilter = idx; ApplyCgFilter(); };
+            filterBar.AddChild(b);
+            _cgFilterBtns[i] = b;
+        }
+
+        // ── 動態 CG（排最前）：真結局 Spine ──
+        var dyn = new VBoxContainer();
+        dyn.AddThemeConstantOverride("separation", 12);
+        dyn.AddChild(BuildCgSectionLabel("動態"));
+        var dynGrid = NewCgFlow();
+        dyn.AddChild(dynGrid);
+        dynGrid.AddChild(BuildSpineCard());      // 真結局 Spine 動態 CG
+        vb.AddChild(dyn);
+        _cgDynSection = dyn;
+
+        // ── 立繪（獨立一類）──
+        var por = new VBoxContainer();
+        por.AddThemeConstantOverride("separation", 12);
+        por.AddChild(BuildPortraitCard());
+        vb.AddChild(por);
+        _cgPortraitSection = por;
+
+        // ── 靜態 CG ──
+        var st = new VBoxContainer();
+        st.AddThemeConstantOverride("separation", 12);
+        st.AddChild(BuildCgSectionLabel("靜態"));
+        var staticGrid = NewCgFlow();
+        st.AddChild(staticGrid);
+        // 敲門的 5 張 CG 合成一張卡片：點進去看大圖，左右切換、滾輪縮放
         var unlockedIds = new System.Collections.Generic.List<string>();
         foreach (var (id, _) in CgDefs)
             if (gdm?.IsCGUnlocked(id) ?? false) unlockedIds.Add(id);
-        grid.AddChild(BuildKnockCGCard(unlockedIds));
+        staticGrid.AddChild(BuildKnockCGCard(unlockedIds));
+        vb.AddChild(st);
+        _cgStaticSection = st;
 
+        ApplyCgFilter();
         return scroll;
+    }
+
+    void ApplyCgFilter()
+    {
+        if (_cgDynSection != null && IsInstanceValid(_cgDynSection)) _cgDynSection.Visible = _cgFilter == 0 || _cgFilter == 3;
+        if (_cgPortraitSection != null && IsInstanceValid(_cgPortraitSection)) _cgPortraitSection.Visible = _cgFilter == 2 || _cgFilter == 3;
+        if (_cgStaticSection != null && IsInstanceValid(_cgStaticSection)) _cgStaticSection.Visible = _cgFilter == 1 || _cgFilter == 3;
+        for (int i = 0; i < _cgFilterBtns.Length; i++)
+        {
+            var b = _cgFilterBtns[i];
+            if (b == null || !IsInstanceValid(b)) continue;
+            bool on = i == _cgFilter;
+            b.AddThemeStyleboxOverride("normal", on ? TabActiveSty() : TabInactiveSty());
+            b.AddThemeStyleboxOverride("hover", on ? TabActiveSty() : TabHoverSty());
+            b.AddThemeStyleboxOverride("pressed", TabActiveSty());
+            b.AddThemeColorOverride("font_color", on ? new Color("79475f") : new Color("a66d88"));
+        }
+    }
+
+    static Label BuildCgSectionLabel(string text)
+    {
+        var lbl = new Label { Text = $"── {text} ──" };
+        lbl.AddThemeFontSizeOverride("font_size", 22);
+        lbl.AddThemeColorOverride("font_color", new Color("a66d88"));
+        return lbl;
+    }
+
+    static HFlowContainer NewCgFlow()
+    {
+        var flow = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        flow.AddThemeConstantOverride("h_separation", 20);
+        flow.AddThemeConstantOverride("v_separation", 20);
+        return flow;
     }
 
     static Texture2D LoadCgTexture(string id)
@@ -454,12 +536,12 @@ public partial class GalleryScreen : Control
     /// <summary>「敲門」CG 卡片：至少解鎖一張就能點開；沒有任何解鎖時顯示 ？。</summary>
     Control BuildKnockCGCard(System.Collections.Generic.List<string> unlockedIds)
     {
-        var panel = new Panel { CustomMinimumSize = new Vector2(290, 200) };
+        var panel = new Panel { CustomMinimumSize = CgCardSize };
         if (unlockedIds.Count == 0)
         {
             panel.AddThemeStyleboxOverride("panel", LockedCardSty());
             var qMark = new Label { Text = "？", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            qMark.AddThemeFontSizeOverride("font_size", 52);
+            qMark.AddThemeFontSizeOverride("font_size", 72);
             qMark.AddThemeColorOverride("font_color", new Color("bd98aa"));
             panel.AddChild(qMark);
             qMark.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -474,14 +556,14 @@ public partial class GalleryScreen : Control
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore };
             panel.AddChild(img);
             img.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            img.OffsetBottom = -30;
+            img.OffsetBottom = -36;
         }
         var lbl = new Label { Text = $"敲門　{unlockedIds.Count} / {CgDefs.Length}", HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
-        lbl.AddThemeFontSizeOverride("font_size", 16);
+        lbl.AddThemeFontSizeOverride("font_size", 20);
         lbl.AddThemeColorOverride("font_color", new Color("79475f"));
         panel.AddChild(lbl);
         lbl.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
-        lbl.OffsetTop = -28; lbl.OffsetBottom = 0;
+        lbl.OffsetTop = -34; lbl.OffsetBottom = 0;
 
         panel.MouseFilter = MouseFilterEnum.Stop;
         panel.MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -556,6 +638,7 @@ public partial class GalleryScreen : Control
 
     void CloseCgViewer()
     {
+        CloseSpineViewer();
         if (_cgViewer != null && IsInstanceValid(_cgViewer)) _cgViewer.QueueFree();
         _cgViewer = _cgStage = null; _cgViewImg = null; _cgDragging = false;
     }
@@ -618,6 +701,12 @@ public partial class GalleryScreen : Control
 
     public override void _Input(InputEvent e)
     {
+        if (_spineViewer != null && IsInstanceValid(_spineViewer))
+        {
+            if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+            { CloseSpineViewer(); GetViewport().SetInputAsHandled(); }
+            return;
+        }
         if (_cgViewer == null || !IsInstanceValid(_cgViewer)) return;
         if (e is InputEventKey { Pressed: true, Echo: false } k)
         {
@@ -625,6 +714,267 @@ public partial class GalleryScreen : Control
             else if (k.Keycode == Key.Right) { CgViewStep(1); GetViewport().SetInputAsHandled(); }
             else if (k.Keycode == Key.Escape) { CloseCgViewer(); GetViewport().SetInputAsHandled(); }
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  真結局 Spine 動態 CG（卡片＋檢視器：可切換表情）
+    // ══════════════════════════════════════════════════════════════
+
+    public const string SpineCgId = "spine_trueend";   // 圖鑒 CG 解鎖 id（真結局播到 spine_trueend 背景時解鎖）
+
+    static readonly (string key, string label)[] SpineFaces =
+    {
+        ("idle", "預設"), ("smile", "笑"), ("shy", "害羞"),   // 雌小鬼笑、生氣的嘴型不自然，已拿掉
+    };
+
+    // 立繪檢視器：服裝（含襪子）、髮型、表情
+    static readonly (string key, string label, string socks)[] PortraitOutfits =
+    {
+        ("school", "制服", "black"), ("sleep", "睡衣", "none"),
+    };
+    static readonly (string key, string label)[] PortraitHairs = { ("twin", "雙馬尾"), ("long", "披髮") };
+    static readonly (string key, string label)[] PortraitFaces =
+    {
+        ("face1", "表情1"), ("face2", "表情2"), ("laugh", "笑"), ("cry_laugh", "笑哭"), ("cry", "哭"),
+        ("angry1", "生氣"), ("eye_roll", "白眼"), ("scorn", "鄙視"), ("side_scorn", "斜眼"),
+        ("star_eyes", "星星眼"), ("gentle_laugh", "溫柔笑"),   // 「想睡」表情看起來不自然，先拿掉
+    };
+
+    Control _spineViewer;
+    SpineChar _spineViewChar;
+
+    static SpineChar NewTrueEndSpine(bool cover) => new SpineChar
+    {
+        Name = "TrueEndSpineView",
+        CustomDir = "res://Resources/Spine/trueend/",
+        CustomName = "trueend",
+        CoverMode = cover,
+        MouseFilter = MouseFilterEnum.Ignore,
+    };
+
+    Control BuildSpineCard()
+    {
+        var gdm = GalleryDataManager.Instance;
+        // 真結局解鎖（全年齡真結局＝結局 1）或播過 spine_trueend 背景就算解鎖
+        bool unlocked = (gdm?.IsCGUnlocked(SpineCgId) ?? false) || (gdm?.IsAAEndingUnlocked(1) ?? false);
+        var panel = new Panel { CustomMinimumSize = CgCardSize };
+        if (!unlocked)
+        {
+            panel.AddThemeStyleboxOverride("panel", LockedCardSty());
+            var qMark = new Label { Text = "？", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            qMark.AddThemeFontSizeOverride("font_size", 72);
+            qMark.AddThemeColorOverride("font_color", new Color("bd98aa"));
+            panel.AddChild(qMark);
+            qMark.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            return panel;
+        }
+
+        panel.AddThemeStyleboxOverride("panel", UnlockedCardSty());
+        var clip = new Control { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore };
+        panel.AddChild(clip);
+        clip.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        clip.OffsetBottom = -36;
+        var sp = NewTrueEndSpine(false);   // 小窗顯示整張 CG（不裁切）
+        clip.AddChild(sp);
+        sp.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        if (sp.EnsureLoaded()) sp.Apply(null, null, null, "idle", "idle");
+
+        var lbl = new Label { Text = "真結局　動態 CG", HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+        lbl.AddThemeFontSizeOverride("font_size", 20);
+        lbl.AddThemeColorOverride("font_color", new Color("79475f"));
+        panel.AddChild(lbl);
+        lbl.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
+        lbl.OffsetTop = -34; lbl.OffsetBottom = 0;
+
+        panel.MouseFilter = MouseFilterEnum.Stop;
+        panel.MouseDefaultCursorShape = CursorShape.PointingHand;
+        panel.GuiInput += ev =>
+        {
+            if (ev is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+            {
+                panel.AcceptEvent();
+                OpenSpineViewer();
+            }
+        };
+        return panel;
+    }
+
+    static SpineChar NewPortraitSpine() => new SpineChar
+    {
+        Name = "PortraitSpineView",
+        CoverMode = false,
+        MouseFilter = MouseFilterEnum.Ignore,
+    };
+
+    /// <summary>立繪區：所有立繪不加外框、並排置中。第一張是 Spine（可換裝／表情），其餘為靜態圖。</summary>
+    Control BuildPortraitCard()
+    {
+        var flow = new HFlowContainer { Alignment = FlowContainer.AlignmentMode.Center, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        flow.AddThemeConstantOverride("h_separation", 40);
+        flow.AddThemeConstantOverride("v_separation", 24);
+
+        // Spine 立繪
+        var sp = NewPortraitSpine();
+        sp.CustomMinimumSize = new Vector2(560, 640);
+        sp.MouseFilter = MouseFilterEnum.Stop;
+        sp.MouseDefaultCursorShape = CursorShape.PointingHand;
+        if (sp.EnsureLoaded()) sp.Apply("school", "twin", "black", "face1", null);
+        sp.GuiInput += ev =>
+        {
+            if (ev is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+            {
+                sp.AcceptEvent();
+                OpenPortraitViewer();
+            }
+        };
+        flow.AddChild(WrapPortrait(sp, "莉奈"));
+
+        // 靜態立繪：小時候
+        AddStaticPortrait(flow, "res://Resources/Character/linai_child.png", "莉奈（小時候）");
+        return flow;
+    }
+
+    Control WrapPortrait(Control content, string name)
+    {
+        var vb = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        vb.AddThemeConstantOverride("separation", 6);
+        vb.AddChild(content);
+        var lbl = new Label { Text = name, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+        lbl.AddThemeFontSizeOverride("font_size", 22);
+        lbl.AddThemeColorOverride("font_color", new Color("79475f"));
+        vb.AddChild(lbl);
+        return vb;
+    }
+
+    void AddStaticPortrait(Container parent, string path, string name)
+    {
+        var tex = GD.Load<Texture2D>(path);
+        if (tex == null) return;
+        var tr = new TextureRect
+        {
+            Texture = tex,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(560, 640),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        parent.AddChild(WrapPortrait(tr, name));
+    }
+
+    void OpenSpineViewer()
+    {
+        var sp = NewTrueEndSpine(false);   // 完整顯示整張 CG（不裁切）
+        var rows = OpenSpineViewerShell(sp, 70, 1);
+        if (sp.EnsureLoaded()) sp.Apply(null, null, null, "idle", "idle");
+        foreach (var (key, label) in SpineFaces)
+        {
+            string k = key;
+            var b = UIStyle.CreateStyledButton(label, 22);
+            b.CustomMinimumSize = new Vector2(110, 48);
+            b.Pressed += () => _spineViewChar?.Apply(null, null, null, k, k);
+            rows[0].AddChild(b);
+        }
+        AddSpineViewerClose(rows[0]);
+    }
+
+    void OpenPortraitViewer()
+    {
+        var sp = NewPortraitSpine();
+        var rows = OpenSpineViewerShell(sp, 138, 2);   // 第一排：服裝／髮型　第二排：表情
+        if (sp.EnsureLoaded()) sp.Apply("school", "twin", "black", "face1", null);
+        bool r18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
+
+        rows[0].AddChild(MakeRowLabel("服裝"));
+        foreach (var (key, label, sk) in PortraitOutfits)
+        {
+            string k = key, s = sk;
+            var b = UIStyle.CreateStyledButton(label, 20);
+            b.CustomMinimumSize = new Vector2(96, 44);
+            b.Pressed += () => _spineViewChar?.Apply(r18 && k == "sleep" ? "sleep2" : k, null, s, null, null);
+            rows[0].AddChild(b);
+        }
+        foreach (var (key, label) in PortraitHairs)
+        {
+            string k = key;
+            var b = UIStyle.CreateStyledButton(label, 20);
+            b.CustomMinimumSize = new Vector2(96, 44);
+            b.Pressed += () => _spineViewChar?.Apply(null, k, null, null, null);
+            rows[0].AddChild(b);
+        }
+        AddSpineViewerClose(rows[0]);
+
+        rows[1].AddChild(MakeRowLabel("表情"));
+        foreach (var (key, label) in PortraitFaces)
+        {
+            string k = key;
+            var b = UIStyle.CreateStyledButton(label, 20);
+            b.CustomMinimumSize = new Vector2(96, 44);
+            b.Pressed += () => _spineViewChar?.Apply(null, null, null, k, null);
+            rows[1].AddChild(b);
+        }
+    }
+
+    static Label MakeRowLabel(string text)
+    {
+        var l = new Label { Text = text, VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(56, 44) };
+        l.AddThemeFontSizeOverride("font_size", 20);
+        l.AddThemeColorOverride("font_color", new Color("ffe6f2"));
+        return l;
+    }
+
+    /// <summary>建立全螢幕 Spine 檢視器外殼；回傳上方的按鈕列（每列會自動換行）。stageTop＝Spine 區域離上緣的距離。</summary>
+    HFlowContainer[] OpenSpineViewerShell(SpineChar sp, float stageTop, int rowCount)
+    {
+        CloseSpineViewer();
+        _spineViewer = new Control { Name = "SpineViewer", MouseFilter = MouseFilterEnum.Stop };
+        AddChild(_spineViewer);
+        _spineViewer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        var bg = new ColorRect { Color = new Color(0.06f, 0.03f, 0.05f, 0.96f), MouseFilter = MouseFilterEnum.Ignore };
+        _spineViewer.AddChild(bg);
+        bg.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        var stage = new Control { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore };
+        _spineViewer.AddChild(stage);
+        stage.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        stage.OffsetTop = stageTop; stage.OffsetBottom = -20;
+
+        _spineViewChar = sp;
+        stage.AddChild(sp);
+        sp.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        var col = new VBoxContainer();
+        col.AddThemeConstantOverride("separation", 8);
+        _spineViewer.AddChild(col);
+        col.SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide);
+        col.OffsetTop = 12; col.OffsetBottom = stageTop - 8;
+        col.OffsetLeft = 16; col.OffsetRight = -16;
+
+        var rows = new HFlowContainer[rowCount];
+        for (int i = 0; i < rowCount; i++)
+        {
+            var r = new HFlowContainer { Alignment = FlowContainer.AlignmentMode.Center };
+            r.AddThemeConstantOverride("h_separation", 12);
+            r.AddThemeConstantOverride("v_separation", 8);
+            col.AddChild(r);
+            rows[i] = r;
+        }
+        return rows;
+    }
+
+    void AddSpineViewerClose(HFlowContainer bar)
+    {
+        var hint = new Label { Text = "Esc 關閉", VerticalAlignment = VerticalAlignment.Center };
+        hint.AddThemeFontSizeOverride("font_size", 16);
+        hint.AddThemeColorOverride("font_color", new Color(1, 1, 1, 0.55f));
+        var close = UIStyle.CreateStyledButton("✕", 24); close.CustomMinimumSize = new Vector2(64, 48);
+        close.Pressed += CloseSpineViewer;
+        bar.AddChild(hint); bar.AddChild(close);
+    }
+
+    void CloseSpineViewer()
+    {
+        if (_spineViewer != null && IsInstanceValid(_spineViewer)) _spineViewer.QueueFree();
+        _spineViewer = null; _spineViewChar = null;
     }
 
     // ══════════════════════════════════════════════════════════════

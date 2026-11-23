@@ -138,7 +138,7 @@ public partial class MainMenuRuntime : Control
 				if (GetAlpha(_charBodyImage) < 0.9f || forceFade)
 				{
 					float startA = GetAlpha(_charBodyImage);
-					await Lerp(FF(duration), p =>
+					await LerpFF(duration, p =>
 					{
 						float a = Mathf.Lerp(startA, 1f, p);
 						_charBodyImage.Modulate = new Color(1f, 1f, 1f, a);
@@ -153,7 +153,7 @@ public partial class MainMenuRuntime : Control
 				if (forceFade)
 				{
 					float startA = GetAlpha(_charFaceImage);
-					await Lerp(FF(duration), p =>
+					await LerpFF(duration, p =>
 					{
 						_charFaceImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 1f, p));
 					}, ct);
@@ -167,7 +167,7 @@ public partial class MainMenuRuntime : Control
 				if (forceFade)
 				{
 					float startA = GetAlpha(_char2Image);
-					await Lerp(FF(duration), p =>
+					await LerpFF(duration, p =>
 					{
 						_char2Image.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 1f, p));
 					}, ct);
@@ -181,7 +181,7 @@ public partial class MainMenuRuntime : Control
 			float faceStartA  = GetAlpha(_charFaceImage);
 			float char2StartA = GetAlpha(_char2Image);
 
-			await Lerp(FF(duration), p =>
+			await LerpFF(duration, p =>
 			{
 				_charBodyImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(bodyStartA, 0f, p));
 				_charFaceImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(faceStartA, 0f, p));
@@ -252,7 +252,7 @@ public partial class MainMenuRuntime : Control
 		}
 
 		float startA = GetAlpha(_charBodyImage);
-		await Lerp(FF(0.5f), p =>
+		await LerpFF(0.5f, p =>
 		{
 			_charBodyImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 1f, p));
 		}, ct);
@@ -286,7 +286,7 @@ public partial class MainMenuRuntime : Control
 		float faceStartA  = GetAlpha(_charFaceImage);
 		float char2StartA = GetAlpha(_char2Image);
 
-		await Lerp(FF(duration), p =>
+		await LerpFF(duration, p =>
 		{
 			if (hideBody)  _charBodyImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(bodyStartA, 0f, p));
 			if (hideFace)  _charFaceImage.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(faceStartA, 0f, p));
@@ -356,7 +356,7 @@ public partial class MainMenuRuntime : Control
 		if (forceFade)
 		{
 			float startA = GetAlpha(_char2Image);
-			await Lerp(FF(duration), p =>
+			await LerpFF(duration, p =>
 			{
 				_char2Image.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 1f, p));
 			}, ct);
@@ -371,7 +371,7 @@ public partial class MainMenuRuntime : Control
 		float duration = 0.5f;
 		float startA = GetAlpha(_char2Image);
 
-		await Lerp(FF(duration), p =>
+		await LerpFF(duration, p =>
 		{
 			_char2Image.Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(startA, 0f, p));
 		}, ct);
@@ -399,7 +399,7 @@ public partial class MainMenuRuntime : Control
 		if (src == null || !IsInstanceValid(src)) return;
 		float startVol = GetVol(src);
 
-		await Lerp(FF(duration), p => SetVol(src, Mathf.Lerp(startVol, 0f, p)), ct);
+		await LerpFF(duration, p => SetVol(src, Mathf.Lerp(startVol, 0f, p)), ct);
 
 		src.Stop();
 		SetVol(src, startVol);
@@ -471,7 +471,7 @@ public partial class MainMenuRuntime : Control
 				float startOffX  = curOffX;
 				float startOffY  = curOffY;
 
-				await Lerp(FF(cgDur), t =>
+				await LerpFF(cgDur, t =>
 				{
 					float p = Mathf.SmoothStep(0f, 1f, t);
 					float s = Mathf.Lerp(startScale, targetScale, p);

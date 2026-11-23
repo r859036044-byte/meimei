@@ -478,6 +478,34 @@ public partial class MainMenuRuntime : Control
         onStep(1f);
     }
 
+    /// <summary>
+    /// 跟 Lerp 一樣，但「每一幀」都檢查是否在快進：快進中就用較快的時間流速播完。
+    /// 舊寫法 Lerp(FF(秒)) 只在動畫開始那一刻判斷，動畫跑到一半才按快進就不會加速。
+    /// fastFloor：快進時這段動畫最短仍保留的秒數（>0 時避免大幅度鏡頭變化瞬間跳過去、閃一下）。
+    /// </summary>
+    public async Task LerpFF(float duration, Action<float> onStep, CancellationToken ct = default, float fastFloor = 0f)
+    {
+        if (Replaying) { onStep(1f); return; }
+        if (duration <= 0f) { onStep(1f); return; }
+
+        float t = 0f;
+        while (t < duration)
+        {
+            float dt = (float)GetProcessDeltaTime();
+            if (_reader?.FastNow ?? false)
+            {
+                float mult = NovelReader.SkipSpeedMult;
+                if (fastFloor > 0f) mult = Mathf.Clamp(duration / fastFloor, 1f, mult);
+                dt *= mult;
+            }
+            t += dt;
+            onStep(Mathf.Clamp(t / duration, 0f, 1f));
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            ct.ThrowIfCancellationRequested();
+        }
+        onStep(1f);
+    }
+
     // ═══════════════════════════════════════════════════════════
     //  節點操作輔助
     // ═══════════════════════════════════════════════════════════

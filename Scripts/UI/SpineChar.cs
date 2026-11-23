@@ -133,6 +133,11 @@ public partial class SpineChar : Control
     public string CustomDir = null;
     public string CustomName = null;
     public bool CoverMode = false;
+    /// <summary>圖鑑立繪用：依「實際畫出來的範圍」置中並盡量放大填滿控制項（不再留下上方空白）。</summary>
+    public bool FitContent = false;
+    private bool _hasBounds;
+    private float _bMinX, _bMinY, _bMaxX, _bMaxY;   // 已記住的內容範圍（骨架座標）
+    private float _tMinX, _tMinY, _tMaxX, _tMaxY;   // 這一幀正在統計的範圍
 
     public SpineChar()
     {
@@ -206,8 +211,8 @@ public partial class SpineChar : Control
                 string mapped = target switch
                 {
                     "laugh1" or "laugh" or "crylaugh" or "smile" => "smile",
-                    "cixiaoguixiao" or "smirk" => "cixiaoguixiao",
-                    "shengqi1" or "shengqi2" or "angry1" or "angry2" => "shengqi1",
+                    "cixiaoguixiao" or "smirk" => "smile",          // 真結局 CG：雌小鬼笑嘴型不自然，改用一般笑
+                    "shengqi1" or "shengqi2" or "angry1" or "angry2" => "idle",   // 真結局 CG：生氣嘴型不自然，改回預設
                     "shy" or "shuijiao" => "shy",
                     _ => _anims.ContainsKey(target) ? target : "idle"
                 };
@@ -739,6 +744,17 @@ public partial class SpineChar : Control
             ? Size.Y * 0.5f + (_skelY + _skelH * 0.5f) * scale
             : Size.Y + _skelY * scale;
 
+        // FitContent：第一次畫的時候統計實際範圍並記住，之後用它置中放大（記住後就不再變，晃動時畫面不會抖）
+        bool track = FitContent && !_hasBounds;
+        if (track) { _tMinX = _tMinY = float.MaxValue; _tMaxX = _tMaxY = float.MinValue; }
+        if (FitContent && _hasBounds)
+        {
+            float bw = Mathf.Max(1f, _bMaxX - _bMinX), bh = Mathf.Max(1f, _bMaxY - _bMinY);
+            scale = Mathf.Min(Size.X / (bw * 1.06f), Size.Y / (bh * 1.06f));
+            ox = Size.X * 0.5f - (_bMinX + bw * 0.5f) * scale;
+            oy = Size.Y * 0.5f + (_bMinY + bh * 0.5f) * scale;
+        }
+
         Rid item = GetCanvasItem();
         Rid texRid = _tex.GetRid();
 
@@ -774,6 +790,7 @@ public partial class SpineChar : Control
                         wx += (vx * b.A + vy * b.B + b.WX) * w;
                         wy += (vx * b.C + vy * b.D + b.WY) * w;
                     }
+                    if (track) TrackPt(wx, wy);
                     pts[v] = new Vector2(ox + wx * scale, oy - wy * scale);
                 }
             }
@@ -785,6 +802,7 @@ public partial class SpineChar : Control
                     float vx = att.Raw[v * 2], vy = att.Raw[v * 2 + 1];
                     float wx = vx * b.A + vy * b.B + b.WX;
                     float wy = vx * b.C + vy * b.D + b.WY;
+                    if (track) TrackPt(wx, wy);
                     pts[v] = new Vector2(ox + wx * scale, oy - wy * scale);
                 }
             }
@@ -811,6 +829,21 @@ public partial class SpineChar : Control
                 activeClipEndSlot = null;
             }
         }
+
+        if (track && _tMaxX > _tMinX && _tMaxY > _tMinY)
+        {
+            _bMinX = _tMinX; _bMinY = _tMinY; _bMaxX = _tMaxX; _bMaxY = _tMaxY;
+            _hasBounds = true;
+            QueueRedraw();
+        }
+    }
+
+    private void TrackPt(float x, float y)
+    {
+        if (x < _tMinX) _tMinX = x;
+        if (x > _tMaxX) _tMaxX = x;
+        if (y < _tMinY) _tMinY = y;
+        if (y > _tMaxY) _tMaxY = y;
     }
 
     private static void DrawClippedMesh(Rid item, Rid texRid, Vector2[] pts, Vector2[] uvs, int[] tris, Vector2[] clipPoly)

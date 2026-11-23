@@ -132,7 +132,7 @@ public partial class MainMenuRuntime : Control
     // ── 場景6: 黑屏 + TitleName 放大縮小 → 主選單 ──
     [ExportGroup("開場動畫 場景6")]
     [Export] public float   Scene6Wait            = 0.2f;                          // scene5結束後等待多久黑屏
-    [Export] public Vector2 Scene6TitlePos        = new Vector2(-100f, -40f);         // TitleName 位置(X,Y)
+    [Export] public Vector2 Scene6TitlePos        = new Vector2(0f, -10f);            // TitleName 位置(X,Y)：0,0 為正中央（-10 是補圖片內容略偏上的留白）
     [Export] public Vector2 Scene6TitleScaleStart = new Vector2(2.5f, 2.5f);     // TitleName 初始放大(X,Y)
     [Export] public Vector2 Scene6TitleScaleEnd   = new Vector2(2f, 2f);         // TitleName 縮小到(X,Y)
     [Export] public float   Scene6ShrinkDelay     = 0f;                          // TitleName 出現後等多久才開始縮小
@@ -329,6 +329,7 @@ public partial class MainMenuRuntime : Control
         // stretch/mode=canvas_items + aspect=keep 取代，不需程式設定
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Pass;
+        WindowAspectLock.Install(this);   // 視窗拖曳縮放時鎖 16:9，避免出現黑邊（WindowAspectLock.cs）
 
         // Unity 需要 EventSystem / GraphicRaycaster / AudioListener，
         // Godot 內建輸入與音訊系統，不需額外建立

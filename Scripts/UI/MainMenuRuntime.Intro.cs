@@ -322,12 +322,12 @@ public partial class MainMenuRuntime : Control
             Kill(f3Rect);
         }
 
-        // 拉遠結束 → 往右平移，同時交叉淡入 bg_ApartmentDoor
+        // 拉遠結束 → 往右平移，同時交叉淡入 bg_Entrance（與劇情「公寓玄關」同一張圖）
         Texture2D doorTex = null;
         if (!_skipIntroClicked)
         {
             // 在背景上面建立第二層圖（ApartmentDoor）
-            doorTex = LoadTex("Backgrounds/bg_ApartmentDoor");
+            doorTex = LoadTex("Backgrounds/bg_Entrance");
             var doorLayer = MakeIntroTexLayer(_mainPanel, "BG_ApartmentDoor", doorTex);
             doorLayer.Modulate = new Color(1f, 1f, 1f, 0f); // 初始透明
             // 放在背景上面、跳過按鈕下面
@@ -554,7 +554,7 @@ public partial class MainMenuRuntime : Control
 
             // 在黑屏上建立放大版 TitleName
             var titleShow = ImgTex(_mainPanel, "TitleNameShow", LoadTex("UI/TitleName"),
-                V2(0.5f, 0.5f), V2(0.5f, 0.5f), Scene6TitlePos, TitleSize);
+                V2(0.5f, 0.5f), V2(0.5f, 0.5f), Scene6TitlePos, TitleSize, true);   // true＝等比例縮放，不要把標題壓扁變形
             SetScale(titleShow, V2(Scene6TitleScaleStart.X, Scene6TitleScaleStart.Y));
             _mainPanel.MoveChild(titleShow, _mainPanel.GetChildCount() - 1);
 

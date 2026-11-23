@@ -712,7 +712,7 @@ void fragment() {
                     Vector2 startScale = curScale;
                     Vector2 startPos   = curPos;
                     float dur = 0.4f;
-                    await Lerp(FF(dur), p01 =>
+                    await LerpFF(dur, p01 =>
                     {
                         float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(p01, 0f, 1f));
                         SetScale(_bgImage, startScale.Lerp(targetScale, p));
@@ -721,7 +721,7 @@ void fragment() {
                         // BG2 同步
                         SetScale(_bgImage2, _bgImage.Scale);
                         DlgSetStretchOffset(_bgImage2, np.X, np.Y);
-                    }, ct);
+                    }, ct, 0.3f);
                     SetScale(_bgImage, targetScale);
                     DlgSetStretchOffset(_bgImage, targetBgPos.X, targetBgPos.Y);
                     SetScale(_bgImage2, targetScale);
@@ -960,7 +960,7 @@ void fragment() {
                     Vector2 startPos  = curPos;
                     async Task RunChMove()
                     {
-                        await Lerp(FF(chDur), p01 =>
+                        await LerpFF(chDur, p01 =>
                         {
                             float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(p01, 0f, 1f));
                             Vector2 s   = startSize.Lerp(targetSize, p);
@@ -1017,7 +1017,7 @@ void fragment() {
                 {
                     Vector2 sSize = c2Size;
                     Vector2 sPos  = c2Pos;
-                    await Lerp(FF(c2Dur), p01 =>
+                    await LerpFF(c2Dur, p01 =>
                     {
                         float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(p01, 0f, 1f));
                         DlgSetCharRect(_char2Image, sPos.Lerp(tgtPos, p), sSize.Lerp(tgtSize, p));
@@ -1677,10 +1677,11 @@ void fragment() {
         int lv = Mathf.Clamp(swayLevel, 1, 5);
         float swayAmp  = amps[lv];
         float swayFreq = freqs[lv];
+        float swayK = 1f;
 
         try
         {
-            await Lerp(FF(duration), p01 =>
+            await LerpFF(duration, p01 =>
             {
                 float t = p01 * duration;
                 float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(p01, 0f, 1f));
@@ -1689,7 +1690,8 @@ void fragment() {
                 Vector2 basePos = startPos.Lerp(targetPos, p);
                 // 上下晃動（走路感）
                 float swayFade = 1f - p;
-                float swayY = Mathf.Sin(t * swayFreq * Mathf.Pi * 2f) * swayAmp * swayFade;
+                swayK = Mathf.MoveToward(swayK, (_reader?.FastNow ?? false) ? 0f : 1f, (float)GetProcessDeltaTime() * 8f);   // 快進時搖擺淡出，避免瞬間大幅晃動
+                float swayY = Mathf.Sin(t * swayFreq * Mathf.Pi * 2f) * swayAmp * swayFade * swayK;
 
                 Vector2 np = basePos + new Vector2(0f, swayY);
                 // 限制在放大後多出來的範圍內，避免走路晃動或位移太多時露出圖片外的黑幕
@@ -1698,7 +1700,7 @@ void fragment() {
                 SetScale(_bgImage, startScale.Lerp(targetScale, p));
                 DlgSetStretchOffset(_bgImage2, np.X, np.Y);
                 SetScale(_bgImage2, _bgImage.Scale);
-            }, ct);
+            }, ct, 0.5f);
         }
         catch (OperationCanceledException)
         {
@@ -1724,7 +1726,7 @@ void fragment() {
         Vector2 endScale = Vector2.One;
         Vector2 endPos   = Vector2.Zero;
 
-        await Lerp(FF(duration), p01 =>
+        await LerpFF(duration, p01 =>
         {
             float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(p01, 0f, 1f));
             SetScale(_bgImage, startScale.Lerp(endScale, p));
