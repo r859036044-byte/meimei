@@ -53,7 +53,7 @@ public partial class GalleryReplaySession : CanvasLayer
         var close = new Button { Name = "CloseReplay", Text = "×  關閉回放", TooltipText = "返回原本的圖鑑（Esc）" };
         AddChild(close);
         close.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
-        close.OffsetLeft = -244; close.OffsetRight = -28;
+        close.OffsetLeft = -384; close.OffsetRight = -168;   // 避開右上角的「☰ 選單」按鈕（-156~-24）
         close.OffsetTop = 24; close.OffsetBottom = 80;
         close.AddThemeFontSizeOverride("font_size", 24);
         UIStyle.ApplyButtonStyle(close);

@@ -880,7 +880,7 @@ public partial class GalleryScreen : Control
     void OpenPortraitViewer()
     {
         var sp = NewPortraitSpine();
-        var rows = OpenSpineViewerShell(sp, 138, 2);   // 第一排：服裝／髮型　第二排：表情
+        var rows = OpenSpineViewerShell(sp, 190, 3);   // 第一排：服裝　第二排：髮型　第三排：表情
         if (sp.EnsureLoaded()) sp.Apply("school", "twin", "black", "face1", null);
         bool r18 = PlayerDataManager.Instance?.R18ContentEnabled ?? false;
 
@@ -893,24 +893,26 @@ public partial class GalleryScreen : Control
             b.Pressed += () => _spineViewChar?.Apply(r18 && k == "sleep" ? "sleep2" : k, null, s, null, null);
             rows[0].AddChild(b);
         }
+        AddSpineViewerClose(rows[0]);
+
+        rows[1].AddChild(MakeRowLabel("髮型"));
         foreach (var (key, label) in PortraitHairs)
         {
             string k = key;
             var b = UIStyle.CreateStyledButton(label, 20);
             b.CustomMinimumSize = new Vector2(96, 44);
             b.Pressed += () => _spineViewChar?.Apply(null, k, null, null, null);
-            rows[0].AddChild(b);
+            rows[1].AddChild(b);
         }
-        AddSpineViewerClose(rows[0]);
 
-        rows[1].AddChild(MakeRowLabel("表情"));
+        rows[2].AddChild(MakeRowLabel("表情"));
         foreach (var (key, label) in PortraitFaces)
         {
             string k = key;
             var b = UIStyle.CreateStyledButton(label, 20);
             b.CustomMinimumSize = new Vector2(96, 44);
             b.Pressed += () => _spineViewChar?.Apply(null, null, null, k, null);
-            rows[1].AddChild(b);
+            rows[2].AddChild(b);
         }
     }
 

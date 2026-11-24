@@ -24,6 +24,12 @@ BGM 素材來源與授權紀錄
 使用檔案：Resources/Audio/bgm/amacha_seishishitauchu.mp3
 處理：原始 MP3，未剪輯；遊戲內設為循環，音量基準為35%。
 
+真夜中のおもちゃ箱
+來源頁：https://amachamusic.chagasi.com/music_mayonakanoomochabako.html
+使用檔案：Resources/Audio/bgm/amacha_mayonakanoomochabako.ogg
+處理：同曲（1分43秒）的 OGG 轉檔版本，未剪輯；遊戲內設為循環，音量基準為35%。
+用途：Day3_Start 回憶片段開場（小時候的回憶）。
+
 配樂對應：
 Apartment、LivingRoom：ゆるやかな朝焼け
 Bathroom、一般結局及圖鑑回放：カスミソウ

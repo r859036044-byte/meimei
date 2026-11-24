@@ -114,7 +114,8 @@ public partial class NovelReader : Node
         }
         bool isMale   = IsMaleSpeaker(speaker);
         bool isFather = !isMale && IsFatherSpeaker(speaker);
-        var contentColor = isMale ? new Color("2a4a7a") : isFather ? new Color("1a1a1a") : new Color("654657");
+        bool isMother = !isMale && !isFather && IsMotherSpeaker(speaker);
+        var contentColor = isMale ? new Color("2a4a7a") : isFather ? new Color("1a1a1a") : isMother ? new Color("4a1f4a") : new Color("654657");
         if (_content is Label label) label.AddThemeColorOverride("font_color", contentColor);
         if (_content is RichTextLabel rich) rich.AddThemeColorOverride("default_color", contentColor);
         // 控制名字欄顯示（有說話者才顯示）
@@ -568,7 +569,17 @@ public partial class NovelReader : Node
         return b == "男主" || b == "主角";
     }
 
-    static bool IsFatherSpeaker(string speaker) => BaseSpeaker(speaker) == "父親";
+    // 父親／母親各自用不同的對話框設計（「父親的聲音」「母親的聲音」「老爸」「老媽」也算）
+    static bool IsFatherSpeaker(string speaker)
+    {
+        string b = BaseSpeaker(speaker);
+        return b == "父親" || b == "父親的聲音" || b == "老爸" || b == "爸爸";
+    }
+    static bool IsMotherSpeaker(string speaker)
+    {
+        string b = BaseSpeaker(speaker);
+        return b == "母親" || b == "母親的聲音" || b == "老媽" || b == "媽媽";
+    }
 
     // ═══════════════════════════════════════════════════════════
     //  右上角選單：保存 / 讀檔 / 歷史紀錄 / 設定
@@ -913,17 +924,20 @@ public partial class NovelReader : Node
         bool isNarrator = string.IsNullOrWhiteSpace(speaker);
         bool isMale   = IsMaleSpeaker(speaker);
         bool isFather = !isNarrator && !isMale && IsFatherSpeaker(speaker);
+        bool isMother = !isNarrator && !isMale && !isFather && IsMotherSpeaker(speaker);
 
         // ── 更新說話者名牌面板邊框 ──────────────────────────────
         if (_face != null)
         {
             var faceStyle = new StyleBoxFlat
             {
-                BgColor             = isMale   ? new Color("f0f5ffd9")   // 不透明度 85%，與底板一致
+                BgColor             = isMale   ? new Color("eaf2ffee")   // 偏藍白，不透明度 93%（名牌比底板更實一點，才不會顯得暗）
                                     : isFather ? new Color("f4f4f4d9")
+                                    : isMother ? new Color("f6edf8e6")   // 母親：淡紫
                                     :            new Color("fff4fad9"),
                 BorderColor         = isMale   ? new Color("4a80cc")
                                     : isFather ? new Color("222222")
+                                    : isMother ? new Color("8e4a9c")
                                     :            new Color("e8b5ce"),
                 BorderWidthTop      = 3, BorderWidthBottom = 2,
                 BorderWidthLeft     = 2, BorderWidthRight  = 2,
@@ -931,6 +945,7 @@ public partial class NovelReader : Node
                 CornerRadiusTopRight = 12, CornerRadiusBottomLeft = 12,
                 ShadowColor = isMale   ? new Color(0.10f, 0.20f, 0.45f, 0.15f)
                             : isFather ? new Color(0.05f, 0.05f, 0.05f, 0.18f)
+                            : isMother ? new Color(0.30f, 0.12f, 0.35f, 0.18f)
                             :            new Color(0.30f, 0.13f, 0.23f, 0.15f),
                 ShadowSize  = 3, AntiAliasing = true
             };
@@ -942,10 +957,11 @@ public partial class NovelReader : Node
             _speakerName.AddThemeColorOverride("font_color",
                 isMale   ? new Color("1a4080")
                 : isFather ? new Color("111111")
+                : isMother ? new Color("6a2d7a")
                 :             new Color("a04c72"));
 
         // ── 切換圖示（父親不顯示愛心）────────────────────────────
-        if (_heartIcon != null) _heartIcon.Visible = !isMale && !isFather;
+        if (_heartIcon != null) _heartIcon.Visible = !isMale && !isFather && !isMother;
         if (_fishIcon  != null) _fishIcon.Visible  =  isMale;
 
         // ── 更新主對話框大框邊框 ──────────────────────────────────
@@ -954,10 +970,14 @@ public partial class NovelReader : Node
             var paperStyle = new StyleBoxFlat
             {
                 BgColor           = isNarrator ? new Color(1f, 1f, 1f, 0.85f) // 旁白：純白，不透明度 85%，無框
-                                              : new Color("fff9fdd9"),          // 其他：不透明度 85%（d9 = 217/255）
+                                  : isMale    ? new Color("f3f8ffd9")           // 男主：偏藍白
+                                  : isFather  ? new Color("f6f6f6d9")           // 父親：灰白
+                                  : isMother  ? new Color("f8f0fad9")           // 母親：淡紫白
+                                  :             new Color("fff9fdd9"),          // 其他：不透明度 85%（d9 = 217/255）
                 BorderColor       = isNarrator ? Colors.Transparent
                                   : isMale    ? new Color("4a80cc")
                                   : isFather  ? new Color("222222")
+                                  : isMother  ? new Color("8e4a9c")
                                   :             new Color("e8b5ce"),
                 BorderWidthTop    = isNarrator ? 0 : 3,
                 BorderWidthBottom = isNarrator ? 0 : 2,
@@ -966,7 +986,10 @@ public partial class NovelReader : Node
                 CornerRadiusTopLeft = 28, CornerRadiusTopRight  = 28,
                 CornerRadiusBottomLeft = 20, CornerRadiusBottomRight = 20,
                 ShadowColor = isNarrator ? Colors.Transparent
-                                        : new Color(0.30f, 0.13f, 0.23f, 0.18f),
+                            : isMale    ? new Color(0.10f, 0.20f, 0.45f, 0.18f)
+                            : isFather  ? new Color(0.05f, 0.05f, 0.05f, 0.20f)
+                            : isMother  ? new Color(0.30f, 0.12f, 0.35f, 0.20f)
+                            :             new Color(0.30f, 0.13f, 0.23f, 0.18f),
                 ShadowSize  = isNarrator ? 0 : 6, AntiAliasing = true
             };
             _paper.AddThemeStyleboxOverride("panel", paperStyle);

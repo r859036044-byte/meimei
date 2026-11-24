@@ -53,6 +53,8 @@ public partial class LivingRoomRuntime
         _camZoom = 1f; _camPunch = 1f; _camFocus = new Vector2(0.5f, 0.5f);
         ApplyCamera();
         if (_panel != null) _panel.Position = Vector2.Zero;
+        _memoryA = 0f;
+        if (_memoryFilter != null && GodotObject.IsInstanceValid(_memoryFilter)) _memoryFilter.Visible = false;
         _vignetteA = 0f;
         if (_vignette != null && GodotObject.IsInstanceValid(_vignette)) _vignette.Modulate = new Color(1, 1, 1, 0);
     }
@@ -63,7 +65,8 @@ public partial class LivingRoomRuntime
         if (!string.IsNullOrWhiteSpace(line.camZoom)) zoom = CamZoomAsync(line.camZoom);
         if (!string.IsNullOrWhiteSpace(line.impact))  hit  = ImpactAsync(line.impact);
         Task vig = string.IsNullOrWhiteSpace(line.vignette) ? Task.CompletedTask : VignetteAsync(line.vignette);
-        await Task.WhenAll(zoom, hit, vig);
+        Task mem = string.IsNullOrWhiteSpace(line.memoryFilter) ? Task.CompletedTask : MemoryFilterAsync(line.memoryFilter);
+        await Task.WhenAll(zoom, hit, vig, mem);
     }
 
     async Task CamZoomAsync(string raw)
@@ -165,9 +168,8 @@ public partial class LivingRoomRuntime
         };
         _vignette.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _panel.AddChild(_vignette);
-        // 放在台詞框下面（蓋住背景／立繪／CG，但不蓋台詞）
-        if (_dialogueBox != null && _dialogueBox.GetParent() == _panel)
-            _panel.MoveChild(_vignette, _dialogueBox.GetIndex());
+        // 放在台詞框和名字欄下面（蓋住背景／立繪／CG，但不蓋台詞）
+        PlaceFxBelowUi(_vignette);
     }
 
     async Task VignetteAsync(string raw)
@@ -177,8 +179,7 @@ public partial class LivingRoomRuntime
         float target = Mathf.Clamp(ParseF(p[0], 0.85f), 0f, 1f);
         float dur = (p.Length > 1 ? ParseF(p[1], 30f) : 30f) / 60f;
         EnsureVignette();
-        if (_dialogueBox != null && _dialogueBox.GetParent() == _panel && _vignette.GetIndex() > _dialogueBox.GetIndex())
-            _panel.MoveChild(_vignette, _dialogueBox.GetIndex());
+        PlaceFxBelowUi(_vignette);
         float start = _vignetteA, t = 0f;
         while (t < dur)
         {
@@ -188,5 +189,76 @@ public partial class LivingRoomRuntime
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
         _vignetteA = target; _vignette.Modulate = new Color(1, 1, 1, target);
+    }
+
+    // ── 回憶濾鏡（泛黃褪色、柔光、四周微暗）──────────────────
+    // 劇本："memoryFilter": "強度,幀數"   強度 0~1（0＝關掉），幀數預設 30
+    ColorRect _memoryFilter;
+    ShaderMaterial _memoryMat;
+    float _memoryA;
+
+    const string MemoryShader = @"
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform float amount : hint_range(0.0, 1.0) = 0.0;
+void fragment() {
+    vec2 uv = SCREEN_UV;
+    vec3 base = textureLod(screen_tex, uv, 0.0).rgb;
+    vec3 soft = textureLod(screen_tex, uv, 2.5).rgb;
+    vec3 c = mix(base, soft, 0.25);
+    float g = dot(c, vec3(0.299, 0.587, 0.114));
+    vec3 sepia = vec3(g * 1.08, g * 0.95, g * 0.78);
+    c = mix(c, sepia, 0.28);
+    c = mix(vec3(g), c, 0.93);
+    c = (c - 0.5) * 0.95 + 0.5 + 0.02;
+    float d = distance(uv, vec2(0.5));
+    c *= 1.0 - smoothstep(0.1, 0.6, d) * 0.92;                   // 四周黑霧，視線集中在中間
+    COLOR = vec4(mix(base, clamp(c, 0.0, 1.0), amount), 1.0);
+}";
+
+    void EnsureMemoryFilter()
+    {
+        if (_memoryFilter != null && GodotObject.IsInstanceValid(_memoryFilter)) return;
+        _memoryMat = new ShaderMaterial { Shader = new Shader { Code = MemoryShader } };
+        _memoryMat.SetShaderParameter("amount", 0f);
+        _memoryFilter = new ColorRect
+        {
+            Color = Colors.White, Material = _memoryMat,
+            MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+        };
+        _memoryFilter.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _panel.AddChild(_memoryFilter);
+        PlaceFxBelowUi(_memoryFilter);
+    }
+
+    /// <summary>特效層（暈影／回憶濾鏡）要放在台詞框和名字欄「下面」，不然名字欄會被一起壓暗。</summary>
+    void PlaceFxBelowUi(Control fx)
+    {
+        if (fx == null || _panel == null) return;
+        int idx = int.MaxValue;
+        foreach (var ui in new Control[] { _dialogueBox, _nameBarGO })
+            if (ui != null && GodotObject.IsInstanceValid(ui) && ui.GetParent() == _panel) idx = System.Math.Min(idx, ui.GetIndex());
+        if (idx != int.MaxValue && fx.GetIndex() > idx) _panel.MoveChild(fx, idx);
+    }
+
+    async Task MemoryFilterAsync(string raw)
+    {
+        if (_panel == null) return;
+        var p = raw.Split(',');
+        float target = Mathf.Clamp(ParseF(p[0], 1f), 0f, 1f);
+        float dur = (p.Length > 1 ? ParseF(p[1], 30f) : 30f) / 60f;
+        EnsureMemoryFilter();
+        PlaceFxBelowUi(_memoryFilter);
+        _memoryFilter.Visible = true;
+        float start = _memoryA, t = 0f;
+        while (t < dur)
+        {
+            t += (float)GetProcessDeltaTime();
+            _memoryA = Mathf.Lerp(start, target, Mathf.Clamp(t / dur, 0f, 1f));
+            _memoryMat.SetShaderParameter("amount", _memoryA);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        _memoryA = target; _memoryMat.SetShaderParameter("amount", target);
+        _memoryFilter.Visible = target > 0.001f;
     }
 }
