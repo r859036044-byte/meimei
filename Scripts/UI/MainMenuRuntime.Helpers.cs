@@ -483,6 +483,8 @@ public partial class MainMenuRuntime : Control
     /// 舊寫法 Lerp(FF(秒)) 只在動畫開始那一刻判斷，動畫跑到一半才按快進就不會加速。
     /// fastFloor：快進時這段動畫最短仍保留的秒數（>0 時避免大幅度鏡頭變化瞬間跳過去、閃一下）。
     /// </summary>
+    public const float FastMinSec = 0.4f;   // 快進時單段動畫最短秒數
+
     public async Task LerpFF(float duration, Action<float> onStep, CancellationToken ct = default, float fastFloor = 0f)
     {
         if (Replaying) { onStep(1f); return; }
@@ -495,7 +497,10 @@ public partial class MainMenuRuntime : Control
             if (_reader?.FastNow ?? false)
             {
                 float mult = NovelReader.SkipSpeedMult;
-                if (fastFloor > 0f) mult = Mathf.Clamp(duration / fastFloor, 1f, mult);
+                // 快進時所有轉場（淡入淡出／白屏／背景走近／CG 縮放移動）都至少保留 FastMinSec 秒：
+                // 這樣它們會「一起」被加速，而不是有的瞬間跳過、有的還在跑，造成背景突然切換、光才亮的錯位
+                float floor = fastFloor > 0f ? fastFloor : FastMinSec;
+                mult = Mathf.Clamp(duration / floor, 1f, mult);
                 dt *= mult;
             }
             t += dt;

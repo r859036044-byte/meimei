@@ -229,15 +229,26 @@
       "speaker": "男主",
       "text": "……沒鎖。這丫頭今天又特地留了一道門縫。"
     },
-    { "branchStart": "allAges" },
-    {"speaker": "男主", "text": "（推開門走進去，看到莉奈縮在被窩裡睡得正熟，但想到白天莉奈似笑非笑的試探，男主心裡突然一陣退縮與膽怯）"},
-    { "branchEnd": true },
-    { "branchStart": "r18" },
+    {
+      "branchStart": "allAges"
+    },
+    {
+      "speaker": "男主",
+      "text": "（推開門走進去，看到莉奈縮在被窩裡睡得正熟，但想到白天莉奈似笑非笑的試探，男主心裡突然一陣退縮與膽怯）"
+    },
+    {
+      "branchEnd": true
+    },
+    {
+      "branchStart": "r18"
+    },
     {
       "speaker": "男主",
       "text": "（推開門走進去，看到莉奈又踢開了被子，但想到白天莉奈似笑非笑的試探，男主心裡突然一陣退縮與膽怯）"
     },
-    { "branchEnd": true },
+    {
+      "branchEnd": true
+    },
     {
       "varEnd": true
     },
@@ -268,20 +279,56 @@
       "speaker": "男主",
       "text": "晚上回家又對我冷嘲熱諷……每次只有在睡覺的時候才像是以前乖巧的妹妹啊。"
     },
-    { "branchStart": "allAges" },
-    {"speaker": "男主", "text": "不過這丫頭，睡著的樣子倒是一點防備都沒有……"},
-    { "branchEnd": true },
-    { "branchStart": "r18" },
+    {
+      "branchStart": "allAges"
+    },
+    {
+      "speaker": "男主",
+      "text": "不過這丫頭，睡著的樣子倒是一點防備都沒有……"
+    },
+    {
+      "branchEnd": true
+    },
+    {
+      "branchStart": "r18"
+    },
     {
       "speaker": "男主",
       "text": "不過這丫頭，睡相還是這麼差。被子又踢到了一邊……"
     },
-    { "branchEnd": true },
+    {
+      "branchEnd": true
+    },
     {
       "varEnd": true
     },
     {
       "branchStart": "allAges"
+    },
+    {
+      "speaker": "",
+      "text": "（莉奈洗完澡就回房睡了。我收拾完，走進走廊準備回自己的房間。）",
+      "bgName": "bg_Hallway_linai_open, fade",
+      "camPan": "0,1,1.0"
+    },
+    {
+      "speaker": "",
+      "text": "（走廊裡很安靜，只聽得見自己的腳步聲。）",
+      "camPan": "0,140,1.25"
+    },
+    {
+      "speaker": "",
+      "text": "（走到自己的房門前，我無意間往右邊看了一眼……）",
+      "camPan": "0.9,90,1.25"
+    },
+    {
+      "speaker": "",
+      "text": "（莉奈的房門沒有關緊，裡面沒開燈，一片漆黑。她應該已經睡著了。）"
+    },
+    {
+      "speaker": "",
+      "text": "（我輕輕走過去，推開了她的房門。）",
+      "camPan": "0,40,1"
     },
     {
       "gotoIfAllAges": "TrainingRoom"
@@ -429,16 +476,24 @@
     {
       "speaker": "男主",
       "text": "……",
-      "bgName": "bg_Hallway, fade"
+      "bgName": "bg_Hallway_linai_open, fade",
+      "camPan": "0,1,1.0"
     },
     {
       "speaker": "男主",
-      "text": "看來她是真的累了，加上吃飽後的睏意，應該很快就會睡熟。"
+      "text": "看來她是真的累了，加上吃飽後的睏意，應該很快就會睡熟。",
+      "camPan": "0,140,1.25"
+    },
+    {
+      "speaker": "",
+      "text": "（她的房門沒有關緊，裡面沒開燈，一片漆黑。）",
+      "camPan": "0.9,90,1.25"
     },
     {
       "speaker": "男主",
       "text": "不知道今晚她有沒有乖乖鎖門……再晚一些吧，等她睡得更熟一點再去確認。",
-      "fadeoutBlack": "60"
+      "fadeoutBlack": "60",
+      "camPan": "0,40,1"
     },
     {
       "text": "大概過了2個半小時後，男主進入了莉奈的房間。"

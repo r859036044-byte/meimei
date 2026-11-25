@@ -21,6 +21,7 @@ public partial class LivingRoomRuntime
     float   _camZoom  = 1f;                     // 目前鏡頭倍率
     float   _camPunch = 1f;                     // 衝擊時額外的瞬間放大
     Vector2 _camFocus = new(0.5f, 0.5f);        // 縮放焦點（0~1）
+    float   _camPan;                            // 鏡頭水平平移（-1 最左 ~ 1 最右；放大後才看得出來）
     int     _impactSerial;                      // 新的衝擊會中斷舊的
 
     static float ParseF(string s, float def)
@@ -43,6 +44,8 @@ public partial class LivingRoomRuntime
         {
             c.PivotOffset = new Vector2(c.Size.X * _camFocus.X, c.Size.Y * _camFocus.Y);
             c.Scale = new Vector2(z, z);
+            // 平移：放大後內容比畫面寬，往左推內容＝鏡頭向右看（上限剛好到畫面邊緣，不會露出黑邊）
+            c.Position = new Vector2(-_camPan * (z - 1f) * 0.5f * c.Size.X, 0f);
         }
     }
 
@@ -50,7 +53,7 @@ public partial class LivingRoomRuntime
     void ResetCameraFx()
     {
         _impactSerial++;
-        _camZoom = 1f; _camPunch = 1f; _camFocus = new Vector2(0.5f, 0.5f);
+        _camZoom = 1f; _camPunch = 1f; _camPan = 0f; _camFocus = new Vector2(0.5f, 0.5f);
         ApplyCamera();
         if (_panel != null) _panel.Position = Vector2.Zero;
         _memoryA = 0f;
@@ -64,9 +67,10 @@ public partial class LivingRoomRuntime
         Task zoom = Task.CompletedTask, hit = Task.CompletedTask;
         if (!string.IsNullOrWhiteSpace(line.camZoom)) zoom = CamZoomAsync(line.camZoom);
         if (!string.IsNullOrWhiteSpace(line.impact))  hit  = ImpactAsync(line.impact);
+        Task pan = string.IsNullOrWhiteSpace(line.camPan) ? Task.CompletedTask : CamPanAsync(line.camPan);
         Task vig = string.IsNullOrWhiteSpace(line.vignette) ? Task.CompletedTask : VignetteAsync(line.vignette);
         Task mem = string.IsNullOrWhiteSpace(line.memoryFilter) ? Task.CompletedTask : MemoryFilterAsync(line.memoryFilter);
-        await Task.WhenAll(zoom, hit, vig, mem);
+        await Task.WhenAll(zoom, hit, pan, vig, mem);
     }
 
     async Task CamZoomAsync(string raw)
@@ -90,6 +94,32 @@ public partial class LivingRoomRuntime
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
         _camZoom = target; ApplyCamera();
+    }
+
+    /// <summary>camPan："X,幀數,倍率"。X：-1 最左 ~ 1 最右；倍率省略＝目前倍率（還沒放大就用 1.35）。"0" ＝ 回正並復原倍率。</summary>
+    async Task CamPanAsync(string raw)
+    {
+        var p = raw.Split(',');
+        float targetPan = Mathf.Clamp(ParseF(p[0], 0f), -1f, 1f);
+        float frames = p.Length > 1 ? ParseF(p[1], 60f) : 60f;
+        float targetZoom = p.Length > 2 ? Mathf.Max(1f, ParseF(p[2], 1.35f)) : (_camZoom > 1.001f ? _camZoom : 1.35f);
+        if (p.Length == 1 && Mathf.Abs(targetPan) < 0.001f) targetZoom = 1f;
+        _camFocus = new Vector2(0.5f, 0.5f);
+
+        float dur = frames / 60f;
+        if (dur <= 0.02f) { _camPan = targetPan; _camZoom = targetZoom; ApplyCamera(); return; }
+        float p0 = _camPan, z0 = _camZoom, t = 0f;
+        while (t < dur)
+        {
+            t += (float)GetProcessDeltaTime();
+            float k = Mathf.Clamp(t / dur, 0f, 1f);
+            k = k * k * (3f - 2f * k);                  // ease-in-out：像人慢慢轉頭
+            _camPan  = Mathf.Lerp(p0, targetPan, k);
+            _camZoom = Mathf.Lerp(z0, targetZoom, k);
+            ApplyCamera();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        _camPan = targetPan; _camZoom = targetZoom; ApplyCamera();
     }
 
     async Task ImpactAsync(string raw)

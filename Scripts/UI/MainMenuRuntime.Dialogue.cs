@@ -619,6 +619,26 @@ void fragment() {
             if (line.r18Only && !isR18)
                 continue;
 
+            // 同一行有「優先 fadeout（60, 1）」又換背景：要先閃光／黑屏，在螢幕被遮住之後才換背景
+            // （以前背景會先蓋掉畫面，閃光才出來，看起來就是突然一個背景對臉）
+            bool _foEarlyDone = false;
+            if (!string.IsNullOrEmpty(line.bgName))
+            {
+                string _eVal = !string.IsNullOrEmpty(line.fadeoutWhite) ? line.fadeoutWhite
+                             : !string.IsNullOrEmpty(line.fadeoutBlack) ? line.fadeoutBlack
+                             : !string.IsNullOrEmpty(line.fadeout) ? line.fadeout : null;
+                if (_eVal != null && DialogueSystem.ParseFadeoutValue(_eVal).priority)
+                {
+                    Color _eColor = !string.IsNullOrEmpty(line.fadeoutWhite) ? Colors.White : Colors.Black;
+                    SetDialogueUIVisible(false);
+                    float.TryParse(DialogueSystem.ParseFadeoutValue(_eVal).framesStr, out float _eFrames);
+                    _screenFadeColor = _eColor;
+                    await ScreenFade(true, _eFrames > 0f ? _eFrames / 60f : 0.5f, _eColor, ct);
+                    _screenBlack = true;
+                    _foEarlyDone = true;
+                }
+            }
+
             // 背景切換（支援 "bg_name, fade" 格式淡入）
             if (!string.IsNullOrEmpty(line.bgName))
             {
@@ -1096,12 +1116,15 @@ void fragment() {
             // ── 優先 fadeout：在台詞前率先黑屏，然後在黑屏後面處理延後操作 ──
             if (_foPriority && _foVal != null)
             {
-                SetDialogueUIVisible(false);
-                float.TryParse(_foFrames, out float _pfFrames);
-                float _pfDur = _pfFrames > 0f ? _pfFrames / 60f : 0.5f;
-                _screenFadeColor = _foColor;
-                await ScreenFade(true, _pfDur, _foColor, ct);
-                _screenBlack = true;
+                if (!_foEarlyDone)   // 換背景那一行已經在上面先黑屏／閃光過了
+                {
+                    SetDialogueUIVisible(false);
+                    float.TryParse(_foFrames, out float _pfFrames);
+                    float _pfDur = _pfFrames > 0f ? _pfFrames / 60f : 0.5f;
+                    _screenFadeColor = _foColor;
+                    await ScreenFade(true, _pfDur, _foColor, ct);
+                    _screenBlack = true;
+                }
 
                 // 延後的 hideCG 優先（所有層平行淡出）
                 {
@@ -1700,7 +1723,7 @@ void fragment() {
                 SetScale(_bgImage, startScale.Lerp(targetScale, p));
                 DlgSetStretchOffset(_bgImage2, np.X, np.Y);
                 SetScale(_bgImage2, _bgImage.Scale);
-            }, ct, 0.5f);
+            }, ct, FastMinSec);
         }
         catch (OperationCanceledException)
         {

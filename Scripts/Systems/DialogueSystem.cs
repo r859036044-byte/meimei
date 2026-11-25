@@ -93,6 +93,7 @@ public partial class DialogueSystem : Node
         [JsonPropertyName("autoNext")] public float  autoNext { get; set; }
         [JsonPropertyName("camZoom")]  public string camZoom  { get; set; }   // 鏡頭縮放 "倍率,幀數,焦點X,焦點Y"（"1" 復原）— 目前 LivingRoom 支援
         [JsonPropertyName("impact")]   public string impact   { get; set; }   // 衝擊特效 "強度,幀數"（白閃＋震動＋衝撞）— 目前 LivingRoom 支援
+        [JsonPropertyName("camPan")]   public string camPan   { get; set; }   // 鏡頭平移 "X(-1左~1右),幀數,倍率"（走廊走動／向右看；"0" 復原）— 目前 LivingRoom 支援
         [JsonPropertyName("memoryFilter")] public string memoryFilter { get; set; }   // 回憶濾鏡 "強度,幀數"（0 關掉）— 目前 LivingRoom 支援
         [JsonPropertyName("vignette")] public string vignette { get; set; }   // 視角黑霧 "強度,幀數"（0 關掉）— 目前 LivingRoom 支援
 
